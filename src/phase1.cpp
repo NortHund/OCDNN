@@ -13,6 +13,8 @@ int* matrixB;
 int* matrixRcpp;
 int* matrixRocl;
 
+int* matrixW;
+
 // Get kernel execution time in microseconds
 unsigned long get_kernel_execution_time(cl_event &event, cl_command_queue &command_queue)
 {
@@ -135,6 +137,56 @@ public:
         return (unsigned)status;
     }
 
+    unsigned convolution(int windowSize)
+    {
+        convolutionBuffer = clCreateBuffer(_ocl_base->context,
+                                       CL_MEM_READ_WRITE,
+                                       _width * _height * sizeof(unsigned char),
+                                       NULL,
+                                       NULL);
+
+        cl_mem wBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        avg_window_size * avg_window_size * sizeof(int),
+                                        matrixW,
+                                        NULL);
+
+
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&imageBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&convolutionBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&wBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 3, sizeof(int), &windowSize);
+
+        size_t global_work_size[2];
+        global_work_size[0] = _width * sizeof(unsigned char);
+        global_work_size[1] = _height * sizeof(unsigned char);
+
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(4),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        status = clEnqueueCopyBuffer(_ocl_base->commandQueue,
+                                     convolutionBuffer,
+                                     imageBuffer,
+                                     0,
+                                     0,
+                                     _width * _height * sizeof(unsigned char),
+                                     0,
+                                     NULL,
+                                     NULL);
+
+        return (unsigned)status;
+    }
+
     unsigned save_image(const char* filename) override
     {
         if(_imageIsGrayscaled)
@@ -175,6 +227,7 @@ public:
     cl_mem imageBuffer = nullptr;
     cl_mem averageBuffer = nullptr;
     cl_mem stdDeviationBuffer = nullptr;
+    cl_mem convolutionBuffer = nullptr;
 private:
     
     std::unique_ptr<OCL_Base>& _ocl_base;
@@ -209,6 +262,7 @@ public:
         prog = _ocl_base->CreateProgramFromFile("kernels/p1-4-5-grayscale-resize.cl");
         prog_average = _ocl_base->CreateProgramFromFile("kernels/p1-moving-avg.cl");
         prog_ma = _ocl_base->CreateProgramFromFile("kernels/p1-ma.cl");
+        prog_cv = _ocl_base->CreateProgramFromFile("kernels/convolution.cl");
     }
 
     void init_kernels()
@@ -217,6 +271,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog, "resize");
         _ocl_base->CreateKernelFromProgram(prog_average, "average");
         _ocl_base->CreateKernelFromProgram(prog_ma, "matrix_addition");
+        _ocl_base->CreateKernelFromProgram(prog_cv, "convolution");
     }
 
     unsigned matrix_addition()
@@ -294,6 +349,7 @@ private:
     cl_program prog;
     cl_program prog_average;
     cl_program prog_ma;
+    cl_program prog_cv;
 
     cl_event _event;
 
@@ -301,7 +357,8 @@ private:
     // 1 - Resize
     // 2 - Average
     // 4 - Matrix addition
-    unsigned long kernel_execution_times[5] = {0, 0, 0, 0, 0};
+    // 5 - convolution
+    unsigned long kernel_execution_times[6] = {0, 0, 0, 0, 0, 0};
 };
 
 OCL_Phase1 ocl_phase1;
@@ -545,6 +602,31 @@ OCL_Phase1 ocl_phase1;
         }
     };
 
+    struct CreateWeights : public IProgram
+    {
+        int run() override
+        {
+            matrixW = (int*)malloc((avg_window_size * avg_window_size) * sizeof(int));
+
+            for (int i=0; i<avg_window_size; i++) {
+                for (int j=0; j<avg_window_size; j++) {
+                    matrixW[i * avg_window_size + j] = i + j + 1;
+                }
+            }
+            return 0;
+        }
+    };
+
+    struct Convolution : public IProgram
+    {
+        int run() override
+        {
+            ocl_phase1.img1->convolution(avg_window_size);
+            ocl_phase1.img1->save_image("../../output-img/im1_convolution.png");
+            return 0;
+        }
+    };
+
 
 
 int main()
@@ -580,6 +662,10 @@ int main()
     OclSaveResizedImage oclSaveResizedImage;
     OclAverage oclAverage;
     OclSaveFilteredImage oclSaveFilteredImage;
+
+    //Step 4
+    Convolution convolution;
+    CreateWeights createWeights;
 
     int result = Program_sw.runProgram(loadImage);
     //Step 1
@@ -666,6 +752,13 @@ int main()
     std::cout << "OpenCl: Save image result: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl << std::endl;
 
+    //Step 4
+    std::cout << "Step 4 - convolution" << std::endl;
+    result = Program_sw.runProgram(createWeights);
+    result = Program_sw.runProgram(convolution);
+    std::cout << "OpenCl: Save image result: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl << std::endl;
+
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
 
@@ -675,6 +768,7 @@ int main()
     free(matrixB);
     free(matrixRcpp);
     free(matrixRocl);
+    free(matrixW);
 
     printPlatformProfile(false);
     return 0;
