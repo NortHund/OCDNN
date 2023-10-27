@@ -1,4 +1,4 @@
-__kernel void convolution(__global unsigned char *layer, __global unsigned char *output, __global unsigned char *weight,
+__kernel void convolution_image(__global unsigned char *layer, __global unsigned char *output, __global unsigned char *weight,
                       int windowSize) {
   int col = get_global_id(0);
   int row = get_global_id(1);
@@ -21,5 +21,5 @@ __kernel void convolution(__global unsigned char *layer, __global unsigned char 
     }
   }
 
-  output[row * width + col] = sum / 8;
+  output[row * width + col] = sum / 4;
 }
