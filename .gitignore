@@ -1,3 +1,11 @@
+build/*
+output-img/*.png
+output-img/*.txt
+.vscode
+.idea
+
+cmake-build-debug/
+
 # Prerequisites
 *.d
 
