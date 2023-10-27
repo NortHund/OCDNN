@@ -5,6 +5,9 @@ int scaling_factor = 4;
 int matwidth = 100;
 int matheight = 100;
 
+int mfwidth = 10;
+int mfheight = 15;
+
 int* matrixA;
 int* matrixB;
 int* matrixRcpp;
@@ -104,7 +107,7 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         //Reading result from GPU memory to main memory
         status = clEnqueueReadBuffer(_ocl_base->commandQueue,
@@ -163,7 +166,7 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[1] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         //Reading result from GPU memory to main memory
         status = clEnqueueReadBuffer(_ocl_base->commandQueue,
@@ -179,37 +182,37 @@ public:
         return (unsigned)status;
     }
 
-    unsigned convolution_fl()
+    unsigned convolution_fl(int iw, int ih, int ww, int wh, int ow, int oh)
     {
         //Creating OpenCL buffers for matrices
-        cl_mem aBufferd = clCreateBuffer(_ocl_base->context,
+        cl_mem iBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         matwidth * matheight * sizeof(float),
+                                         mfwidth * mfheight * sizeof(float),
                                          matrixAf,
                                          NULL);
 
-        cl_mem bBufferd = clCreateBuffer(_ocl_base->context,
+        cl_mem wBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         matwidth * matheight * sizeof(float),
+                                         mfwidth * mfheight * sizeof(float),
                                          matrixBf,
                                          NULL);
 
-        cl_mem rBufferd = clCreateBuffer(_ocl_base->context,
+        cl_mem oBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_WRITE,
-                                         matwidth * matheight * sizeof(float),
+                                         mfwidth * mfheight * sizeof(float),
                                          NULL,
                                          NULL);
 
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&aBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&bBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(cl_mem), (void *)&rBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&wBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(cl_mem), (void *)&oBuffer);
 
         size_t global_work_size[2];
-        global_work_size[0] = matwidth * sizeof(float);
-        global_work_size[1] = matheight * sizeof(float);
+        global_work_size[0] = mfwidth * sizeof(float);
+        global_work_size[1] = mfheight * sizeof(float);
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
@@ -222,14 +225,14 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         //Reading result from GPU memory to main memory
         status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                     rBufferd,
+                                     oBuffer,
                                      0,
                                      0,
-                                     matwidth * matheight * sizeof(float),
+                                     mfwidth * mfheight * sizeof(float),
                                      matrixRoclf,
                                      0,
                                      NULL,
@@ -241,7 +244,9 @@ public:
     void print_kernel_execution_times()
     {
         std::cout << "OpenCL kernel execution times\n\n";
-        std::cout << "  Matrix addition: " << kernel_execution_times[5] << " us\n\n";
+        std::cout << "  Matrix addition: " << kernel_execution_times[0] << " us\n";
+        std::cout << "  Mad: " << kernel_execution_times[1] << " us\n";
+        std::cout << "  Convolution fl: " << kernel_execution_times[2] << " us\n";
     }
 
     std::unique_ptr<OCL_Base> _ocl_base;
@@ -253,7 +258,8 @@ private:
 
     cl_event _event;
 
-    // 4 - Matrix addition
+    // 0 - Matrix addition
+    // 1 - Matrix addition float - Mad
     // 5 - convolution
     unsigned long kernel_execution_times[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 };
@@ -288,30 +294,14 @@ OCL_Phase1 ocl_phase1;
                 }
             }
 
-            matrixAf = (float*)malloc((matwidth * matheight) * sizeof(float));
-            matrixBf = (float*)malloc((matwidth * matheight) * sizeof(float));
-            matrixRoclf = (float*)malloc((matwidth * matheight) * sizeof(float));
+            matrixAf = (float*)malloc((mfwidth * mfheight) * sizeof(float));
+            matrixBf = (float*)malloc((mfwidth * mfheight) * sizeof(float));
+            matrixRoclf = (float*)malloc((mfwidth * mfheight) * sizeof(float));
 
-            for (int i=0; i<matheight; i++) {
-                for (int j=0; j<matwidth; j++) {
-                    matrixAf[i * matwidth + j] = i + 1;
-                    matrixBf[i * matwidth + j] = j + 2;
-                }
-            }
-
-            unsigned error = 0;
-            return (int) error;
-        }
-    };
-
-    struct MatrixAdditionC : public IProgram
-    {
-        int run() override
-        {
-
-            for (int i=0; i<matheight; i++) {
-                for (int j=0; j<matwidth; j++) {
-                    matrixRcpp[i * matwidth + j] = matrixA[i * matwidth + j] + matrixB[i * matwidth + j];
+            for (int i=0; i<mfheight; i++) {
+                for (int j=0; j<mfwidth; j++) {
+                    matrixAf[i * mfwidth + j] = i + 1;
+                    matrixBf[i * mfwidth + j] = j + 2;
                 }
             }
 
@@ -326,33 +316,7 @@ OCL_Phase1 ocl_phase1;
         {
             ocl_phase1.matrix_addition();
             ocl_phase1.mad();
-            ocl_phase1.convolution_fl();
-
-            unsigned error = 0;
-            return (int) error;
-        }
-    };
-
-    struct SaveMatrixCpp : public IProgram
-    {
-        int run() override
-        {
-
-            FILE *f = fopen("../../output-img/p1-matAddCpp.txt", "w");
-            if (f == NULL)
-            {
-                printf("Error opening file!\n");
-                exit(1);
-            }
-
-            for (int i=0; i<matheight; i++) {
-                for (int j=0; j<matwidth; j++) {
-                    fprintf(f, "%d ", matrixRcpp[i * matwidth + j]);
-                }
-                fprintf(f, "\n");
-            }
-
-            fclose(f);
+            ocl_phase1.convolution_fl(1, 1, 1, 1, 1, 1);
 
             unsigned error = 0;
             return (int) error;
@@ -403,9 +367,9 @@ OCL_Phase1 ocl_phase1;
                 exit(1);
             }
 
-            for (int i=0; i<matheight; i++) {
-                for (int j=0; j<matwidth; j++) {
-                    fprintf(fp, "%f ", matrixRoclf[i * matwidth + j]);
+            for (int i=0; i<mfheight; i++) {
+                for (int j=0; j<mfwidth; j++) {
+                    fprintf(fp, "%f ", matrixRoclf[i * mfwidth + j]);
                 }
                 fprintf(fp, "\n");
             }
@@ -431,28 +395,14 @@ int main()
 
     //Step 2
     CreateMatrices createMatrices;
-    MatrixAdditionC matrixAdditionC;
     MatrixAdditionOCL matrixAdditionOCL;
-    SaveMatrixCpp saveMatrixCpp;
     SaveMatrixOCL saveMatrixOCL;
-
-    //Step 3
 
     int result = 0;
 
-    //Step 2
-    std::cout << "Step 2" << std::endl;
 
     result = Program_sw.runProgram(createMatrices);
     std::cout << "Creation of matrices: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(matrixAdditionC);
-    std::cout << "C++ matrix addition: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(saveMatrixCpp);
-    std::cout << "C++ matrix save: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
     result = Program_sw.runProgram(matrixAdditionOCL);
@@ -462,9 +412,6 @@ int main()
     result = Program_sw.runProgram(saveMatrixOCL);
     std::cout << "OpenCL matrix save: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl << std::endl;
-
-    //Step 3
-    std::cout << "Step 3" << std::endl;
 
     //Step 4
     std::cout << "Step 4 - convolution" << std::endl;
