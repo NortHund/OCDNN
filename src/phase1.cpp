@@ -6,7 +6,16 @@ int matwidth = 100;
 int matheight = 100;
 
 int mfwidth = 10;
-int mfheight = 15;
+int mfheight = 10;
+
+int layer0w = 32;
+int layer0h = 32;
+
+int layer1w = 28;
+int layer1h = 28;
+
+int w01w = 5;
+int w01h = 5;
 
 int* matrixA;
 int* matrixB;
@@ -187,19 +196,19 @@ public:
         //Creating OpenCL buffers for matrices
         cl_mem iBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         mfwidth * mfheight * sizeof(float),
+                                         iw * ih * sizeof(float),
                                          matrixAf,
                                          NULL);
 
         cl_mem wBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         mfwidth * mfheight * sizeof(float),
+                                         ww * wh * sizeof(float),
                                          matrixBf,
                                          NULL);
 
         cl_mem oBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_WRITE,
-                                         mfwidth * mfheight * sizeof(float),
+                                         ow * oh * sizeof(float),
                                          NULL,
                                          NULL);
 
@@ -211,8 +220,8 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(cl_mem), (void *)&oBuffer);
 
         size_t global_work_size[2];
-        global_work_size[0] = mfwidth * sizeof(float);
-        global_work_size[1] = mfheight * sizeof(float);
+        global_work_size[0] = ow * sizeof(float);
+        global_work_size[1] = oh * sizeof(float);
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
@@ -232,7 +241,7 @@ public:
                                      oBuffer,
                                      0,
                                      0,
-                                     mfwidth * mfheight * sizeof(float),
+                                     ow * oh * sizeof(float),
                                      matrixRoclf,
                                      0,
                                      NULL,
@@ -294,14 +303,19 @@ OCL_Phase1 ocl_phase1;
                 }
             }
 
-            matrixAf = (float*)malloc((mfwidth * mfheight) * sizeof(float));
-            matrixBf = (float*)malloc((mfwidth * mfheight) * sizeof(float));
-            matrixRoclf = (float*)malloc((mfwidth * mfheight) * sizeof(float));
+            matrixAf = (float*)malloc((layer0w * layer0h) * sizeof(float));
+            matrixBf = (float*)malloc((w01w * w01h) * sizeof(float));
+            matrixRoclf = (float*)malloc((layer1w * layer1h) * sizeof(float));
 
-            for (int i=0; i<mfheight; i++) {
-                for (int j=0; j<mfwidth; j++) {
-                    matrixAf[i * mfwidth + j] = i + 1;
-                    matrixBf[i * mfwidth + j] = j + 2;
+            for (int i=0; i<layer0h; i++) {
+                for (int j=0; j<layer0w; j++) {
+                    matrixAf[i * layer0w + j] = i + 1;
+                }
+            }
+
+            for (int i=0; i<w01h; i++) {
+                for (int j=0; j<w01w; j++) {
+                    matrixBf[i * w01w + j] = j + 2;
                 }
             }
 
@@ -316,7 +330,7 @@ OCL_Phase1 ocl_phase1;
         {
             ocl_phase1.matrix_addition();
             ocl_phase1.mad();
-            ocl_phase1.convolution_fl(1, 1, 1, 1, 1, 1);
+            ocl_phase1.convolution_fl(layer0w, layer0h, w01w, w01h, layer1w, layer1h);
 
             unsigned error = 0;
             return (int) error;
@@ -367,9 +381,9 @@ OCL_Phase1 ocl_phase1;
                 exit(1);
             }
 
-            for (int i=0; i<mfheight; i++) {
-                for (int j=0; j<mfwidth; j++) {
-                    fprintf(fp, "%f ", matrixRoclf[i * mfwidth + j]);
+            for (int i=0; i<layer1h; i++) {
+                for (int j=0; j<layer1w; j++) {
+                    fprintf(fp, "%f ", matrixRoclf[i * layer1w + j]);
                 }
                 fprintf(fp, "\n");
             }
