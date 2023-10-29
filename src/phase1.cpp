@@ -204,7 +204,7 @@ public:
 
         cl_mem wBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         od * ww * wh * sizeof(float),
+                                         id * od * ww * wh * sizeof(float),
                                          matrixBf,
                                          NULL);
 
@@ -323,10 +323,12 @@ OCL_Phase1 ocl_phase1;
                 }
             }
 
-            for (int d = 0; d < layer1d; d++) {
-                for (int i = 0; i < w01h; i++) {
-                    for (int j = 0; j < w01w; j++) {
-                        matrixBf[(d * w01h * w01w) + i * w01w + j] = 0.01;
+            for (int n = 0; n < layer0d; n++) {
+                for (int d = 0; d < layer1d; d++) {
+                    for (int i = 0; i < w01h; i++) {
+                        for (int j = 0; j < w01w; j++) {
+                            matrixBf[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = 0.01;
+                        }
                     }
                 }
             }
@@ -418,14 +420,18 @@ OCL_Phase1 ocl_phase1;
                 printf("Error opening file!\n");
                 exit(1);
             }
-            for (int d = 0; d < layer1d; d++) {
-                for (int i = 0; i < w01h; i++) {
-                    for (int j = 0; j < w01w; j++) {
-                        fprintf(fp, "%f ", matrixBf[(d * w01h * w01w) + i * w01w + j]);
+            for (int n = 0; n < layer0d; n++) {
+                fprintf(fp, "//N = %d--------------------------------------------\n", n);
+                for (int d = 0; d < layer1d; d++) {
+                    fprintf(fp, "//M = %d \n", d);
+                    for (int i = 0; i < w01h; i++) {
+                        for (int j = 0; j < w01w; j++) {
+                            fprintf(fp, "%f ", matrixBf[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + i * w01w + j]);
+                        }
+                        fprintf(fp, "\n");
                     }
                     fprintf(fp, "\n");
                 }
-                fprintf(fp, "\n\n");
             }
             fclose(fp);
 

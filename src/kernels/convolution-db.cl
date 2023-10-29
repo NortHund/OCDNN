@@ -8,9 +8,9 @@ __kernel void convolution_fl(__global float* inputA, __global float* inputB, __g
 
     for (int i = 0; i < heightB; i++) {
         for (int j = 0; j < widthB; j++) {
-          sum += inputA[(layerA * heightA * widthA) + (row + i) * widthA + (col + j)] * inputB[(layerB * widthB * heightB) + i * widthB + j];
+          sum += inputA[(layerA * heightA * widthA) + ((row + i) * widthA) + (col + j)] * inputB[(layerA * depthB * heightB * widthB) + (layerB * heightB * widthB) + (i * widthB) + j];
         }
     }
 
-  output[(layerB * width * height) + row * width + col] = sum;
+  output[(layerB * width * height) + (row * width) + col] = sum;
 }
