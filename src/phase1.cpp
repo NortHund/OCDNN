@@ -10,9 +10,11 @@ int mfheight = 10;
 
 int layer0w = 32;
 int layer0h = 32;
+int layer0d = 1;
 
 int layer1w = 28;
 int layer1h = 28;
+int layer1d = 6;
 
 int w01w = 5;
 int w01h = 5;
@@ -191,7 +193,7 @@ public:
         return (unsigned)status;
     }
 
-    unsigned convolution_fl(int iw, int ih, int ww, int wh, int ow, int oh)
+    unsigned convolution_fl(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         //Creating OpenCL buffers for matrices
         cl_mem iBuffer = clCreateBuffer(_ocl_base->context,
@@ -202,13 +204,13 @@ public:
 
         cl_mem wBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         ww * wh * sizeof(float),
+                                         od * ww * wh * sizeof(float),
                                          matrixBf,
                                          NULL);
 
         cl_mem oBuffer = clCreateBuffer(_ocl_base->context,
                                          CL_MEM_READ_WRITE,
-                                         ow * oh * sizeof(float),
+                                         od * ow * oh * sizeof(float),
                                          NULL,
                                          NULL);
 
@@ -218,6 +220,14 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&iBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&wBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 3, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 5, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 6, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 7, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 8, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 9, sizeof(int), &iln);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 10, sizeof(int), &olm);
 
         size_t global_work_size[2];
         global_work_size[0] = ow * sizeof(float);
@@ -241,7 +251,7 @@ public:
                                      oBuffer,
                                      0,
                                      0,
-                                     ow * oh * sizeof(float),
+                                     od * ow * oh * sizeof(float),
                                      matrixRoclf,
                                      0,
                                      NULL,
@@ -255,7 +265,7 @@ public:
         std::cout << "OpenCL kernel execution times\n\n";
         std::cout << "  Matrix addition: " << kernel_execution_times[0] << " us\n";
         std::cout << "  Mad: " << kernel_execution_times[1] << " us\n";
-        std::cout << "  Convolution fl: " << kernel_execution_times[2] << " us\n";
+        std::cout << "  Convolution fl: " << kernel_execution_times[2] << " us\n\n";
     }
 
     std::unique_ptr<OCL_Base> _ocl_base;
@@ -303,19 +313,21 @@ OCL_Phase1 ocl_phase1;
                 }
             }
 
-            matrixAf = (float*)malloc((layer0w * layer0h) * sizeof(float));
-            matrixBf = (float*)malloc((w01w * w01h) * sizeof(float));
-            matrixRoclf = (float*)malloc((layer1w * layer1h) * sizeof(float));
+            matrixAf = (float*)malloc((layer0d) * (layer0w * layer0h) * sizeof(float));
+            matrixBf = (float*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(float));
+            matrixRoclf = (float*)malloc((layer1d) * (layer1w * layer1h) * sizeof(float));
 
             for (int i=0; i<layer0h; i++) {
                 for (int j=0; j<layer0w; j++) {
-                    matrixAf[i * layer0w + j] = i + 1;
+                    matrixAf[i * layer0w + j] = 2.5;
                 }
             }
 
-            for (int i=0; i<w01h; i++) {
-                for (int j=0; j<w01w; j++) {
-                    matrixBf[i * w01w + j] = j + 2;
+            for (int d = 0; d < layer1d; d++) {
+                for (int i = 0; i < w01h; i++) {
+                    for (int j = 0; j < w01w; j++) {
+                        matrixBf[(d * w01h * w01w) + i * w01w + j] = 0.01;
+                    }
                 }
             }
 
@@ -330,7 +342,7 @@ OCL_Phase1 ocl_phase1;
         {
             ocl_phase1.matrix_addition();
             ocl_phase1.mad();
-            ocl_phase1.convolution_fl(layer0w, layer0h, w01w, w01h, layer1w, layer1h);
+            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
             unsigned error = 0;
             return (int) error;
@@ -339,18 +351,16 @@ OCL_Phase1 ocl_phase1;
 
     struct SaveMatrixOCL : public IProgram
     {
-        int run() override
-        {
+        int run() override {
 
             FILE *fp = fopen("../../output-img/p1-matAddOcl.txt", "w");
-            if (fp == NULL)
-            {
+            if (fp == NULL) {
                 printf("Error opening file!\n");
                 exit(1);
             }
 
-            for (int i=0; i<matheight; i++) {
-                for (int j=0; j<matwidth; j++) {
+            for (int i = 0; i < matheight; i++) {
+                for (int j = 0; j < matwidth; j++) {
                     fprintf(fp, "%d ", matrixRocl[i * matwidth + j]);
                 }
                 fprintf(fp, "\n");
@@ -359,14 +369,13 @@ OCL_Phase1 ocl_phase1;
             fclose(fp);
 
             fp = fopen("../../output-img/p1-madOcl.txt", "w");
-            if (fp == NULL)
-            {
+            if (fp == NULL) {
                 printf("Error opening file!\n");
                 exit(1);
             }
 
-            for (int i=0; i<matheight; i++) {
-                for (int j=0; j<matwidth; j++) {
+            for (int i = 0; i < matheight; i++) {
+                for (int j = 0; j < matwidth; j++) {
                     fprintf(fp, "%f ", matrixRocld[i * matwidth + j]);
                 }
                 fprintf(fp, "\n");
@@ -374,20 +383,50 @@ OCL_Phase1 ocl_phase1;
 
             fclose(fp);
 
-            fp = fopen("../../output-img/p1-mfOcl.txt", "w");
-            if (fp == NULL)
-            {
+            fp = fopen("../../output-data/l1-conv-out.txt", "w");
+            if (fp == NULL) {
                 printf("Error opening file!\n");
                 exit(1);
             }
 
-            for (int i=0; i<layer1h; i++) {
-                for (int j=0; j<layer1w; j++) {
+            for (int i = 0; i < layer1h; i++) {
+                for (int j = 0; j < layer1w; j++) {
                     fprintf(fp, "%f ", matrixRoclf[i * layer1w + j]);
                 }
                 fprintf(fp, "\n");
             }
 
+            fclose(fp);
+
+            fp = fopen("../../output-data/l0-matrixAf.txt", "w");
+            if (fp == NULL) {
+                printf("Error opening file!\n");
+                exit(1);
+            }
+
+            for (int i = 0; i < layer0h; i++) {
+                for (int j = 0; j < layer0w; j++) {
+                    fprintf(fp, "%f ", matrixAf[i * layer0w + j]);
+                }
+                fprintf(fp, "\n");
+            }
+
+            fclose(fp);
+
+            fp = fopen("../../output-data/l0-matrixBf.txt", "w");
+            if (fp == NULL) {
+                printf("Error opening file!\n");
+                exit(1);
+            }
+            for (int d = 0; d < layer1d; d++) {
+                for (int i = 0; i < w01h; i++) {
+                    for (int j = 0; j < w01w; j++) {
+                        fprintf(fp, "%f ", matrixBf[(d * w01h * w01w) + i * w01w + j]);
+                    }
+                    fprintf(fp, "\n");
+                }
+                fprintf(fp, "\n\n");
+            }
             fclose(fp);
 
             unsigned error = 0;

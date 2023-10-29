@@ -1,8 +1,16 @@
-__kernel void convolution_fl(__global float* inputA, __global float* inputB, __global float* output) {
+__kernel void convolution_fl(__global float* inputA, __global float* inputB, __global float* output, int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
     int height = get_global_size(1);
 
-    output[row * width + col] = inputA[row * width + col] + inputB[row * width + col];
+    float sum = 0;
+
+    for (int i = 0; i < heightB; i++) {
+        for (int j = 0; j < widthB; j++) {
+          sum += inputA[(layerA * heightA * widthA) + (row + i) * widthA + (col + j)] * inputB[(layerB * widthB * heightB) + i * widthB + j];
+        }
+    }
+
+  output[(layerB * width * height) + row * width + col] = sum;
 }
