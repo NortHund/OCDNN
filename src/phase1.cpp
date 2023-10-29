@@ -195,25 +195,6 @@ public:
 
     unsigned convolution_fl(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        //Creating OpenCL buffers for matrices
-        cl_mem iBuffer = clCreateBuffer(_ocl_base->context,
-                                         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         iw * ih * sizeof(float),
-                                         matrixAf,
-                                         NULL);
-
-        cl_mem wBuffer = clCreateBuffer(_ocl_base->context,
-                                         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                         id * od * ww * wh * sizeof(float),
-                                         matrixBf,
-                                         NULL);
-
-        cl_mem oBuffer = clCreateBuffer(_ocl_base->context,
-                                         CL_MEM_READ_WRITE,
-                                         od * ow * oh * sizeof(float),
-                                         NULL,
-                                         NULL);
-
         cl_int status;
 
         //Setting buffers to kernel arguments
@@ -230,8 +211,8 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(2), 10, sizeof(int), &olm);
 
         size_t global_work_size[2];
-        global_work_size[0] = ow * sizeof(float);
-        global_work_size[1] = oh * sizeof(float);
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
@@ -246,8 +227,33 @@ public:
 
         kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
+        return (unsigned)status;
+    }
+
+    unsigned convolution_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od) {
+        //Creating OpenCL buffers for matrices
+        iBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        iw * ih * sizeof(float),
+                                        matrixAf,
+                                        NULL);
+
+        wBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        id * od * ww * wh * sizeof(float),
+                                        matrixBf,
+                                        NULL);
+
+        oBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                        od * ow * oh * sizeof(float),
+                                        matrixRoclf,
+                                        NULL);
+    }
+
+    unsigned convolution_read(int ow, int oh, int od) {
         //Reading result from GPU memory to main memory
-        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
                                      oBuffer,
                                      0,
                                      0,
@@ -256,7 +262,6 @@ public:
                                      0,
                                      NULL,
                                      NULL);
-
         return (unsigned)status;
     }
 
@@ -269,6 +274,10 @@ public:
     }
 
     std::unique_ptr<OCL_Base> _ocl_base;
+
+    cl_mem iBuffer = nullptr;
+    cl_mem wBuffer = nullptr;
+    cl_mem oBuffer = nullptr;
 
 private:
     cl_program prog_ma;
@@ -327,8 +336,16 @@ OCL_Phase1 ocl_phase1;
                 for (int d = 0; d < layer1d; d++) {
                     for (int i = 0; i < w01h; i++) {
                         for (int j = 0; j < w01w; j++) {
-                            matrixBf[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = 0.01;
+                            matrixBf[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = 0.01 + 0.01 * d;
                         }
+                    }
+                }
+            }
+
+            for (int d = 0; d < layer1d; d++) {
+                for (int i = 0; i < layer1h; i++) {
+                    for (int j = 0; j < layer1w; j++) {
+                        matrixRoclf[(d * layer1h * layer1w) + (i * layer1w) + j] = d;
                     }
                 }
             }
@@ -344,7 +361,14 @@ OCL_Phase1 ocl_phase1;
         {
             ocl_phase1.matrix_addition();
             ocl_phase1.mad();
+            ocl_phase1.convolution_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 1);
+            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 2);
+            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 3);
+            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 4);
+            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
+            ocl_phase1.convolution_read(layer1w, layer1h, layer1d);
 
             unsigned error = 0;
             return (int) error;
@@ -391,9 +415,13 @@ OCL_Phase1 ocl_phase1;
                 exit(1);
             }
 
-            for (int i = 0; i < layer1h; i++) {
-                for (int j = 0; j < layer1w; j++) {
-                    fprintf(fp, "%f ", matrixRoclf[i * layer1w + j]);
+            for (int d = 0; d < layer1d; d++) {
+                fprintf(fp, "//M = %d \n", d);
+                for (int i = 0; i < layer1h; i++) {
+                    for (int j = 0; j < layer1w; j++) {
+                        fprintf(fp, "%f ", matrixRoclf[(d * layer1h * layer1w) + i * layer1w + j]);
+                    }
+                    fprintf(fp, "\n");
                 }
                 fprintf(fp, "\n");
             }
