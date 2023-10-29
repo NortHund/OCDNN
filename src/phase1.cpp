@@ -265,6 +265,63 @@ public:
         return (unsigned)status;
     }
 
+    float convolution_input_checksum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        float wSum = 0;
+        float xSum = 0;
+        float checksum = 0;
+        for (int n = 0; n < id; ++n) {
+            for (int i = 0; i < wh; ++i) {
+                for (int j = 0; j < ww; ++j) {
+                    wSum = 0;
+                    for (int m = 0; m < od; ++m) {
+                        wSum += matrixBf[(n * od * wh * ww) + (m * wh * ww) + (i * ww) + j];
+                    }
+                    //printf("wSum: %f\n", wSum);
+                    xSum = 0;
+                    for (int r = 0; r < oh; ++r) {
+                        for (int c = 0; c < ow; ++c) {
+                            xSum += matrixAf[(n * ih * iw) + ((r + i) * iw) + (c + j)];
+                        }
+                    }
+                    //printf("xSum: %f\n", xSum);
+                    checksum += xSum * wSum;
+                    //printf("n: %d, i: %d, j: %d\n checksum: %f, xSum: %f, wSum: %f\n", n, i, j, checksum, xSum, wSum);
+                }
+            }
+        }
+
+        printf("input checksum: %f\n", checksum);
+        return checksum;
+    }
+
+    float convolution_output_checksum(int ow, int oh, int od)
+    {
+        float checksum = 0;
+        int madmax = 0;
+        int count = 0;
+        madmax = ow * oh * od;
+        for (int i = 0; i < madmax; ++i) {
+                checksum = checksum + matrixRoclf[i];
+                count++;
+                //printf("value : %f, output checksum: %f\n", matrixRoclf[i], checksum);
+        }
+        //printf("ouput checksum: %f, count: %d \n", checksum, count);
+
+        checksum = 0;
+
+        for (int d = 0; d < layer1d; d++) {
+            for (int i = 0; i < layer1h; i++) {
+                for (int j = 0; j < layer1w; j++) {
+                    checksum += matrixRoclf[(d * layer1h * layer1w) + (i * layer1w) + j];
+                }
+            }
+        }
+        printf("ouput checksum: %f \n", checksum);
+
+        return checksum;
+    }
+
     void print_kernel_execution_times()
     {
         std::cout << "OpenCL kernel execution times\n\n";
@@ -361,6 +418,9 @@ OCL_Phase1 ocl_phase1;
         {
             ocl_phase1.matrix_addition();
             ocl_phase1.mad();
+
+            ocl_phase1.convolution_input_checksum(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+
             ocl_phase1.convolution_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 1);
@@ -369,6 +429,8 @@ OCL_Phase1 ocl_phase1;
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 4);
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
             ocl_phase1.convolution_read(layer1w, layer1h, layer1d);
+
+            ocl_phase1.convolution_output_checksum(layer1w, layer1h, layer1d);
 
             unsigned error = 0;
             return (int) error;
