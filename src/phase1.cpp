@@ -19,10 +19,14 @@ int layer1d = 6;
 int w01w = 5;
 int w01h = 5;
 
+
+
 int* matrixA;
 int* matrixB;
 int* matrixRcpp;
 int* matrixRocl;
+
+
 
 float* matrixAd;
 float* matrixBd;
@@ -66,6 +70,7 @@ public:
         prog_ma = _ocl_base->CreateProgramFromFile("kernels/p1-ma.cl");
         prog_mad = _ocl_base->CreateProgramFromFile("kernels/mad.cl");
         prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/convolution-db.cl");
+        prog_cv_oc = _ocl_base->CreateProgramFromFile("kernels/convolution-oc.cl");
     }
 
     void init_kernels()
@@ -73,6 +78,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_ma, "matrix_addition");
         _ocl_base->CreateKernelFromProgram(prog_mad, "mad");
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_fl");
+        _ocl_base->CreateKernelFromProgram(prog_cv_oc, "convolution_oc");
     }
 
     unsigned matrix_addition()
@@ -261,7 +267,76 @@ public:
                                      matrixRoclf,
                                      0,
                                      NULL,
-                                     NULL);
+                                     &_event);
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned convolution_oc(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+
+        float* l1oc;
+        l1oc = (float*)malloc(sizeof(float));
+        l1oc[0] = 1;
+
+        cl_mem ocBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                 sizeof(float),
+                                 l1oc,
+                                 NULL);
+
+        cl_mem cBuffer = clCreateBuffer(_ocl_base->context,
+                            CL_MEM_READ_WRITE,
+                                sizeof(float),
+                                NULL,
+                                NULL);
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&ocBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(int), &oh);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 3, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 4, sizeof(int), &od);
+
+        size_t global_work_size[1];
+        global_work_size[0] = 1;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(3),
+                                        1,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        float out = 0;
+
+
+
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     ocBuffer,
+                                     0,
+                                     0,
+                                     sizeof(float),
+                                     l1oc,
+                                     0,
+                                     NULL,
+                                     &_event);
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        printf("ocl checksum: %f\n", l1oc[0]);
+
+        free(l1oc);
+
         return (unsigned)status;
     }
 
@@ -298,7 +373,7 @@ public:
     float convolution_output_checksum(int ow, int oh, int od)
     {
         float checksum = 0;
-        int madmax = 0;
+        /*int madmax = 0;
         int count = 0;
         madmax = ow * oh * od;
         for (int i = 0; i < madmax; ++i) {
@@ -308,7 +383,7 @@ public:
         }
         //printf("ouput checksum: %f, count: %d \n", checksum, count);
 
-        checksum = 0;
+        checksum = 0;*/
 
         for (int d = 0; d < layer1d; d++) {
             for (int i = 0; i < layer1h; i++) {
@@ -340,6 +415,7 @@ private:
     cl_program prog_ma;
     cl_program prog_mad;
     cl_program prog_cv_d;
+    cl_program prog_cv_oc;
 
     cl_event _event;
 
@@ -378,6 +454,8 @@ OCL_Phase1 ocl_phase1;
                     matrixBd[i * matwidth + j] = j + 2;
                 }
             }
+
+
 
             matrixAf = (float*)malloc((layer0d) * (layer0w * layer0h) * sizeof(float));
             matrixBf = (float*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(float));
@@ -428,6 +506,7 @@ OCL_Phase1 ocl_phase1;
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 3);
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 4);
             ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
+            //ocl_phase1.convolution_oc(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
             ocl_phase1.convolution_read(layer1w, layer1h, layer1d);
 
             ocl_phase1.convolution_output_checksum(layer1w, layer1h, layer1d);
@@ -530,6 +609,25 @@ OCL_Phase1 ocl_phase1;
         }
     };
 
+    struct OutputCheckOcl : public IProgram
+    {
+        int run() override
+        {
+            float checksumO = 0;
+
+            for (int d = 0; d < layer1d; d++) {
+                for (int i = 0; i < layer1h; i++) {
+                    for (int j = 0; j < layer1w; j++) {
+                        checksumO += matrixRoclf[(d * layer1h * layer1w) + (i * layer1w) + j];
+                    }
+                }
+            }
+            printf("ouput checksum struckt: %f \n", checksumO);
+
+            unsigned error = 0;
+            return (int) error;
+        }
+    };
 
 int main()
 {
@@ -547,6 +645,8 @@ int main()
     MatrixAdditionOCL matrixAdditionOCL;
     SaveMatrixOCL saveMatrixOCL;
 
+    OutputCheckOcl outputCheckOcl;
+
     int result = 0;
 
 
@@ -555,6 +655,7 @@ int main()
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
     result = Program_sw.runProgram(matrixAdditionOCL);
+    //result = Program_sw.runProgram(outputCheckOcl);
     std::cout << "OpenCL matrix addition: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
@@ -584,6 +685,8 @@ int main()
     free(matrixAf);
     free(matrixBf);
     free(matrixRoclf);
+
+
 
     printPlatformProfile(false);
     return 0;
