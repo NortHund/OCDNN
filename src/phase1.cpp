@@ -19,14 +19,10 @@ int layer1d = 6;
 int w01w = 5;
 int w01h = 5;
 
-
-
 int* matrixA;
 int* matrixB;
 int* matrixRcpp;
 int* matrixRocl;
-
-
 
 float* matrixAd;
 float* matrixBd;
@@ -373,17 +369,6 @@ public:
     float convolution_output_checksum(int ow, int oh, int od)
     {
         float checksum = 0;
-        /*int madmax = 0;
-        int count = 0;
-        madmax = ow * oh * od;
-        for (int i = 0; i < madmax; ++i) {
-                checksum = checksum + matrixRoclf[i];
-                count++;
-                //printf("value : %f, output checksum: %f\n", matrixRoclf[i], checksum);
-        }
-        //printf("ouput checksum: %f, count: %d \n", checksum, count);
-
-        checksum = 0;*/
 
         for (int d = 0; d < layer1d; d++) {
             for (int i = 0; i < layer1h; i++) {
