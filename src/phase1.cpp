@@ -110,7 +110,7 @@ public:
         global_work_size[1] = matheight * sizeof(int);
 
         //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue2,
                                         _ocl_base->GetKernel(0),
                                         2,
                                         NULL,
@@ -120,10 +120,10 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue2);
 
         //Reading result from GPU memory to main memory
-        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue2,
                             rBuffer,
                             0,
                             0,
@@ -217,7 +217,7 @@ public:
         global_work_size[1] = oh;
 
         //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue2,
                                         _ocl_base->GetKernel(2),
                                         2,
                                         NULL,
@@ -227,7 +227,7 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue2);
 
         return (unsigned)status;
     }
@@ -255,7 +255,7 @@ public:
 
     unsigned convolution_read(int ow, int oh, int od) {
         //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue2,
                                      oBuffer,
                                      0,
                                      0,
@@ -265,7 +265,7 @@ public:
                                      NULL,
                                      &_event);
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue2);
 
         return (unsigned)status;
     }
@@ -301,7 +301,7 @@ public:
         global_work_size[0] = 1;
 
         //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue2,
                                         _ocl_base->GetKernel(3),
                                         1,
                                         NULL,
@@ -311,13 +311,13 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue2);
 
         float out = 0;
 
 
 
-        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue2,
                                      ocBuffer,
                                      0,
                                      0,
@@ -327,7 +327,7 @@ public:
                                      NULL,
                                      &_event);
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue2);
 
         printf("ocl checksum: %f\n", l1oc[0]);
 
@@ -362,7 +362,7 @@ public:
             }
         }
 
-        printf("input checksum: %f\n", checksum);
+        //printf("input checksum: %f\n", checksum);
         return checksum;
     }
 
@@ -377,7 +377,7 @@ public:
                 }
             }
         }
-        printf("ouput checksum: %f \n", checksum);
+        //printf("ouput checksum: %f \n", checksum);
 
         return checksum;
     }
@@ -482,19 +482,30 @@ OCL_Phase1 ocl_phase1;
             ocl_phase1.matrix_addition();
             ocl_phase1.mad();
 
-            ocl_phase1.convolution_input_checksum(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+            float outcheck, incheck;
 
             ocl_phase1.convolution_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
-            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 1);
-            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 2);
-            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 3);
-            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 4);
-            ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
-            //ocl_phase1.convolution_oc(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
-            ocl_phase1.convolution_read(layer1w, layer1h, layer1d);
 
-            ocl_phase1.convolution_output_checksum(layer1w, layer1h, layer1d);
+            for (int i = 0; i < 100000000; i++) {
+                incheck = ocl_phase1.convolution_input_checksum(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+
+
+                ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+                ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 1);
+                ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 2);
+                ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 3);
+                ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 4);
+                ocl_phase1.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
+                //ocl_phase1.convolution_oc(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
+                ocl_phase1.convolution_read(layer1w, layer1h, layer1d);
+
+                outcheck = ocl_phase1.convolution_output_checksum(layer1w, layer1h, layer1d);
+                //printf("checksums: %f, %f \n", incheck, outcheck);
+                //printf("checksum diff: %f \n", (fabs(incheck - outcheck)));
+                if (fabs(incheck - outcheck) > 0.001) {
+                    printf("checksum mismatch! checksums: %f, %f \n", incheck, outcheck);
+                }
+            }
 
             unsigned error = 0;
             return (int) error;
@@ -646,11 +657,6 @@ int main()
 
     result = Program_sw.runProgram(saveMatrixOCL);
     std::cout << "OpenCL matrix save: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl << std::endl;
-
-    //Step 4
-    std::cout << "Step 4 - convolution" << std::endl;
-    std::cout << "OpenCl: Save image result: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl << std::endl;
 
     sw.saveEndPoint();

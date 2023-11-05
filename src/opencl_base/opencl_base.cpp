@@ -19,6 +19,7 @@ OCL_Base::OCL_Base()
 OCL_Base::~OCL_Base()
 {
     status = clReleaseCommandQueue(commandQueue); //Release  Command queue.
+    status = clReleaseCommandQueue(commandQueue2); //Release  Command queue.
     status = clReleaseContext(context); //Release context.
 
     if (devices != NULL)
@@ -62,7 +63,7 @@ cl_program OCL_Base::CreateProgramFromFile(const char* filename)
     program = clCreateProgramWithSource(context, 1, &source, sourceSize, NULL);
 
     /*Step 6: Build program. */
-    status = clBuildProgram(program, 1, devices, NULL, NULL, NULL);
+    status = clBuildProgram(program, numDevices, devices, NULL, NULL, NULL);
 
     Programs[ProgCount] = program;
     ProgCount++;
@@ -124,13 +125,15 @@ void OCL_Base::Init()
     {
         devices = (cl_device_id*)malloc(numDevices * sizeof(cl_device_id));
         status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, numDevices, devices, NULL);
+        printf("num of devices: %d \n", numDevices);
     }
 
     /*Step 3: Create context.*/
-    context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
+    context = clCreateContext(NULL, numDevices, devices, NULL, NULL, NULL);
 
     /*Step 4: Creating command queue associate with the context.*/
-    commandQueue = clCreateCommandQueue(context, devices[0], CL_QUEUE_PROFILING_ENABLE, NULL);
+    commandQueue = clCreateCommandQueue(context, devices[0], CL_QUEUE_PROFILING_ENABLE, NULL); //choosing the second GPU - Hox!
+    commandQueue2 = clCreateCommandQueue(context, devices[1], CL_QUEUE_PROFILING_ENABLE, NULL); //choosing the second GPU - Hox!
 
 }
 

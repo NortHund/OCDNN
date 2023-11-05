@@ -11,5 +11,6 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #endif // PHASE1_H
