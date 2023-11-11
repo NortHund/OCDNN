@@ -24,6 +24,18 @@ int* matrixB;
 int* matrixRcpp;
 int* matrixRocl;
 
+short* matrixAshort;
+short* matrixBshort;
+short* matrixRshort;
+
+char* matrixAchar;
+char* matrixBchar;
+char* matrixRchar;
+
+double* matrixAdouble;
+double* matrixBdouble;
+double* matrixRdouble;
+
 float* matrixAd;
 float* matrixBd;
 float* matrixRocld;
@@ -63,21 +75,24 @@ public:
 
     void init_programs()
     {
-        prog_ma = _ocl_base->CreateProgramFromFile("kernels/p2-mm-int32.cl");
-        prog_mad = _ocl_base->CreateProgramFromFile("kernels/p2-mm-f32.cl");
+        prog_mm_int = _ocl_base->CreateProgramFromFile("kernels/p2-mm-int32.cl");
+        prog_mm_float = _ocl_base->CreateProgramFromFile("kernels/p2-mm-f32.cl");
         prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/convolution-db.cl");
         prog_cv_oc = _ocl_base->CreateProgramFromFile("kernels/convolution-oc.cl");
     }
 
     void init_kernels()
     {
-        _ocl_base->CreateKernelFromProgram(prog_ma, "matrix_addition");
-        _ocl_base->CreateKernelFromProgram(prog_mad, "mad");
+        _ocl_base->CreateKernelFromProgram(prog_mm_int, "mm_int");
+        _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_float");
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_fl");
         _ocl_base->CreateKernelFromProgram(prog_cv_oc, "convolution_oc");
+        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_short");
+        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_char");
+        _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_double");
     }
 
-    unsigned matrix_addition()
+    unsigned mm_int()
     {
         //Creating OpenCL buffers for matrices
         cl_mem aBuffer = clCreateBuffer(_ocl_base->context,
@@ -129,6 +144,124 @@ public:
                                      0,
                                      matwidth * matheight * sizeof(int),
                                      matrixRocl,
+                                     0,
+                                     NULL,
+                                     NULL);
+
+        return (unsigned)status;
+    }
+
+    unsigned mm_short()
+    {
+        //Creating OpenCL buffers for matrices
+        cl_mem aBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        matwidth * matheight * sizeof(short),
+                                        matrixAshort,
+                                        NULL);
+
+        cl_mem bBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        matwidth * matheight * sizeof(short),
+                                        matrixBshort,
+                                        NULL);
+
+        cl_mem rBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_WRITE,
+                                        matwidth * matheight * sizeof(short),
+                                        NULL,
+                                        NULL);
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&aBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&bBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&rBuffer);
+
+        size_t global_work_size[2];
+        global_work_size[0] = matwidth;
+        global_work_size[1] = matheight;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(4),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        //Reading result from GPU memory to main memory
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     rBuffer,
+                                     0,
+                                     0,
+                                     matwidth * matheight * sizeof(short),
+                                     matrixRshort,
+                                     0,
+                                     NULL,
+                                     NULL);
+
+        return (unsigned)status;
+    }
+
+    unsigned mm_char()
+    {
+        //Creating OpenCL buffers for matrices
+        cl_mem aBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        matwidth * matheight * sizeof(char),
+                                        matrixAchar,
+                                        NULL);
+
+        cl_mem bBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        matwidth * matheight * sizeof(char),
+                                        matrixBchar,
+                                        NULL);
+
+        cl_mem rBuffer = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_WRITE,
+                                        matwidth * matheight * sizeof(char),
+                                        NULL,
+                                        NULL);
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&aBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&bBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 2, sizeof(cl_mem), (void *)&rBuffer);
+
+        size_t global_work_size[2];
+        global_work_size[0] = matwidth;
+        global_work_size[1] = matheight;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(5),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        //Reading result from GPU memory to main memory
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     rBuffer,
+                                     0,
+                                     0,
+                                     matwidth * matheight * sizeof(char),
+                                     matrixRchar,
                                      0,
                                      NULL,
                                      NULL);
@@ -188,6 +321,65 @@ public:
                                      0,
                                      matwidth * matheight * sizeof(float),
                                      matrixRocld,
+                                     0,
+                                     NULL,
+                                     NULL);
+
+        return (unsigned)status;
+    }
+
+    unsigned mm_double()
+    {
+        //Creating OpenCL buffers for matrices
+        cl_mem aBuffer = clCreateBuffer(_ocl_base->context,
+                                         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                         matwidth * matheight * sizeof(double),
+                                         matrixAdouble,
+                                         NULL);
+
+        cl_mem bBuffer = clCreateBuffer(_ocl_base->context,
+                                         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                         matwidth * matheight * sizeof(double),
+                                         matrixBdouble,
+                                         NULL);
+
+        cl_mem rBuffer = clCreateBuffer(_ocl_base->context,
+                                         CL_MEM_READ_WRITE,
+                                         matwidth * matheight * sizeof(double),
+                                         NULL,
+                                         NULL);
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 0, sizeof(cl_mem), (void *)&aBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 1, sizeof(cl_mem), (void *)&bBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 2, sizeof(cl_mem), (void *)&rBuffer);
+
+        size_t global_work_size[2];
+        global_work_size[0] = matwidth;
+        global_work_size[1] = matheight;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(6),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[1] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        //Reading result from GPU memory to main memory
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     rBuffer,
+                                     0,
+                                     0,
+                                     matwidth * matheight * sizeof(double),
+                                     matrixRdouble,
                                      0,
                                      NULL,
                                      NULL);
@@ -397,8 +589,8 @@ public:
     cl_mem oBuffer = nullptr;
 
 private:
-    cl_program prog_ma;
-    cl_program prog_mad;
+    cl_program prog_mm_int ;
+    cl_program prog_mm_float;
     cl_program prog_cv_d;
     cl_program prog_cv_oc;
 
@@ -440,7 +632,38 @@ struct CreateMatrices : public IProgram
             }
         }
 
+        matrixAdouble = (double*)malloc((matwidth * matheight) * sizeof(double));
+        matrixBdouble = (double*)malloc((matwidth * matheight) * sizeof(double));
+        matrixRdouble = (double*)malloc((matwidth * matheight) * sizeof(double));
 
+        for (int i=0; i<matheight; i++) {
+            for (int j=0; j<matwidth; j++) {
+                matrixAdouble[i * matwidth + j] = i + 1;
+                matrixBdouble[i * matwidth + j] = j + 2;
+            }
+        }
+
+        matrixAshort = (short*)malloc((matwidth * matheight) * sizeof(short));
+        matrixBshort = (short*)malloc((matwidth * matheight) * sizeof(short));
+        matrixRshort = (short*)malloc((matwidth * matheight) * sizeof(short));
+
+        for (short i=0; i<matheight; i++) {
+            for (short j=0; j<matwidth; j++) {
+                matrixAshort[i * matwidth + j] = i + 1;
+                matrixBshort[i * matwidth + j] = j + 2;
+            }
+        }
+
+        matrixAchar = (char*)malloc((matwidth * matheight) * sizeof(char));
+        matrixBchar = (char*)malloc((matwidth * matheight) * sizeof(char));
+        matrixRchar = (char*)malloc((matwidth * matheight) * sizeof(char));
+
+        for (char i=0; i<matheight; i++) {
+            for (char j=0; j<matwidth; j++) {
+                matrixAchar[i * matwidth + j] = i + 1;
+                matrixBchar[i * matwidth + j] = j + 2;
+            }
+        }
 
         matrixAf = (float*)malloc((layer0d) * (layer0w * layer0h) * sizeof(float));
         matrixBf = (float*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(float));
@@ -479,8 +702,11 @@ struct MatrixAdditionOCL : public IProgram
 {
     int run() override
     {
-        ocl_phase2.matrix_addition();
+        ocl_phase2.mm_int();
         ocl_phase2.mad();
+        ocl_phase2.mm_short();
+        ocl_phase2.mm_char();
+        ocl_phase2.mm_double();
 
         ocl_phase2.convolution_input_checksum(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
@@ -550,6 +776,36 @@ struct SaveMatrixOCL : public IProgram
 
         fclose(fp);
 
+        fp = fopen("../../output-data/p2-mm-int16.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int i = 0; i < matheight; i++) {
+            for (int j = 0; j < matwidth; j++) {
+                fprintf(fp, "%d ", matrixRshort[i * matwidth + j]);
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
+        fp = fopen("../../output-data/p2-mm-int8.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int i = 0; i < matheight; i++) {
+            for (int j = 0; j < matwidth; j++) {
+                fprintf(fp, "%d ", matrixRchar[i * matwidth + j]);
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
         fp = fopen("../../output-data/p1-mm-f32.txt", "w");
         if (fp == NULL) {
             printf("Error opening file!\n");
@@ -559,6 +815,21 @@ struct SaveMatrixOCL : public IProgram
         for (int i = 0; i < matheight; i++) {
             for (int j = 0; j < matwidth; j++) {
                 fprintf(fp, "%f ", matrixRocld[i * matwidth + j]);
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
+        fp = fopen("../../output-data/p1-mm-f64.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int i = 0; i < matheight; i++) {
+            for (int j = 0; j < matwidth; j++) {
+                fprintf(fp, "%f ", matrixRdouble[i * matwidth + j]);
             }
             fprintf(fp, "\n");
         }
@@ -697,9 +968,21 @@ int main()
     free(matrixBd);
     free(matrixRocld);
 
+    free(matrixAshort);
+    free(matrixBshort);
+    free(matrixRshort);
+
+    free(matrixAchar);
+    free(matrixBchar);
+    free(matrixRchar);
+
     free(matrixAf);
     free(matrixBf);
     free(matrixRoclf);
+
+    free(matrixAdouble);
+    free(matrixBdouble);
+    free(matrixRdouble);
 
 
 
