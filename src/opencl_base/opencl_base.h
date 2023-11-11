@@ -26,7 +26,6 @@ public:
 
     cl_context context;
     cl_command_queue commandQueue;
-    cl_command_queue commandQueue2;
 
 protected:
     void Run();
