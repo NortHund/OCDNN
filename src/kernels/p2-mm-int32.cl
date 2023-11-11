@@ -4,5 +4,11 @@ __kernel void matrix_addition(__global int* inputA, __global int* inputB, __glob
     int width = get_global_size(0);
     int height = get_global_size(1);
 
-    output[row * width + col] = inputA[row * width + col] + inputB[row * width + col];
+    int out = 0;
+
+    for(int i= 0; i < width; i++) {
+        out += inputA[row * width + i] * inputB[i * width + col];
+    }
+
+    output[row * width + col] = out;
 }

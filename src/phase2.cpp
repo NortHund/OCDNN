@@ -2,8 +2,8 @@
 
 int scaling_factor = 4;
 
-int matwidth = 100;
-int matheight = 100;
+int matwidth = 10;
+int matheight = 10;
 
 int mfwidth = 10;
 int mfheight = 10;
@@ -106,8 +106,8 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *)&rBuffer);
 
         size_t global_work_size[2];
-        global_work_size[0] = matwidth * sizeof(int);
-        global_work_size[1] = matheight * sizeof(int);
+        global_work_size[0] = matwidth;
+        global_work_size[1] = matheight;
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
@@ -165,8 +165,8 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(1), 2, sizeof(cl_mem), (void *)&rBufferd);
 
         size_t global_work_size[2];
-        global_work_size[0] = matwidth * sizeof(float);
-        global_work_size[1] = matheight * sizeof(float);
+        global_work_size[0] = matwidth;
+        global_work_size[1] = matheight;
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
@@ -491,7 +491,7 @@ struct MatrixAdditionOCL : public IProgram
         ocl_phase2.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 3);
         ocl_phase2.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 4);
         ocl_phase2.convolution_fl(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
-        //ocl_phase2.convolution_oc(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
+        ocl_phase2.convolution_oc(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 5);
         ocl_phase2.convolution_read(layer1w, layer1h, layer1d);
 
         ocl_phase2.convolution_output_checksum(layer1w, layer1h, layer1d);
@@ -505,7 +505,37 @@ struct SaveMatrixOCL : public IProgram
 {
     int run() override {
 
-        FILE *fp = fopen("../../output-data/p2-mm-int32.txt", "w");
+        FILE *fp = fopen("../../output-data/matA.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int i = 0; i < matheight; i++) {
+            for (int j = 0; j < matwidth; j++) {
+                fprintf(fp, "%d ", matrixA[i * matwidth + j]);
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
+        fp = fopen("../../output-data/matB.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int i = 0; i < matheight; i++) {
+            for (int j = 0; j < matwidth; j++) {
+                fprintf(fp, "%d ", matrixB[i * matwidth + j]);
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
+        fp = fopen("../../output-data/p2-mm-int32.txt", "w");
         if (fp == NULL) {
             printf("Error opening file!\n");
             exit(1);

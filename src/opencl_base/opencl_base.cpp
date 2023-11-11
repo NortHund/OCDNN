@@ -63,7 +63,18 @@ cl_program OCL_Base::CreateProgramFromFile(const char* filename)
 
     /*Step 6: Build program. */
     status = clBuildProgram(program, 1, devices, NULL, NULL, NULL);
+    if (status != CL_SUCCESS)
+    {
+        // Determine the reason for the error
+        char buildLog[16384];
+        clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG,
+                              sizeof(buildLog), buildLog, NULL);
 
+        std::cerr << "Error in kernel: " << std::endl;
+        std::cerr << buildLog;
+        clReleaseProgram(program);
+        return NULL;
+    }
     Programs[ProgCount] = program;
     ProgCount++;
 
