@@ -29,10 +29,9 @@ target_link_libraries(phase1
 add_executable(phase2 phase2.cpp)
 target_link_libraries(phase2
   PRIVATE
-  lodepng_wrapper
-  utilities
   stopwatches
-  occlusion_fill
+  opencl_base
+  compiler_flags
   )
 
 add_executable(phase3 phase3.cpp)
@@ -74,6 +73,8 @@ add_custom_target(copy_kernels ALL
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/kernels
   )
 add_dependencies(phase1 copy_kernels)
+add_dependencies(phase2 copy_kernels)
+add_dependencies(phase3 copy_kernels)
 add_dependencies(phase4 copy_kernels)
 add_dependencies(phase5 copy_kernels)
 

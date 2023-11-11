@@ -10,6 +10,8 @@
 #include <CL/opencl.h>
 #include <cstring>
 
+
+
 class OCL_Base
 {
 public:
@@ -50,6 +52,8 @@ private:
 };
 
 int convertToString(const char *filename, std::string& s);
+
+int printPlatformInfo(bool print_extras);
 
     /* data */
 #endif // OPENCL_BASE_H

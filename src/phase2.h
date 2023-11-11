@@ -1,9 +1,13 @@
 #ifndef PHASE2_H
 #define PHASE2_H
 #include <iostream>
-#include "lodepng_wrapper.h"
-#include "occlusion_fill.h"
-#include "utils.h"
+#include <memory>
 #include "Stopwatches.h"
+#include "opencl_base.h"
+
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
 
 #endif // PHASE1_H
