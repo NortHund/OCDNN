@@ -1,164 +1,468 @@
 #include "phase3.h"
+int scaling_factor = 4;
 
-    lodepng_wrapper::LodepngWrapper img0;
-    lodepng_wrapper::LodepngWrapper img1;
-    lodepng_wrapper::LodepngWrapper combinedImage;
+int matwidth = 10;
+int matheight = 10;
 
-    int scaling_factor = 4;
+int mfwidth = 10;
+int mfheight = 10;
 
-    struct LoadImage : public IProgram
+int layer0w = 32;
+int layer0h = 32;
+int layer0d = 1;
+
+int layer1w = 28;
+int layer1h = 28;
+int layer1d = 6;
+
+int w01w = 5;
+int w01h = 5;
+
+double* matrixL0double;
+double* matrixW01double;
+double* matrixL1double;
+
+double* ocs;
+int ocsSize = 10;
+
+
+// Get kernel execution time in microseconds
+unsigned long get_kernel_execution_time(cl_event &event, cl_command_queue &command_queue)
+{
+    clFinish(command_queue);
+
+    cl_ulong time_start;
+    cl_ulong time_end;
+
+    clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+    clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+
+    return (time_end - time_start) / 1000;
+}
+
+class OCL_Phase2
+{
+public:
+    OCL_Phase2()
     {
-        int run() override
-        {
-            unsigned error = img0.load_image("../../source-img/im0.png");
-            error = img1.load_image("../../source-img/im1.png");
-            return (int) error;
-        }
-    };
+        _ocl_base.reset(new OCL_Base());
 
-    struct ResizeImage : public IProgram
+        init_programs();
+        init_kernels();
+    }
+
+    ~OCL_Phase2()
     {
-        int run() override
-        {
-            unsigned error = img0.resize_image(scaling_factor);
-            error = img1.resize_image(scaling_factor);
-            return (int) error;
-        }
-    };
-    
-    struct TransformToGreyscale : public IProgram
+    }
+
+    void init_programs()
     {
-        int run() override
-        {
-            unsigned error = img0.transform_to_grayscale();
-            error = img1.transform_to_grayscale();
-            return (int) error;
-        }
-    };
+        prog_mm_int = _ocl_base->CreateProgramFromFile("kernels/p2-mm-int32.cl");
+        prog_mm_float = _ocl_base->CreateProgramFromFile("kernels/p2-mm-f32.cl");
+        prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/p3-conv32.cl");
+        prog_cv_oc = _ocl_base->CreateProgramFromFile("kernels/convolution-oc.cl");
+    }
 
-    struct SaveGreyscaleImage : public IProgram
+    void init_kernels()
     {
-        int run() override
-        {
-            unsigned error = img0.save_image("../../output-img/im0_grey.png");
-            error = img1.save_image("../../output-img/im1_grey.png");
-            return (int) error;
-        }
-    };
+        _ocl_base->CreateKernelFromProgram(prog_mm_int, "mm_int"); //0
+        _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_float"); //1
+        _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_fl"); //2
+        _ocl_base->CreateKernelFromProgram(prog_cv_oc, "convolution_oc"); //3
+        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_short"); //4
+        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_char"); //5
+        _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_double"); //6
+        _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_double"); //7
+        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_int_cs"); //8
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ocs"); //9
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ics"); //10
+    }
 
-    struct SaveResizedImage : public IProgram
+    unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        int run() override
-        {
-            unsigned error = img0.save_image("../../output-img/im0_grey_resized.png");
-            error = img1.save_image("../../output-img/im1_grey_resized.png");
-            return (int) error;
-        }
-    };
+        cl_int status;
 
-    struct ZNCCResizedImage : public IProgram
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *)&wBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 2, sizeof(cl_mem), (void *)&oBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 3, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 5, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 6, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 7, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 8, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 9, sizeof(int), &iln);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 10, sizeof(int), &olm);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(7),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        int run() override
-        {
-            unsigned char * t_img0 = (unsigned char*)malloc(img0.get_width() * img0.get_height());
+        iBufferd = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  iw * ih * sizeof(double),
+                                  matrixL0double,
+                                  NULL);
 
-            unsigned char * t_img1 = (unsigned char*)malloc(img1.get_width() *
-                                                            img1.get_height());
+        wBufferd = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  id * od * ww * wh * sizeof(double),
+                                  matrixW01double,
+                                  NULL);
 
-            img0.clone_image(t_img0);
-            img1.clone_image(t_img1);
-            
-            unsigned char *t_leftToRightImage = (unsigned char*)malloc(img0.get_width() *
-                                                            img0.get_height());
+        oBufferd = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                  od * ow * oh * sizeof(double),
+                                  matrixL1double,
+                                  NULL);
+    }
 
-            unsigned char *t_rightToLeftImage = (unsigned char*)malloc(img0.get_width() *
-                                                            img0.get_height());
-
-            // run the ZNCC
-            OMP_ZNCCFilterOptimizedC(t_leftToRightImage, t_rightToLeftImage, t_img0, t_img1, img0.get_width(), img0.get_height(), 9);
-
-            img0.set_image(t_leftToRightImage, img0.get_width(), img0.get_height(), GREY_CHANNELS);
-            img1.set_image(t_rightToLeftImage, img1.get_width(), img1.get_height(), GREY_CHANNELS);
-            
-            img0.save_image("../../output-img/im0_grey_resized_zncc.png");
-            img1.save_image("../../output-img/im1_grey_resized_zncc.png");
-            
-            free(t_img0);
-            free(t_img1);
-            free(t_leftToRightImage);
-            free(t_rightToLeftImage);
-
-            return 0;
-        }
-    };
-
-    struct SaveZNCCImage : public IProgram
+    unsigned convolution_double_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        int run() override
-        {
-            img0.save_image("../../output-img/im0_grey_resized_zncc.png");
-            img1.save_image("../../output-img/im1_grey_resized_zncc.png");
-            return 0;
-        }
-    };
+        //Reading result from GPU memory to main memory
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            oBufferd,
+                                            0,
+                                            0,
+                                            od * ow * oh * sizeof(double),
+                                            matrixL1double,
+                                            0,
+                                            NULL,
+                                            &_event);
 
-    struct CrosscheckImage : public IProgram
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+    }
+
+    unsigned convolution_double_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
-        int run() override
-        {
-            unsigned char * t_img0 = (unsigned char*)malloc(img0.get_width() * img0.get_height());
-                                                            
-            unsigned char * t_img1 = (unsigned char*)malloc(img1.get_width() * img1.get_height());
 
-            unsigned char * t_combinedImg = (unsigned char*)malloc(img1.get_width() * img1.get_height());
+        cl_int status;
 
-            img0.clone_image(t_img0);
-            img1.clone_image(t_img1);
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 0, sizeof(cl_mem), (void *)&oBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 1, sizeof(cl_mem), (void *)&ocsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 2, sizeof(int), &oh);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 3, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 4, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 5, sizeof(int), &ocsInd);
 
-            crossCheckTwoImages(t_img0, t_img1, 50, t_combinedImg, img0.get_width() * img0.get_height());
-            combinedImage.set_image(t_combinedImg, img0.get_width(), img0.get_height(), GREY_CHANNELS);
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
 
-            free(t_img0);
-            free(t_img1);
-            free(t_combinedImg);
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(9),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
 
-            return 0;
-        }
-    };
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-    struct SaveCrosscheckImage : public IProgram
+
+
+
+
+
+
+        return (unsigned)status;
+    }
+
+    unsigned convolution_double_ocs_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
-        int run() override
-        {
-            unsigned error = combinedImage.save_image("../../output-img/im_cc.png");
-            return error;
-        }
-    };
+        ocsBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                   (ocsSize) * sizeof(double),
+                                   ocs,
+                                   NULL);
 
 
-    struct OcclusionFilterImage : public IProgram
+    }
+
+    unsigned convolution_double_ocs_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
-        int run() override
-        {
-            unsigned error = 0;
+        //Reading result from GPU memory to main memory
+        cl_int status;
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     ocsBuffer,
+                                     0,
+                                     0,
+                                     (ocsSize) * sizeof(double),
+                                     ocs,
+                                     0,
+                                     NULL,
+                                     &_event);
 
-            combinedImage.occlusion_fill(fillZeroPixels);
-            //img0.occlusion_fill(occFillOptimizedC);
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-            return (int) error;
-        }
-    };
+        //printf("Convolution-double ocl ocs: %f \n", ocs[ocsInd]);
+    }
 
-    struct SaveOcclusionImage : public IProgram
+    double convolution_double_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        int run() override
-        {
 
-            unsigned error = combinedImage.save_image("../../output-img/im_of.png");
-            return (int) error;
+        double* ics;
+        ics = (double*)malloc(sizeof(double));
+        ics[0] = 0;
+
+        cl_mem icsBuffer = clCreateBuffer(_ocl_base->context,
+                                          CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                          sizeof(double),
+                                          ics,
+                                          NULL);
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 1, sizeof(cl_mem), (void *)&wBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 2, sizeof(cl_mem), (void *)&icsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 3, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 5, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 6, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 7, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 8, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 9, sizeof(int), &iln);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 10, sizeof(int), &olm);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(10),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        //Reading result from GPU memory to main memory
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     icsBuffer,
+                                     0,
+                                     0,
+                                     sizeof(double),
+                                     ics,
+                                     0,
+                                     NULL,
+                                     &_event);
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        printf("Convolution-double ocl ics: %f \n", ics[0]);
+
+        double checksum = ics[0];
+
+        free(ics);
+
+        return checksum;
+    }
+
+    void print_kernel_execution_times()
+    {
+        std::cout << "OpenCL kernel execution times\n\n";
+        std::cout << "  Matrix addition: " << kernel_execution_times[0] << " us\n";
+        std::cout << "  Mm_float: " << kernel_execution_times[1] << " us\n";
+        std::cout << "  Convolution fl: " << kernel_execution_times[2] << " us\n\n";
+    }
+
+    std::unique_ptr<OCL_Base> _ocl_base;
+
+    cl_mem iBufferd = nullptr;
+    cl_mem wBufferd = nullptr;
+    cl_mem oBufferd = nullptr;
+    cl_mem ocsBuffer = nullptr;
+
+private:
+    cl_program prog_mm_int ;
+    cl_program prog_mm_float;
+    cl_program prog_cv_d;
+    cl_program prog_cv_oc;
+
+    cl_event _event;
+
+    // 0 - Matrix addition
+    // 1 - Matrix addition float
+    // 5 - convolution
+    unsigned long kernel_execution_times[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+};
+
+OCL_Phase2 ocl_phase2;
+
+struct CreateMatrices : public IProgram
+{
+    int run() override
+    {
+
+        ocs = (double*)malloc((ocsSize) * sizeof(double));
+
+        matrixL0double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+        matrixW01double = (double*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(double));
+        matrixL1double = (double*)malloc((layer1d) * (layer1w * layer1h) * sizeof(double));
+
+        for (int i=0; i<layer0h; i++) {
+            for (int j=0; j<layer0w; j++) {
+                matrixL0double[i * layer0w + j] = 2.5;
+            }
         }
-    };
-    
+
+        for (int n = 0; n < layer0d; n++) {
+            for (int d = 0; d < layer1d; d++) {
+                for (int i = 0; i < w01h; i++) {
+                    for (int j = 0; j < w01w; j++) {
+                        matrixW01double[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = 0.01 + 0.01 * d;
+                    }
+                }
+            }
+        }
+
+        for (int d = 0; d < layer1d; d++) {
+            for (int i = 0; i < layer1h; i++) {
+                for (int j = 0; j < layer1w; j++) {
+                    matrixL1double[(d * layer1h * layer1w) + (i * layer1w) + j] = d;
+                }
+            }
+        }
+
+        unsigned error = 0;
+        return (int) error;
+    }
+};
+
+struct MatrixAdditionOCL : public IProgram
+{
+    int run() override
+    {
+
+        ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+
+        double doubleics = 0;
+        doubleics = ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        printf("double ics %f \n", doubleics);
+
+        for (int i = 0; i < layer0d; i++) {
+            for (int j = 0; j < layer1d; j++) {
+                ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, i, j);
+            }
+        }
+
+        ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+
+        ocl_phase2.convolution_double_ocs_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 2);
+        for (int i = 0; i < ocsSize; i++) {
+
+
+
+            ocl_phase2.convolution_double_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, i);
+        }
+        ocl_phase2.convolution_double_ocs_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 2);
+        for (int i = 0; i < ocsSize; i++) {
+            //printf("ocs %d: %f \n", i, ocs[i]);
+            if (abs(doubleics - ocs[i]) > 0.00000001) {
+                printf("checksum mismatch! \n");
+            }
+        }
+        printf("ocs %d: %f \n", (ocsSize -1), ocs[(ocsSize -1)]);
+
+
+        unsigned error = 0;
+        return (int) error;
+    }
+};
+
+struct SaveMatrixOCL : public IProgram
+{
+    int run() override {
+
+        FILE *fp = fopen("../../output-data/matrixL1d.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int d = 0; d < layer1d; d++) {
+            fprintf(fp, "//M = %d \n", d);
+            for (int i = 0; i < layer1h; i++) {
+                for (int j = 0; j < layer1w; j++) {
+                    fprintf(fp, "%f ", matrixL1double[(d * layer1h * layer1w) + i * layer1w + j]);
+                }
+                fprintf(fp, "\n");
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
+        fp = fopen("../../output-data/matrixL0d.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        for (int i = 0; i < layer0h; i++) {
+            for (int j = 0; j < layer0w; j++) {
+                fprintf(fp, "%f ", matrixL0double[i * layer0w + j]);
+            }
+            fprintf(fp, "\n");
+        }
+
+        fclose(fp);
+
+        fp = fopen("../../output-data/matrixW01d.txt", "w");
+        if (fp == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+        for (int n = 0; n < layer0d; n++) {
+            fprintf(fp, "//N = %d--------------------------------------------\n", n);
+            for (int d = 0; d < layer1d; d++) {
+                fprintf(fp, "//M = %d \n", d);
+                for (int i = 0; i < w01h; i++) {
+                    for (int j = 0; j < w01w; j++) {
+                        fprintf(fp, "%f ", matrixW01double[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + i * w01w + j]);
+                    }
+                    fprintf(fp, "\n");
+                }
+                fprintf(fp, "\n");
+            }
+        }
+        fclose(fp);
+
+        unsigned error = 0;
+        return (int) error;
+    }
+};
 
 int main()
 {
@@ -168,69 +472,39 @@ int main()
 
     sw.saveStartPoint();
 
-    // Step 3
+    //Start clock
     ProgramStopwatch Program_sw(clock);
-    LoadImage loadImage;
-    ResizeImage resizeImage;
-    SaveResizedImage saveResizedImage;
-    
-    TransformToGreyscale transformToGreyscale;
-    SaveGreyscaleImage saveGreyscaleImage;
-    ZNCCResizedImage ZNCCResizedImage;
-    CrosscheckImage crosscheckImage;
-    OcclusionFilterImage occlusionFilterImage;
-    
-    SaveZNCCImage saveZNCCImage;
-    SaveCrosscheckImage saveCrosscheckImage;
-    SaveOcclusionImage saveOcclusionImage;
 
-    int result = Program_sw.runProgram(loadImage);
-    std::cout << "Load image return result: " << result << std::endl;
+    //Program
+    CreateMatrices createMatrices;
+    MatrixAdditionOCL matrixAdditionOCL;
+    SaveMatrixOCL saveMatrixOCL;
+
+    int result = 0;
+
+    result = Program_sw.runProgram(createMatrices);
+    std::cout << "Creation of matrices: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
-    result = Program_sw.runProgram(transformToGreyscale);
-    std::cout << "Transform to greyscale return result: " << result << std::endl;
+    result = Program_sw.runProgram(matrixAdditionOCL);
+    std::cout << "OpenCL matrix addition: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
-    result = Program_sw.runProgram(saveGreyscaleImage);
-    std::cout << "Save greyscale image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(resizeImage);
-    std::cout << "Resize image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(saveResizedImage);
-    std::cout << "Save resized image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(ZNCCResizedImage);
-    std::cout << "ZNCC filter resized images return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(saveZNCCImage);
-    std::cout << "Save ZNCC images return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(crosscheckImage);
-    std::cout << "crosscheck image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(saveCrosscheckImage);
-    std::cout << "Save crosschecked image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(occlusionFilterImage);
-    std::cout << "Occlusion fill image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
-    result = Program_sw.runProgram(saveOcclusionImage);
-    std::cout << "Save occlusion filled image return result: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
+    result = Program_sw.runProgram(saveMatrixOCL);
+    std::cout << "OpenCL matrix save: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl << std::endl;
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
 
-    printPlatformProfile(false);
+    ocl_phase2.print_kernel_execution_times();
+
+    free(matrixL0double);
+    free(matrixW01double);
+    free(matrixL1double);
+
+    free(ocs);
+
+    printPlatformInfo(false);
     return 0;
 }

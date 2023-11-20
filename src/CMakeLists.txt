@@ -41,6 +41,8 @@ target_link_libraries(phase3
   utilities
   stopwatches
   occlusion_fill
+  opencl_base
+  compiler_flags
   )
 
 add_executable(phase4 phase4.cpp)

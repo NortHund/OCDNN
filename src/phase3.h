@@ -1,9 +1,16 @@
 #ifndef PHASE3_H
 #define PHASE3_H
-#include <iostream>
 #include "lodepng_wrapper.h"
-#include "occlusion_fill.h"
 #include "utils.h"
 #include "Stopwatches.h"
+
+#include <iostream>
+#include <memory>
+#include "opencl_base.h"
+
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
 
 #endif // PHASE3_H
