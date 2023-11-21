@@ -48,16 +48,14 @@ __kernel void convolution_double_ics(__global double* inputA, __global double* i
                 for (int m = 0; m < depthB; ++m) {
                     wSum += inputB[(n * depthB * heightB * widthB) + (m * heightB * widthB) + (i * widthB) + j];
                 }
-                //printf("wSum: %f\n", wSum);
+
                 xSum = 0;
                 for (int r = 0; r < height; ++r) {
                     for (int c = 0; c < width; ++c) {
                         xSum += inputA[(n * heightA * widthA) + ((r + i) * widthA) + (c + j)];
                     }
                 }
-                //printf("xSum: %f\n", xSum);
                 checksum += xSum * wSum;
-                //printf("n: %d, i: %d, j: %d\n checksum: %f, xSum: %f, wSum: %f\n", n, i, j, checksum, xSum, wSum);
             }
         }
     }

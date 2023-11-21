@@ -1,11 +1,4 @@
 #include "phase3.h"
-int scaling_factor = 4;
-
-int matwidth = 10;
-int matheight = 10;
-
-int mfwidth = 10;
-int mfheight = 10;
 
 int layer0w = 32;
 int layer0h = 32;
@@ -316,6 +309,220 @@ private:
 
 OCL_Phase2 ocl_phase2;
 
+struct IcsOptimized : public IProgram
+{
+    int run() override
+    {
+        int k = w01w;
+        int k1 = (w01w-1);
+        int k2 = (w01w-2);
+
+        double midSQ = 0;
+        for (int n = 0; n < layer0d; n++) {
+            for (int i = k1; i < layer0h - k1; i++) {
+                for (int j = k1; j < layer0w - k1; j++) {
+                    midSQ += matrixL0double[i * layer0w + j];
+                }
+            }
+        }
+
+        double midRW[k1 * 2];
+        int id = 0;
+        for (int i = 0; i < k1; i++) {
+            midRW[id] = 0;
+            for (int j = k1; j < layer0w - k1; j++) {
+                midRW[id] += matrixL0double[i * layer0w + j];
+            }
+            id++;
+        }
+        for (int i = layer0h - k1; i < layer0h; i++) {
+            midRW[id] = 0;
+            for (int j = k1; j < layer0w - k1; j++) {
+                midRW[id] += matrixL0double[i * layer0w + j];
+            }
+            id++;
+        }
+
+        double midCL[k1*2];
+        id = 0;
+        for (int i = 0; i < k1; i++) {
+            midCL[id] = 0;
+            for (int j = k1; j < layer0w - k1; j++) {
+                midCL[id] += matrixL0double[j * layer0w + i];
+            }
+            id++;
+        }
+        for (int i = layer0h - k1; i < layer0h; i++) {
+            midCL[id] = 0;
+            for (int j = k1; j < layer0w - k1; j++) {
+                midCL[id] += matrixL0double[j * layer0w + i];
+            }
+            id++;
+        }
+
+        double cornerMat[(k1 * 2) * (k1 * 2)];
+        id = 0;
+        for (int i = 0; i < k1; i++) {
+            for (int j = 0; j < k1; j++) {
+                cornerMat[id] = matrixL0double[j * layer0w + i];
+                id++;
+            }
+            for (int j = layer0w - k1; j < layer0w; j++) {
+                cornerMat[id] = matrixL0double[j * layer0w + i];
+                id++;
+            }
+        }
+        for (int i = layer0h - k1; i < layer0h; i++) {
+            for (int j = 0; j < k1; j++) {
+                cornerMat[id] = matrixL0double[j * layer0w + i];
+                id++;
+            }
+            for (int j = layer0w - k1; j < layer0w; j++) {
+                cornerMat[id] = matrixL0double[j * layer0w + i];
+                id++;
+            }
+        }
+        printf("corner mat: \n");
+        for (int i = 0; i < (k1 * 2); i++) {
+            for (int j = 0; j < (k1 * 2); j++) {
+                printf("%f ", cornerMat[i * (k1 * 2) + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+
+        printf("midSQ: %f, midRW: %f, midCL %f \n", midSQ, midRW[0], midCL[0]);
+
+        //matsum loop version 1
+        double matSum[k * k];
+        for (int ci = 0; ci < k; ci++) {
+            for (int cj = 0; cj < k; cj++) {
+                matSum[ci * k + cj] = 0;
+                matSum[ci * k + cj] += midSQ;
+                for (int i = ci; i < ci + k1; i++) {
+                    matSum[ci * k + cj] += midRW[i];
+                    matSum[ci * k + cj] += midCL[i];
+                    for (int j = cj; j < cj + k1; j++) {
+                        matSum[ci * k + cj] += cornerMat[i * (k1 * 2) + j];
+                    }
+                }
+            }
+        }
+        printf("mat Sum v1: \n");
+        for (int i = 0; i < k; i++) {
+            for (int j = 0; j < k; j++) {
+                printf("%f ", matSum[i + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+
+        //matsum loop version 2
+        //first value is calculated in full
+        matSum[0] = 0;
+        matSum[0] += midSQ;
+        for (int i = 0; i < k1; i++) {
+            matSum[0] += midRW[i];
+            matSum[0] += midCL[i];
+            for (int j = 0; j < k1; j++) {
+                matSum[0] += cornerMat[i * (k1 * 2) + j];
+            }
+        }
+        double prevSum;
+        //second value onwards with this loop, value based on previous value
+        for (int ci = 0; ci < k; ci++) {
+            if (ci % 2 == 0) {
+                for (int cj = 0; cj < k; cj++) {
+                    if (cj + ci > 0) {
+                        if (cj == 0) { //downwards shift, left edge
+                            //printf("downwards, left edge\n");
+                            matSum[ci * k + cj] = prevSum;
+                            matSum[ci * k + cj] -= midRW[ci - 1];
+                            matSum[ci * k + cj] += midRW[ci + k2];
+                            for (int j = cj; j < cj + k1; j++) {
+                                matSum[ci * k + cj] -= cornerMat[(ci - 1) * (k1 * 2) + j];
+                                matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
+                            }
+                        } else { //left to right
+                            //printf("left to right\n");
+                            matSum[ci * k + cj] = prevSum;
+                            matSum[ci * k + cj] -= midCL[cj - 1];
+                            matSum[ci * k + cj] += midCL[cj + k2];
+                            for (int i = ci; i < ci + k1; i++) {
+                                matSum[ci * k + cj] -= cornerMat[i * (k1 * 2) + cj - 1];
+                                matSum[ci * k + cj] += cornerMat[i * (k1 * 2) + cj + k2];
+                            }
+                        }
+                        prevSum = matSum[ci * k + cj];
+                        //printf("matSum: %f\n", matSum[ci * k + cj]);
+                    } else {
+                        prevSum = matSum[0];
+                    }
+                }
+            } else {
+                for (int cj = k1; cj > 0; cj--) {
+                    if (cj == k1) { //downwards shift, right edge
+                        //printf("downwards, right edge\n");
+                        matSum[ci * k + cj] = prevSum;
+                        matSum[ci * k + cj] -= midRW[ci - 1];
+                        matSum[ci * k + cj] += midRW[ci + k2];
+                        for (int j = cj; j > cj - k1; j--) {
+                            matSum[ci * k + cj] -= cornerMat[(ci - 1) * (k1 * 2) + j];
+                            matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
+                        }
+                    } else { //right to left
+                        //printf("right to left\n");
+                        matSum[ci * k + cj] = prevSum;
+                        matSum[ci * k + cj] += midCL[cj];
+                        matSum[ci * k + cj] -= midCL[cj + k1];
+                        for (int i = ci; i < ci + k1; i++) {
+                            matSum[ci * k + cj] -= cornerMat[i * (k1 * 2) + cj + k1];
+                            matSum[ci * k + cj] += cornerMat[i * (k1 * 2) + cj];
+                        }
+                    }
+                    prevSum = matSum[ci * k + cj];
+                    //printf("matSum: %f\n", matSum[ci * k + cj]);
+                }
+            }
+
+        }
+        printf("mat Sum v2: \n");
+        for (int i = 0; i < k; i++) {
+            for (int j = 0; j < k; j++) {
+                printf("%f ", matSum[i + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+
+        double wSum = 0;
+        double xSum = 0;
+        double checksum = 0;
+        for (int i = 0; i < k; i++) {
+            for (int j = 0; j < k; j++) {
+                wSum = 0;
+                for (int m = 0; m < layer1d; ++m) {
+                    wSum += matrixW01double[(m * w01h * w01w) + (i * w01w) + j];
+                }
+                checksum += wSum * matSum[(i * w01w) + j];
+
+                /*xSum = 0;
+                for (int r = 0; r < layer1h; ++r) {
+                    for (int c = 0; c < layer1w; ++c) {
+                        xSum += matrixL0double[((r + i) * layer0w) + (c + j)];
+                    }
+                }
+                printf("xsum: %f\n", xSum);*/
+            }
+            //printf("\n");
+        }
+        printf("checkusm: %f\n", checksum);
+
+        unsigned error = 0;
+        return (int) error;
+    }
+};
+
 struct CreateMatrices : public IProgram
 {
     int run() override
@@ -362,7 +569,6 @@ struct MatrixAdditionOCL : public IProgram
 {
     int run() override
     {
-
         ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
@@ -471,10 +677,16 @@ int main()
     MatrixAdditionOCL matrixAdditionOCL;
     SaveMatrixOCL saveMatrixOCL;
 
+    IcsOptimized icsOptimized;
+
     int result = 0;
 
     result = Program_sw.runProgram(createMatrices);
     std::cout << "Creation of matrices: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
+
+    result = Program_sw.runProgram(icsOptimized);
+    std::cout << "Ics optimized: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
     result = Program_sw.runProgram(matrixAdditionOCL);
