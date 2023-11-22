@@ -769,9 +769,9 @@ int main()
     std::cout << "Creation of matrices: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
-    result = Program_sw.runProgram(icsOptimized);
+    /*result = Program_sw.runProgram(icsOptimized);
     std::cout << "Ics optimized: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;*/
 
     result = Program_sw.runProgram(matrixAdditionOCL);
     std::cout << "OpenCL matrix addition: " << result << std::endl;
