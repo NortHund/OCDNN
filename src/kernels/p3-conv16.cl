@@ -112,7 +112,7 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
 
         //matsum loop version 1
         //half matSum[k * k];
-        for (int ci = 0; ci < k; ci++) {
+        /*for (int ci = 0; ci < k; ci++) {
             for (int cj = 0; cj < k; cj++) {
                 matSum[ci * k + cj] = 0;
                 matSum[ci * k + cj] += midSQ;
@@ -124,7 +124,7 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                     }
                 }
             }
-        }
+        }*/
 
         //matsum loop version 2
         //first value is calculated in full
@@ -169,7 +169,7 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                     }
                 }
             } else {
-                for (int cj = k1; cj > 0; cj--) {
+                for (int cj = k1; cj >= 0; cj--) {
                     if (cj == k1) { //downwards shift, right edge
                         //printf("downwards, right edge\n");
                         matSum[ci * k + cj] = prevSum;

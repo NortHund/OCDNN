@@ -255,7 +255,7 @@ public:
                                         NULL,
                                         &_event);
 
-        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         free(midRW);
         free(midCL);
@@ -361,6 +361,7 @@ public:
         std::cout << "  Convolution: " << kernel_execution_times[0] << " us\n";
         std::cout << "  Convolution read: " << kernel_execution_times[1] << " us\n";
         std::cout << "  Input checksum: " << kernel_execution_times[2] << " us\n";
+        std::cout << "  Input checksum optimized: " << kernel_execution_times[6] << " us\n";
         std::cout << "  Input checksum read: " << kernel_execution_times[3] << " us\n";
         std::cout << "  Output checksum: " << kernel_execution_times[4] << " us\n";
         std::cout << "  Output checksum read: " << kernel_execution_times[5] << " us\n\n";
@@ -479,7 +480,7 @@ struct IcsOptimized : public IProgram
 
         //matsum loop version 1
         double matSum[k * k];
-        for (int ci = 0; ci < k; ci++) {
+        /*for (int ci = 0; ci < k; ci++) {
             for (int cj = 0; cj < k; cj++) {
                 matSum[ci * k + cj] = 0;
                 matSum[ci * k + cj] += midSQ;
@@ -499,7 +500,7 @@ struct IcsOptimized : public IProgram
             }
             printf("\n");
         }
-        printf("\n");
+        printf("\n");*/
 
         //matsum loop version 2
         //first value is calculated in full
@@ -519,7 +520,7 @@ struct IcsOptimized : public IProgram
                 for (int cj = 0; cj < k; cj++) {
                     if (cj + ci > 0) {
                         if (cj == 0) { //downwards shift, left edge
-                            //printf("downwards, left edge\n");
+                            printf("downwards, left edge\n");
                             matSum[ci * k + cj] = prevSum;
                             matSum[ci * k + cj] -= midRW[ci - 1];
                             matSum[ci * k + cj] += midRW[ci + k2];
@@ -528,7 +529,7 @@ struct IcsOptimized : public IProgram
                                 matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
                             }
                         } else { //left to right
-                            //printf("left to right\n");
+                            printf("left to right\n");
                             matSum[ci * k + cj] = prevSum;
                             matSum[ci * k + cj] -= midCL[cj - 1];
                             matSum[ci * k + cj] += midCL[cj + k2];
@@ -538,15 +539,16 @@ struct IcsOptimized : public IProgram
                             }
                         }
                         prevSum = matSum[ci * k + cj];
-                        //printf("matSum: %f\n", matSum[ci * k + cj]);
+                        printf("id: %d\n", (ci * k + cj));
+                        printf("matSum: %f\n", matSum[ci * k + cj]);
                     } else {
                         prevSum = matSum[0];
                     }
                 }
             } else {
-                for (int cj = k1; cj > 0; cj--) {
+                for (int cj = k1; cj >= 0; cj--) {
                     if (cj == k1) { //downwards shift, right edge
-                        //printf("downwards, right edge\n");
+                        printf("downwards, right edge\n");
                         matSum[ci * k + cj] = prevSum;
                         matSum[ci * k + cj] -= midRW[ci - 1];
                         matSum[ci * k + cj] += midRW[ci + k2];
@@ -555,7 +557,7 @@ struct IcsOptimized : public IProgram
                             matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
                         }
                     } else { //right to left
-                        //printf("right to left\n");
+                        printf("right to left\n");
                         matSum[ci * k + cj] = prevSum;
                         matSum[ci * k + cj] += midCL[cj];
                         matSum[ci * k + cj] -= midCL[cj + k1];
@@ -565,7 +567,8 @@ struct IcsOptimized : public IProgram
                         }
                     }
                     prevSum = matSum[ci * k + cj];
-                    //printf("matSum: %f\n", matSum[ci * k + cj]);
+                    printf("id: %d\n", (ci * k + cj));
+                    printf("matSum: %f\n", matSum[ci * k + cj]);
                 }
             }
 
@@ -573,7 +576,7 @@ struct IcsOptimized : public IProgram
         printf("mat Sum v2: \n");
         for (int i = 0; i < k; i++) {
             for (int j = 0; j < k; j++) {
-                printf("%f ", matSum[i + j]);
+                printf("id: %d, %f ",(i * k + j), matSum[i * k + j]);
             }
             printf("\n");
         }
@@ -656,8 +659,15 @@ struct MatrixAdditionOCL : public IProgram
         ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        printf("ics: %.16f \n", ics[0]);
+
+        ics[0] = 0;
+        ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_optim_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
         ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        printf("Optimized ics: %.16f \n", ics[0]);
 
         for (int i = 0; i < layer0d; i++) {
             for (int j = 0; j < layer1d; j++) {
