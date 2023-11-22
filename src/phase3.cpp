@@ -11,19 +11,12 @@ int layer1d = 6;
 int w01w = 5;
 int w01h = 5;
 
-float* matrixL0float;
-float* matrixW01float;
-float* matrixL1float;
+double* matrixL0double;
+double* matrixW01double;
+double* matrixL1double;
 
-float *ics;
-float* ocs;
-
-HALF* matrixL0half;
-HALF* matrixW01half;
-HALF* matrixL1half;
-
-HALF* icsHalf;
-HALF* ocsHalf;
+double *ics;
+double* ocs;
 
 // Get kernel execution time in microseconds
 unsigned long get_kernel_execution_time(cl_event &event, cl_command_queue &command_queue)
@@ -58,7 +51,7 @@ public:
     {
         prog_mm_int = _ocl_base->CreateProgramFromFile("kernels/p2-mm-int32.cl");
         prog_mm_float = _ocl_base->CreateProgramFromFile("kernels/p2-mm-f32.cl");
-        prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/p3-conv16.cl");
+        prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/p3-conv32.cl");
         prog_cv_oc = _ocl_base->CreateProgramFromFile("kernels/convolution-oc.cl");
     }
 
@@ -73,19 +66,19 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_double"); //6
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_double"); //7
         _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_int_cs"); //8
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_half_ocs"); //9
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_half_ics"); //10
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ocs"); //9
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ics"); //10
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ics"); //11
     }
 
-    unsigned convolution_half(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *)&wBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 2, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *)&wBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 2, sizeof(cl_mem), (void *)&oBufferd);
         status = clSetKernelArg(_ocl_base->GetKernel(7), 3, sizeof(int), &ih);
         status = clSetKernelArg(_ocl_base->GetKernel(7), 4, sizeof(int), &iw);
         status = clSetKernelArg(_ocl_base->GetKernel(7), 5, sizeof(int), &id);
@@ -115,36 +108,36 @@ public:
         return (unsigned)status;
     }
 
-    unsigned convolution_half_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        iBuffer = clCreateBuffer(_ocl_base->context,
+        iBufferd = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  iw * ih * sizeof(HALF),
-                                  matrixL0half,
+                                  iw * ih * sizeof(double),
+                                  matrixL0double,
                                   NULL);
 
-        wBuffer = clCreateBuffer(_ocl_base->context,
+        wBufferd = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  id * od * ww * wh * sizeof(HALF),
-                                  matrixW01half,
+                                  id * od * ww * wh * sizeof(double),
+                                  matrixW01double,
                                   NULL);
 
-        oBuffer = clCreateBuffer(_ocl_base->context,
+        oBufferd = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                  od * ow * oh * sizeof(HALF),
-                                  matrixL1half,
+                                  od * ow * oh * sizeof(double),
+                                  matrixL1double,
                                   NULL);
     }
 
-    float convolution_half_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    double convolution_double_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            oBuffer,
+                                            oBufferd,
                                             0,
                                             0,
-                                            od * ow * oh * sizeof(HALF),
-                                            matrixL1half,
+                                            od * ow * oh * sizeof(double),
+                                            matrixL1double,
                                             0,
                                             NULL,
                                             &_event);
@@ -153,13 +146,13 @@ public:
 
     }
 
-    unsigned convolution_half_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned convolution_double_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 1, sizeof(cl_mem), (void *)&wBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 1, sizeof(cl_mem), (void *)&wBufferd);
         status = clSetKernelArg(_ocl_base->GetKernel(10), 2, sizeof(cl_mem), (void *)&icsBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(10), 3, sizeof(int), &ih);
         status = clSetKernelArg(_ocl_base->GetKernel(10), 4, sizeof(int), &iw);
@@ -192,47 +185,47 @@ public:
 
     unsigned convolution_optim_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od)
     {
-        HALF* midRW;
-        HALF* midCL;
-        HALF* cornerMat;
-        HALF* matSum;
+        double* midRW;
+        double* midCL;
+        double* cornerMat;
+        double* matSum;
 
         int k1 = ww - 1;
 
-        midRW = (HALF *) malloc(k1 * 2 * sizeof(HALF));
-        midCL = (HALF*)malloc(k1 * 2 * sizeof(HALF));
-        cornerMat = (HALF*)malloc((k1 * 2) * (k1 * 2) * sizeof(HALF));
-        matSum = (HALF*)malloc(ww * wh * sizeof(HALF));
+        midRW = (double *) malloc(k1 * 2 * sizeof(double));
+        midCL = (double*)malloc(k1 * 2 * sizeof(double));
+        cornerMat = (double*)malloc((k1 * 2) * (k1 * 2) * sizeof(double));
+        matSum = (double*)malloc(ww * wh * sizeof(double));
 
         cl_mem midRWBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   k1 * 2 * sizeof(HALF),
+                                   k1 * 2 * sizeof(double),
                                    midRW,
                                    NULL);
 
         cl_mem midCLBuffer = clCreateBuffer(_ocl_base->context,
                                             CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                            k1 * 2 * sizeof(HALF),
+                                            k1 * 2 * sizeof(double),
                                             midCL,
                                             NULL);
 
         cl_mem cornerMatBuffer = clCreateBuffer(_ocl_base->context,
                                             CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                            (k1 * 2) * (k1 * 2) * sizeof(HALF),
+                                            (k1 * 2) * (k1 * 2) * sizeof(double),
                                             cornerMat,
                                             NULL);
 
         cl_mem matSumBuffer = clCreateBuffer(_ocl_base->context,
                                             CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                            ww * wh * sizeof(HALF),
+                                            ww * wh * sizeof(double),
                                             matSum,
                                             NULL);
 
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(11), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(11), 1, sizeof(cl_mem), (void *)&wBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 1, sizeof(cl_mem), (void *)&wBufferd);
         status = clSetKernelArg(_ocl_base->GetKernel(11), 2, sizeof(cl_mem), (void *)&icsBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(11), 3, sizeof(cl_mem), (void *)&midRWBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(11), 4, sizeof(cl_mem), (void *)&midCLBuffer);
@@ -273,24 +266,24 @@ public:
         return 0;
     }
 
-    unsigned convolution_half_ics_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
+    unsigned convolution_double_ics_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
 
         icsBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   sizeof(HALF),
-                                   icsHalf,
+                                   sizeof(double),
+                                   ics,
                                    NULL);
 
     }
 
-    float convolution_half_ics_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
+    double convolution_double_ics_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
 
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
                                             icsBuffer,
                                             0,
                                             0,
-                                            sizeof(HALF),
-                                            icsHalf,
+                                            sizeof(double),
+                                            ics,
                                             0,
                                             NULL,
                                             &_event);
@@ -299,13 +292,13 @@ public:
         return ics[0];
     }
 
-    unsigned convolution_half_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    unsigned convolution_double_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
 
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 0, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 0, sizeof(cl_mem), (void *)&oBufferd);
         status = clSetKernelArg(_ocl_base->GetKernel(9), 1, sizeof(cl_mem), (void *)&ocsBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(9), 2, sizeof(int), &oh);
         status = clSetKernelArg(_ocl_base->GetKernel(9), 3, sizeof(int), &ow);
@@ -332,18 +325,18 @@ public:
         return (unsigned)status;
     }
 
-    unsigned convolution_half_ocs_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    unsigned convolution_double_ocs_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
         ocsBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   sizeof(HALF),
-                                   ocsHalf,
+                                   sizeof(double),
+                                   ocs,
                                    NULL);
 
 
     }
 
-    float convolution_half_ocs_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    double convolution_double_ocs_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
         //Reading result from GPU memory to main memory
         cl_int status;
@@ -351,15 +344,15 @@ public:
                                      ocsBuffer,
                                      0,
                                      0,
-                                     sizeof(HALF),
-                                     ocsHalf,
+                                     sizeof(double),
+                                     ocs,
                                      0,
                                      NULL,
                                      &_event);
 
         kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-        //printf("Convolution-float ocl ocs: %f \n", ocs[ocsInd]);
+        //printf("Convolution-double ocl ocs: %f \n", ocs[ocsInd]);
     }
 
     void print_kernel_execution_times()
@@ -375,9 +368,9 @@ public:
 
     std::unique_ptr<OCL_Base> _ocl_base;
 
-    cl_mem iBuffer = nullptr;
-    cl_mem wBuffer = nullptr;
-    cl_mem oBuffer = nullptr;
+    cl_mem iBufferd = nullptr;
+    cl_mem wBufferd = nullptr;
+    cl_mem oBufferd = nullptr;
     cl_mem ocsBuffer = nullptr;
     cl_mem icsBuffer = nullptr;
 
@@ -408,68 +401,68 @@ struct IcsOptimized : public IProgram
         int k1 = (w01w-1);
         int k2 = (w01w-2);
 
-        float midSQ = 0;
+        double midSQ = 0;
         for (int n = 0; n < layer0d; n++) {
             for (int i = k1; i < layer0h - k1; i++) {
                 for (int j = k1; j < layer0w - k1; j++) {
-                    midSQ += matrixL0float[i * layer0w + j];
+                    midSQ += matrixL0double[i * layer0w + j];
                 }
             }
         }
 
-        float midRW[k1 * 2];
+        double midRW[k1 * 2];
         int id = 0;
         for (int i = 0; i < k1; i++) {
             midRW[id] = 0;
             for (int j = k1; j < layer0w - k1; j++) {
-                midRW[id] += matrixL0float[i * layer0w + j];
+                midRW[id] += matrixL0double[i * layer0w + j];
             }
             id++;
         }
         for (int i = layer0h - k1; i < layer0h; i++) {
             midRW[id] = 0;
             for (int j = k1; j < layer0w - k1; j++) {
-                midRW[id] += matrixL0float[i * layer0w + j];
+                midRW[id] += matrixL0double[i * layer0w + j];
             }
             id++;
         }
 
-        float midCL[k1*2];
+        double midCL[k1*2];
         id = 0;
         for (int i = 0; i < k1; i++) {
             midCL[id] = 0;
             for (int j = k1; j < layer0w - k1; j++) {
-                midCL[id] += matrixL0float[j * layer0w + i];
+                midCL[id] += matrixL0double[j * layer0w + i];
             }
             id++;
         }
         for (int i = layer0h - k1; i < layer0h; i++) {
             midCL[id] = 0;
             for (int j = k1; j < layer0w - k1; j++) {
-                midCL[id] += matrixL0float[j * layer0w + i];
+                midCL[id] += matrixL0double[j * layer0w + i];
             }
             id++;
         }
 
-        float cornerMat[(k1 * 2) * (k1 * 2)];
+        double cornerMat[(k1 * 2) * (k1 * 2)];
         id = 0;
         for (int i = 0; i < k1; i++) {
             for (int j = 0; j < k1; j++) {
-                cornerMat[id] = matrixL0float[j * layer0w + i];
+                cornerMat[id] = matrixL0double[j * layer0w + i];
                 id++;
             }
             for (int j = layer0w - k1; j < layer0w; j++) {
-                cornerMat[id] = matrixL0float[j * layer0w + i];
+                cornerMat[id] = matrixL0double[j * layer0w + i];
                 id++;
             }
         }
         for (int i = layer0h - k1; i < layer0h; i++) {
             for (int j = 0; j < k1; j++) {
-                cornerMat[id] = matrixL0float[j * layer0w + i];
+                cornerMat[id] = matrixL0double[j * layer0w + i];
                 id++;
             }
             for (int j = layer0w - k1; j < layer0w; j++) {
-                cornerMat[id] = matrixL0float[j * layer0w + i];
+                cornerMat[id] = matrixL0double[j * layer0w + i];
                 id++;
             }
         }
@@ -485,7 +478,7 @@ struct IcsOptimized : public IProgram
         printf("midSQ: %f, midRW: %f, midCL %f \n", midSQ, midRW[0], midCL[0]);
 
         //matsum loop version 1
-        float matSum[k * k];
+        double matSum[k * k];
         for (int ci = 0; ci < k; ci++) {
             for (int cj = 0; cj < k; cj++) {
                 matSum[ci * k + cj] = 0;
@@ -519,7 +512,7 @@ struct IcsOptimized : public IProgram
                 matSum[0] += cornerMat[i * (k1 * 2) + j];
             }
         }
-        float prevSum;
+        double prevSum;
         //second value onwards with this loop, value based on previous value
         for (int ci = 0; ci < k; ci++) {
             if (ci % 2 == 0) {
@@ -586,21 +579,21 @@ struct IcsOptimized : public IProgram
         }
         printf("\n");
 
-        float wSum = 0;
-        float xSum = 0;
-        float checksum = 0;
+        double wSum = 0;
+        double xSum = 0;
+        double checksum = 0;
         for (int i = 0; i < k; i++) {
             for (int j = 0; j < k; j++) {
                 wSum = 0;
                 for (int m = 0; m < layer1d; ++m) {
-                    wSum += matrixW01float[(m * w01h * w01w) + (i * w01w) + j];
+                    wSum += matrixW01double[(m * w01h * w01w) + (i * w01w) + j];
                 }
                 checksum += wSum * matSum[(i * w01w) + j];
 
                 /*xSum = 0;
                 for (int r = 0; r < layer1h; ++r) {
                     for (int c = 0; c < layer1w; ++c) {
-                        xSum += matrixL0float[((r + i) * layer0w) + (c + j)];
+                        xSum += matrixL0double[((r + i) * layer0w) + (c + j)];
                     }
                 }
                 printf("xsum: %f\n", xSum);*/
@@ -618,28 +611,18 @@ struct CreateMatrices : public IProgram
 {
     int run() override
     {
-        ics = (float *) malloc(sizeof(float));
+        ics = (double *) malloc(sizeof(double));
         ics[0] = 0;
-        ocs = (float*) malloc(sizeof(float));
+        ocs = (double*)malloc(sizeof(double));
         ocs[0] = 0;
 
-        icsHalf = (HALF *) malloc(sizeof(HALF));
-        icsHalf[0] = 0;
-        ocsHalf = (HALF *) malloc(sizeof(HALF));
-        ocsHalf[0] = 0;
-
-        matrixL0float = (float*)malloc((layer0d) * (layer0w * layer0h) * sizeof(float));
-        matrixW01float = (float*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(float));
-        matrixL1float = (float*)malloc((layer1d) * (layer1w * layer1h) * sizeof(float));
-
-        matrixL0half = (HALF*)malloc((layer0d) * (layer0w * layer0h) * sizeof(HALF));
-        matrixW01half = (HALF*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(HALF));
-        matrixL1half = (HALF*)malloc((layer1d) * (layer1w * layer1h) * sizeof(HALF));
+        matrixL0double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+        matrixW01double = (double*)malloc((layer0d) * (layer1d) * (w01w * w01h) * sizeof(double));
+        matrixL1double = (double*)malloc((layer1d) * (layer1w * layer1h) * sizeof(double));
 
         for (int i=0; i<layer0h; i++) {
             for (int j=0; j<layer0w; j++) {
-                matrixL0float[i * layer0w + j] = 2.5;
-                matrixL0half[i * layer0w + j] = floatToHALF(2.5);
+                matrixL0double[i * layer0w + j] = 2.5;
             }
         }
 
@@ -647,8 +630,7 @@ struct CreateMatrices : public IProgram
             for (int d = 0; d < layer1d; d++) {
                 for (int i = 0; i < w01h; i++) {
                     for (int j = 0; j < w01w; j++) {
-                        matrixW01float[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = 0.01 + 0.01 * d;
-                        matrixW01half[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = floatToHALF(float(0.01 + 0.01 * d));
+                        matrixW01double[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + (i * w01w) + j] = 0.01 + 0.01 * d;
                     }
                 }
             }
@@ -657,8 +639,7 @@ struct CreateMatrices : public IProgram
         for (int d = 0; d < layer1d; d++) {
             for (int i = 0; i < layer1h; i++) {
                 for (int j = 0; j < layer1w; j++) {
-                    matrixL1float[(d * layer1h * layer1w) + (i * layer1w) + j] = d;
-                    matrixL1half[(d * layer1h * layer1w) + (i * layer1w) + j] = floatToHALF(float(d));
+                    matrixL1double[(d * layer1h * layer1w) + (i * layer1w) + j] = d;
                 }
             }
         }
@@ -672,25 +653,23 @@ struct MatrixAdditionOCL : public IProgram
 {
     int run() override
     {
-        ocl_phase2.convolution_half_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
-        ocl_phase2.convolution_half_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_optim_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
-        ocl_phase2.convolution_half_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
         for (int i = 0; i < layer0d; i++) {
             for (int j = 0; j < layer1d; j++) {
-                ocl_phase2.convolution_half(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, i, j);
+                ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, i, j);
             }
         }
-        ocl_phase2.convolution_half_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
-        ocl_phase2.convolution_half_ocs_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
-        ocl_phase2.convolution_half_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
-        ocl_phase2.convolution_half_ocs_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+        ocl_phase2.convolution_double_ocs_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+        ocl_phase2.convolution_double_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+        ocl_phase2.convolution_double_ocs_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
 
-        ics[0] = HALFToFloat(icsHalf[0]);
-        ocs[0] = HALFToFloat(ocsHalf[0]);
         //printf("ocs %d: %f \n", i, ocs[i]);
         if (abs(ics[0] - ocs[0]) > 0.00000000001) {
             printf("checksum mismatch! ics: %.16f, ocs: %.16f \n", ics[0], ocs[0]);
@@ -707,7 +686,7 @@ struct SaveMatrixOCL : public IProgram
 {
     int run() override {
 
-        FILE *fp = fopen("../../output-data/matrixL1h.txt", "w");
+        FILE *fp = fopen("../../output-data/matrixL1d.txt", "w");
         if (fp == NULL) {
             printf("Error opening file!\n");
             exit(1);
@@ -717,7 +696,7 @@ struct SaveMatrixOCL : public IProgram
             fprintf(fp, "//M = %d \n", d);
             for (int i = 0; i < layer1h; i++) {
                 for (int j = 0; j < layer1w; j++) {
-                    fprintf(fp, "%f ", HALFToFloat(matrixL1half[(d * layer1h * layer1w) + i * layer1w + j]));
+                    fprintf(fp, "%f ", matrixL1double[(d * layer1h * layer1w) + i * layer1w + j]);
                 }
                 fprintf(fp, "\n");
             }
@@ -726,7 +705,7 @@ struct SaveMatrixOCL : public IProgram
 
         fclose(fp);
 
-        fp = fopen("../../output-data/matrixL0h.txt", "w");
+        fp = fopen("../../output-data/matrixL0d.txt", "w");
         if (fp == NULL) {
             printf("Error opening file!\n");
             exit(1);
@@ -734,14 +713,14 @@ struct SaveMatrixOCL : public IProgram
 
         for (int i = 0; i < layer0h; i++) {
             for (int j = 0; j < layer0w; j++) {
-                fprintf(fp, "%f ", HALFToFloat(matrixL0half[i * layer0w + j]));
+                fprintf(fp, "%f ", matrixL0double[i * layer0w + j]);
             }
             fprintf(fp, "\n");
         }
 
         fclose(fp);
 
-        fp = fopen("../../output-data/matrixW01h.txt", "w");
+        fp = fopen("../../output-data/matrixW01d.txt", "w");
         if (fp == NULL) {
             printf("Error opening file!\n");
             exit(1);
@@ -752,7 +731,7 @@ struct SaveMatrixOCL : public IProgram
                 fprintf(fp, "//M = %d \n", d);
                 for (int i = 0; i < w01h; i++) {
                     for (int j = 0; j < w01w; j++) {
-                        fprintf(fp, "%f ", HALFToFloat(matrixW01half[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + i * w01w + j]));
+                        fprintf(fp, "%f ", matrixW01double[(n * layer1d * w01h * w01w) + (d * w01h * w01w) + i * w01w + j]);
                     }
                     fprintf(fp, "\n");
                 }
@@ -807,9 +786,9 @@ int main()
 
     ocl_phase2.print_kernel_execution_times();
 
-    free(matrixL0float);
-    free(matrixW01float);
-    free(matrixL1float);
+    free(matrixL0double);
+    free(matrixW01double);
+    free(matrixL1double);
 
     free(ics);
     free(ocs);
