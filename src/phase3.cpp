@@ -68,6 +68,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_int_cs"); //8
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ocs"); //9
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ics"); //10
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ics"); //11
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -178,6 +179,89 @@ public:
                                         &_event);
 
         kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return 0;
+    }
+
+    unsigned convolution_optim_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od)
+    {
+        double* midRW;
+        double* midCL;
+        double* cornerMat;
+        double* matSum;
+
+        int k1 = ww - 1;
+
+        midRW = (double *) malloc(k1 * 2 * sizeof(double));
+        midCL = (double*)malloc(k1 * 2 * sizeof(double));
+        cornerMat = (double*)malloc((k1 * 2) * (k1 * 2) * sizeof(double));
+        matSum = (double*)malloc(ww * wh * sizeof(double));
+
+        cl_mem midRWBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                   k1 * 2 * sizeof(double),
+                                   midRW,
+                                   NULL);
+
+        cl_mem midCLBuffer = clCreateBuffer(_ocl_base->context,
+                                            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                            k1 * 2 * sizeof(double),
+                                            midCL,
+                                            NULL);
+
+        cl_mem cornerMatBuffer = clCreateBuffer(_ocl_base->context,
+                                            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                            (k1 * 2) * (k1 * 2) * sizeof(double),
+                                            cornerMat,
+                                            NULL);
+
+        cl_mem matSumBuffer = clCreateBuffer(_ocl_base->context,
+                                            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                            ww * wh * sizeof(double),
+                                            matSum,
+                                            NULL);
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 1, sizeof(cl_mem), (void *)&wBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 2, sizeof(cl_mem), (void *)&icsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 3, sizeof(cl_mem), (void *)&midRWBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 4, sizeof(cl_mem), (void *)&midCLBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 5, sizeof(cl_mem), (void *)&cornerMatBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 6, sizeof(cl_mem), (void *)&matSumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 7, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 8, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 9, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 10, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 11, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 12, sizeof(int), &oh);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 13, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 14, sizeof(int), &od);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(11),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        free(midRW);
+        free(midCL);
+        free(cornerMat);
+        free(matSum);
+
 
         return 0;
     }
@@ -572,7 +656,7 @@ struct MatrixAdditionOCL : public IProgram
         ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-        ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_optim_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
         ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
         for (int i = 0; i < layer0d; i++) {
