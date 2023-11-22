@@ -467,7 +467,7 @@ struct IcsOptimized : public IProgram
                 id++;
             }
         }
-        printf("corner mat: \n");
+        /*printf("corner mat: \n");
         for (int i = 0; i < (k1 * 2); i++) {
             for (int j = 0; j < (k1 * 2); j++) {
                 printf("%f ", cornerMat[i * (k1 * 2) + j]);
@@ -476,7 +476,7 @@ struct IcsOptimized : public IProgram
         }
         printf("\n");
 
-        printf("midSQ: %f, midRW: %f, midCL %f \n", midSQ, midRW[0], midCL[0]);
+        printf("midSQ: %f, midRW: %f, midCL %f \n", midSQ, midRW[0], midCL[0]);*/
 
         //matsum loop version 1
         double matSum[k * k];
@@ -520,7 +520,7 @@ struct IcsOptimized : public IProgram
                 for (int cj = 0; cj < k; cj++) {
                     if (cj + ci > 0) {
                         if (cj == 0) { //downwards shift, left edge
-                            printf("downwards, left edge\n");
+                            //printf("downwards, left edge\n");
                             matSum[ci * k + cj] = prevSum;
                             matSum[ci * k + cj] -= midRW[ci - 1];
                             matSum[ci * k + cj] += midRW[ci + k2];
@@ -529,7 +529,7 @@ struct IcsOptimized : public IProgram
                                 matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
                             }
                         } else { //left to right
-                            printf("left to right\n");
+                            //printf("left to right\n");
                             matSum[ci * k + cj] = prevSum;
                             matSum[ci * k + cj] -= midCL[cj - 1];
                             matSum[ci * k + cj] += midCL[cj + k2];
@@ -539,8 +539,8 @@ struct IcsOptimized : public IProgram
                             }
                         }
                         prevSum = matSum[ci * k + cj];
-                        printf("id: %d\n", (ci * k + cj));
-                        printf("matSum: %f\n", matSum[ci * k + cj]);
+                        //printf("id: %d\n", (ci * k + cj));
+                        //printf("matSum: %f\n", matSum[ci * k + cj]);
                     } else {
                         prevSum = matSum[0];
                     }
@@ -548,7 +548,7 @@ struct IcsOptimized : public IProgram
             } else {
                 for (int cj = k1; cj >= 0; cj--) {
                     if (cj == k1) { //downwards shift, right edge
-                        printf("downwards, right edge\n");
+                        //printf("downwards, right edge\n");
                         matSum[ci * k + cj] = prevSum;
                         matSum[ci * k + cj] -= midRW[ci - 1];
                         matSum[ci * k + cj] += midRW[ci + k2];
@@ -557,7 +557,7 @@ struct IcsOptimized : public IProgram
                             matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
                         }
                     } else { //right to left
-                        printf("right to left\n");
+                        //printf("right to left\n");
                         matSum[ci * k + cj] = prevSum;
                         matSum[ci * k + cj] += midCL[cj];
                         matSum[ci * k + cj] -= midCL[cj + k1];
@@ -567,23 +567,23 @@ struct IcsOptimized : public IProgram
                         }
                     }
                     prevSum = matSum[ci * k + cj];
-                    printf("id: %d\n", (ci * k + cj));
-                    printf("matSum: %f\n", matSum[ci * k + cj]);
+                    //printf("id: %d\n", (ci * k + cj));
+                    //printf("matSum: %f\n", matSum[ci * k + cj]);
                 }
             }
 
         }
-        printf("mat Sum v2: \n");
+        /*printf("mat Sum v2: \n");
         for (int i = 0; i < k; i++) {
             for (int j = 0; j < k; j++) {
                 printf("id: %d, %f ",(i * k + j), matSum[i * k + j]);
             }
             printf("\n");
         }
-        printf("\n");
+        printf("\n");*/
 
         double wSum = 0;
-        double xSum = 0;
+        //double xSum = 0;
         double checksum = 0;
         for (int i = 0; i < k; i++) {
             for (int j = 0; j < k; j++) {
@@ -603,7 +603,26 @@ struct IcsOptimized : public IProgram
             }
             //printf("\n");
         }
-        printf("checkusm: %f\n", checksum);
+        //printf("checkusm: %f\n", checksum);
+
+        unsigned error = 0;
+        return (int) error;
+    }
+};
+
+struct Ocs : public IProgram
+{
+    int run() override
+    {
+        double checksum = 0;
+        for (int d = 0; d < layer1d; d++) {
+            for (int i = 0; i < layer1h; i++) {
+                for (int j = 0; j < layer1w; j++) {
+                    checksum += matrixL1double[(d * layer1h * layer1w) + (i * layer1w) + j];
+                }
+            }
+        }
+        //printf("output checksum: %f \n", checksum);
 
         unsigned error = 0;
         return (int) error;
@@ -656,18 +675,19 @@ struct MatrixAdditionOCL : public IProgram
 {
     int run() override
     {
+        ics[0] = 0;
         ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-        printf("ics: %.16f \n", ics[0]);
+        //printf("ics: %.16f \n", ics[0]);
 
         ics[0] = 0;
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_optim_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
         ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-        printf("Optimized ics: %.16f \n", ics[0]);
+        //printf("Optimized ics: %.16f \n", ics[0]);
 
         for (int i = 0; i < layer0d; i++) {
             for (int j = 0; j < layer1d; j++) {
@@ -684,7 +704,7 @@ struct MatrixAdditionOCL : public IProgram
         if (abs(ics[0] - ocs[0]) > 0.00000000001) {
             printf("checksum mismatch! ics: %.16f, ocs: %.16f \n", ics[0], ocs[0]);
         }
-        printf("ics: %.16f, ocs: %.16f. \n", ics[0], ocs[0]);
+        //printf("ics: %.16f, ocs: %.16f. \n", ics[0], ocs[0]);
 
 
         unsigned error = 0;
@@ -772,6 +792,7 @@ int main()
     SaveMatrixOCL saveMatrixOCL;
 
     IcsOptimized icsOptimized;
+    Ocs ocsc;
 
     int result = 0;
 
@@ -779,12 +800,16 @@ int main()
     std::cout << "Creation of matrices: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
-    /*result = Program_sw.runProgram(icsOptimized);
-    std::cout << "Ics optimized: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;*/
+    result = Program_sw.runProgram(icsOptimized);
+    std::cout << "Ics optimized c++: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
     result = Program_sw.runProgram(matrixAdditionOCL);
     std::cout << "OpenCL matrix addition: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
+
+    result = Program_sw.runProgram(ocsc);
+    std::cout << "Ocs c++: " << result << std::endl;
     std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
 
     result = Program_sw.runProgram(saveMatrixOCL);
