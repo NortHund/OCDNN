@@ -144,7 +144,6 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                 for (int cj = 0; cj < k; cj++) {
                     if (cj + ci > 0) {
                         if (cj == 0) { //downwards shift, left edge
-                            //printf("downwards, left edge\n");
                             matSum[ci * k + cj] = prevSum;
                             matSum[ci * k + cj] -= midRW[ci - 1];
                             matSum[ci * k + cj] += midRW[ci + k2];
@@ -153,7 +152,6 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                                 matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
                             }
                         } else { //left to right
-                            //printf("left to right\n");
                             matSum[ci * k + cj] = prevSum;
                             matSum[ci * k + cj] -= midCL[cj - 1];
                             matSum[ci * k + cj] += midCL[cj + k2];
@@ -163,7 +161,6 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                             }
                         }
                         prevSum = matSum[ci * k + cj];
-                        //printf("matSum: %f\n", matSum[ci * k + cj]);
                     } else {
                         prevSum = matSum[0];
                     }
@@ -171,7 +168,6 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
             } else {
                 for (int cj = k1; cj >= 0; cj--) {
                     if (cj == k1) { //downwards shift, right edge
-                        //printf("downwards, right edge\n");
                         matSum[ci * k + cj] = prevSum;
                         matSum[ci * k + cj] -= midRW[ci - 1];
                         matSum[ci * k + cj] += midRW[ci + k2];
@@ -180,7 +176,6 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                             matSum[ci * k + cj] += cornerMat[(ci + k2) * (k1 * 2) + j];
                         }
                     } else { //right to left
-                        //printf("right to left\n");
                         matSum[ci * k + cj] = prevSum;
                         matSum[ci * k + cj] += midCL[cj];
                         matSum[ci * k + cj] -= midCL[cj + k1];
@@ -205,18 +200,8 @@ __kernel void convolution_optim_ics(__global half* inM, __global half* wM, __glo
                     wSum += wM[(m * wh * ww) + (i * ww) + j];
                 }
                 checksum += wSum * matSum[(i * ww) + j];
-
-                /*xSum = 0;
-                for (int r = 0; r < oh; ++r) {
-                    for (int c = 0; c < ow; ++c) {
-                        xSum += inM[((r + i) * iw) + (c + j)];
-                    }
-                }
-                //printf("xsum: %f\n", xSum);*/
             }
-            //printf("\n");
         }
-        //printf("checkusm: %f\n", checksum);
 
   ics[0] = checksum;
 }
