@@ -3,6 +3,7 @@
 #include "lodepng_wrapper.h"
 #include "utils.h"
 #include "Stopwatches.h"
+#include "half.h"
 
 #include <iostream>
 #include <memory>

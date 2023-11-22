@@ -1,10 +1,10 @@
-__kernel void convolution_double(__global double* inputA, __global double* inputB, __global double* output, int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
+__kernel void convolution_half(__global half* inputA, __global half* inputB, __global half* output, int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
     int height = get_global_size(1);
 
-    double sum = 0;
+    half sum = 0;
 
     for (int i = 0; i < heightB; i++) {
         for (int j = 0; j < widthB; j++) {
@@ -32,8 +32,8 @@ __kernel void convolution_fl(__global float* inputA, __global float* inputB, __g
   output[(layerB * width * height) + (row * width) + col] = sum;
 }
 
-__kernel void convolution_optim_ics(__global double* inM, __global double* wM, __global double* ics,
-                                    __global double* midRW, __global double* midCL, __global double* cornerMat, __global double* matSum,
+__kernel void convolution_optim_ics(__global half* inM, __global half* wM, __global half* ics,
+                                    __global half* midRW, __global half* midCL, __global half* cornerMat, __global half* matSum,
                                     int ih, int iw, int id, int wh, int ww, int oh, int ow, int od) {
     int col = get_global_id(0);
     int row = get_global_id(1);
@@ -44,7 +44,7 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
         int k1 = (ww-1);
         int k2 = (ww-2);
 
-        double midSQ = 0;
+        half midSQ = 0;
         for (int n = 0; n < id; n++) {
             for (int i = k1; i < ih - k1; i++) {
                 for (int j = k1; j < iw - k1; j++) {
@@ -53,7 +53,7 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
             }
         }
 
-        //double midRW[k1 * 2];
+        //half midRW[k1 * 2];
         int ind= 0;
         for (int i = 0; i < k1; i++) {
             midRW[ind] = 0;
@@ -70,7 +70,7 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
             ind++;
         }
 
-        //double midCL[k1*2];
+        //half midCL[k1*2];
         ind= 0;
         for (int i = 0; i < k1; i++) {
             midCL[ind] = 0;
@@ -87,7 +87,7 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
             ind++;
         }
 
-        //double cornerMat[(k1 * 2) * (k1 * 2)];
+        //half cornerMat[(k1 * 2) * (k1 * 2)];
         ind= 0;
         for (int i = 0; i < k1; i++) {
             for (int j = 0; j < k1; j++) {
@@ -121,7 +121,7 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
                 matSum[0] += cornerMat[i * (k1 * 2) + j];
             }
         }
-        double prevSum;
+        half prevSum;
         //second value onwards with this loop, value based on previous value
         for (int ci = 0; ci < k; ci++) {
             if (ci % 2 == 0) {
@@ -175,8 +175,8 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
 
         }
 
-        double wSum = 0;
-        double checksum = 0;
+        half wSum = 0;
+        half checksum = 0;
         for (int i = 0; i < k; i++) {
             for (int j = 0; j < k; j++) {
                 wSum = 0;
@@ -190,15 +190,15 @@ __kernel void convolution_optim_ics(__global double* inM, __global double* wM, _
   ics[0] = checksum;
 }
 
-__kernel void convolution_double_ics(__global double* inputA, __global double* inputB, __global double* ics, int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
+__kernel void convolution_half_ics(__global half* inputA, __global half* inputB, __global half* ics, int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
     int height = get_global_size(1);
 
-    double wSum = 0;
-    double xSum = 0;
-    double checksum = 0;
+    half wSum = 0;
+    half xSum = 0;
+    half checksum = 0;
     for (int n = 0; n < depthA; ++n) {
         for (int i = 0; i < heightB; ++i) {
             for (int j = 0; j < widthB; ++j) {
@@ -221,13 +221,13 @@ __kernel void convolution_double_ics(__global double* inputA, __global double* i
   ics[0] = checksum;
 }
 
-__kernel void convolution_double_ocs(__global double* inputA, __global double* ocs, int heightA, int widthA, int depthA, int ind) {
+__kernel void convolution_half_ocs(__global half* inputA, __global half* ocs, int heightA, int widthA, int depthA, int ind) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
     int height = get_global_size(1);
 
-    double sum = 0;
+    half sum = 0;
 
         for (int m = 0; m < depthA; m++) {
             for (int i = 0; i < heightA; i++) {

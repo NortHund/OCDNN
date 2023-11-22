@@ -14,6 +14,7 @@ add_subdirectory(utilities)
 add_subdirectory(opencl_base)
 add_subdirectory(opencl_hello_world)
 add_subdirectory(occlusion_fill)
+add_subdirectory(half)
 
 add_executable(phase1 phase1.cpp)
 target_link_libraries(phase1
@@ -38,6 +39,19 @@ add_executable(phase3 phase3.cpp)
 target_link_libraries(phase3
   PRIVATE
   lodepng_wrapper
+  half
+  utilities
+  stopwatches
+  occlusion_fill
+  opencl_base
+  compiler_flags
+  )
+  
+add_executable(phase3_conv_f16 phase3_conv_f16.cpp)
+target_link_libraries(phase3_conv_f16
+  PRIVATE
+  lodepng_wrapper
+  half
   utilities
   stopwatches
   occlusion_fill
@@ -77,6 +91,7 @@ add_custom_target(copy_kernels ALL
 add_dependencies(phase1 copy_kernels)
 add_dependencies(phase2 copy_kernels)
 add_dependencies(phase3 copy_kernels)
+add_dependencies(phase3_conv_f16 copy_kernels)
 add_dependencies(phase4 copy_kernels)
 add_dependencies(phase5 copy_kernels)
 
