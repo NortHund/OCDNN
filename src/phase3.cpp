@@ -69,6 +69,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ocs"); //9
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ics"); //10
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ics"); //11
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ocs"); //12
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -325,6 +326,69 @@ public:
         return (unsigned)status;
     }
 
+    unsigned convolution_optim_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    {
+        double* ocsOp;
+        int LOCAL_SIZE = 32;
+        size_t numWorkGroups = (ow * ow) / LOCAL_SIZE;
+        size_t localWorkSize[1];
+        localWorkSize[0] = LOCAL_SIZE;
+
+        ocsOp = (double*)malloc(numWorkGroups * sizeof(double));
+
+        cl_mem ocsOpBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                   numWorkGroups * sizeof(double),
+                                   ocs,
+                                   NULL);
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 0, sizeof(cl_mem), (void *)&oBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 1, sizeof(cl_mem), (void *)&ocsOpBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 2, LOCAL_SIZE* sizeof(double), NULL);
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 3, sizeof(int), &oh);
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 4, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 5, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(12), 6, sizeof(int), &ocsInd);
+
+        size_t global_work_size[1];
+        global_work_size[0] = ow * oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(12),
+                                        1,
+                                        NULL,
+                                        global_work_size,
+                                        localWorkSize,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[7] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        //Reading result from GPU memory to main memory
+        status;
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                     ocsBuffer,
+                                     0,
+                                     0,
+                                     numWorkGroups * sizeof(double),
+                                     ocsOp,
+                                     0,
+                                     NULL,
+                                     &_event);
+
+        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        printf("ocsOp final: %f\n", ocsOp[0]);
+        free(ocsOp);
+
+        return (unsigned)status;
+    }
+
     unsigned convolution_double_ocs_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
     {
         ocsBuffer = clCreateBuffer(_ocl_base->context,
@@ -364,6 +428,7 @@ public:
         std::cout << "  Input checksum optimized: " << kernel_execution_times[6] << " us\n";
         std::cout << "  Input checksum read: " << kernel_execution_times[3] << " us\n";
         std::cout << "  Output checksum: " << kernel_execution_times[4] << " us\n";
+        std::cout << "  Output checksum optimized: " << kernel_execution_times[7] << " us\n";
         std::cout << "  Output checksum read: " << kernel_execution_times[5] << " us\n\n";
     }
 
@@ -699,6 +764,8 @@ struct MatrixAdditionOCL : public IProgram
         ocl_phase2.convolution_double_ocs_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
         ocl_phase2.convolution_double_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
         ocl_phase2.convolution_double_ocs_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+
+        ocl_phase2.convolution_optim_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
 
         //printf("ocs %d: %f \n", i, ocs[i]);
         if (abs(ics[0] - ocs[0]) > 0.00000000001) {
