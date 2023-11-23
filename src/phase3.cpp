@@ -70,6 +70,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ics"); //10
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ics"); //11
         _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ocs"); //12
+        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim2_ocs"); //13
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -267,6 +268,55 @@ public:
         return 0;
     }
 
+    unsigned convolution_optimv2_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od)
+    {
+        int LOCAL_SIZE = 32;
+        size_t numWorkGroups = (ow * ow) / LOCAL_SIZE;
+        size_t localWorkSize[1];
+        localWorkSize[0] = LOCAL_SIZE;
+
+        int k1 = ww - 1;
+
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 1, sizeof(cl_mem), (void *)&wBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 2, sizeof(cl_mem), (void *)&icsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 3, k1 * 2 * sizeof(double), NULL); // midSQBuffer
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 4, k1 * 2 * sizeof(double), NULL); // midRWBuffer
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 5, k1 * 2 * sizeof(double), NULL); // midCLBuffer
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 6, (k1 * 2) * (k1 * 2) * sizeof(double), NULL); //cornerMatBuffer
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 7, ww * wh * sizeof(double), NULL); // matSumBuffer
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 8, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 9, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 10, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 11, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 12, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 13, sizeof(int), &oh);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 14, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(13), 15, sizeof(int), &od);
+
+        size_t global_work_size[1];
+        global_work_size[0] = ow * oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(13),
+                                        1,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[8] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return 0;
+    }
+
     unsigned convolution_double_ics_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
 
         icsBuffer = clCreateBuffer(_ocl_base->context,
@@ -426,6 +476,7 @@ public:
         std::cout << "  Convolution read: " << kernel_execution_times[1] << " us\n";
         std::cout << "  Input checksum: " << kernel_execution_times[2] << " us\n";
         std::cout << "  Input checksum optimized: " << kernel_execution_times[6] << " us\n";
+        std::cout << "  Input checksum optimized v2: " << kernel_execution_times[8] << " us\n";
         std::cout << "  Input checksum read: " << kernel_execution_times[3] << " us\n";
         std::cout << "  Output checksum: " << kernel_execution_times[4] << " us\n";
         std::cout << "  Output checksum optimized: " << kernel_execution_times[7] << " us\n";
@@ -454,7 +505,7 @@ private:
     // 3 - ics read
     // 4 - ocs
     // 5 - ocs read
-    unsigned long kernel_execution_times[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    unsigned long kernel_execution_times[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 };
 
 OCL_Phase2 ocl_phase2;
@@ -746,13 +797,18 @@ struct MatrixAdditionOCL : public IProgram
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-        //printf("ics: %.16f \n", ics[0]);
+        printf("ics: %.16f \n", ics[0]);
 
         ics[0] = 0;
         ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
         ocl_phase2.convolution_optim_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
         ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-        //printf("Optimized ics: %.16f \n", ics[0]);
+        printf("Optimized ics: %.16f \n", ics[0]);
+
+        ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        ocl_phase2.convolution_optimv2_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d);
+        ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+        printf("Optimized v2 ics: %.16f \n", ics[0]);
 
         for (int i = 0; i < layer0d; i++) {
             for (int j = 0; j < layer1d; j++) {
