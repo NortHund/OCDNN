@@ -1,4 +1,5 @@
-__kernel void convolution_double(__global double* inputA, __global double* inputB, __global double* output, int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
+__kernel void convolution_double(__global double* inputA, __global double* inputB, __global double* output,
+                                 int heightA, int widthA, int depthA, int heightB, int widthB, int depthB, int layerA, int layerB) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
