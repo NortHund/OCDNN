@@ -458,7 +458,7 @@ static void copyModel(LeNet5 *lenet) {
         for (int x1 = 0; x1 < layer3d; ++x1)
             for (int x2 = 0; x2 < w01h; ++x2)
                 for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW23double[(x0 * layer2d * w01h * w01w) + (x1 * w01h * w01w) + (x2 * w01w) +
+                    matrixW23double[(x0 * layer3d * w01h * w01w) + (x1 * w01h * w01w) + (x2 * w01w) +
                                     x3] = lenet->weight2_3[x0][x1][x2][x3];
 
     //matrixW45double
@@ -466,7 +466,7 @@ static void copyModel(LeNet5 *lenet) {
         for (int x1 = 0; x1 < layer5d; ++x1)
             for (int x2 = 0; x2 < w01h; ++x2)
                 for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW45double[(x0 * layer4d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
+                    matrixW45double[(x0 * layer5d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
                                     x3] = lenet->weight4_5[x0][x1][x2][x3];
 }
 
@@ -821,7 +821,7 @@ int main() {
         for (int x1 = 0; x1 < layer3d; ++x1)
             for (int x2 = 0; x2 < w01h; ++x2)
                 for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW23double[(x0 * layer2d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
+                    matrixW23double[(x0 * layer3d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
                                     x3] = lenet->weight2_3[x0][x1][x2][x3];
 
     //matrixW45double
@@ -829,7 +829,7 @@ int main() {
         for (int x1 = 0; x1 < layer5d; ++x1)
             for (int x2 = 0; x2 < w01h; ++x2)
                 for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW45double[(x0 * layer4d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
+                    matrixW45double[(x0 * layer5d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
                                     x3] = lenet->weight4_5[x0][x1][x2][x3];*/
 
     copyModel(lenet);
@@ -841,6 +841,11 @@ int main() {
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
+    for (int x = 0; x < (layer0d); ++x) {
+        for (int y = 0; y < layer1d; ++y) {
+            ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
+        }
+    }
     for (int x = 0; x < (layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
@@ -886,7 +891,7 @@ int main() {
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
                                         matrixW23double);
-    for (int x = 0; x < 1/*(layer2d)*/; ++x) { //here is the problem! if there is more input layers, the output is bugged
+    for (int x = 0; x <1/*(layer2d)*/; ++x) { //here is the problem! if there is more input layers, the output is bugged
         for (int y = 0; y < layer3d; ++y) {
             ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
         }
@@ -895,7 +900,7 @@ int main() {
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                        matrixL3double);
     //Relu
-    for (int i = 0; i < layer3d; ++i) {
+    /*for (int i = 0; i < layer3d; ++i) {
         for (int j = 0; j < layer3h; ++j) {
             for (int k = 0; k < layer3w; ++k) {
                 if (matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] + lenet->bias2_3[i] > 0) {
@@ -905,7 +910,7 @@ int main() {
                 }
             }
         }
-    }
+    }*/
 
     // layer 4 subsampling
     const int len3 = (layer3h / layer4h);
@@ -1023,11 +1028,11 @@ int main() {
             for (int i = 0; i < layer2w; ++i) {
                 ocs2 += features.layer2[x][j][i];
                 ocs3 += matrixL2double[(x * layer2h * layer2w) + (j * layer2w) + i];
-                printf("id:%d, s:%f, v:%f ", i, features.layer2[x][j][i], matrixL2double[(x * layer3h * layer3w) + (j * layer3w) + i]);
+                //printf("id:%d, s:%f, v:%f ", i, features.layer2[x][j][i], matrixL2double[(x * layer2h * layer2w) + (j * layer2w) + i]);
             }
-            printf("\n");
+            //printf("\n");
         }
-        printf("\n");
+        //printf("\n");
     }
     printf("ocs2: %f, ocs3: %f\n", ocs2, ocs3);
 
@@ -1038,14 +1043,17 @@ int main() {
         for (int x1 = 0; x1 < layer3d; ++x1) {
             for (int x2 = 0; x2 < w01h; ++x2) {
                 for (int x3 = 0; x3 < w01h; ++x3) {
-                    //printf("id %d, v: %f, s: %f ", x3, matrixW23double[(x0 * layer2d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) + x3], lenet->weight2_3[x0][x1][x2][x3]));
+                    //printf("id %d, v: %f, s: %f ", x3, matrixW23double[(x0 * layer3d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) + x3], lenet->weight2_3[x0][x1][x2][x3]);
                 }
                 //printf("\n");
             }
             //printf("\n");
         }
-        //printf("\n");
+        //printf("------------------\n\n");  //why are the weights all wrong?
     }
+    //printf("\n");
+    //printf("\n");
+    //printf("\n");
 
     double ocs4 = 0, ocs5 = 0;
     for (int x = 0; x < layer3d; ++x) {
@@ -1053,11 +1061,11 @@ int main() {
             for (int i = 0; i < layer3w; ++i) {
                 ocs4 += features.layer3[x][j][i];
                 ocs5 += matrixL3double[(x * layer3h * layer3w) + (j * layer3w) + i];
-                printf("id:%d, s:%f, v:%f ", i, features.layer3[x][j][i], matrixL3double[(x * layer3h * layer3w) + (j * layer3w) + i]);
+                //printf("id:%d, s:%f, v:%f ", i, features.layer3[x][j][i], matrixL3double[(x * layer3h * layer3w) + (j * layer3w) + i]);
             }
-            printf("\n");
+            //printf("\n");
         }
-        printf("\n");
+        //printf("\n");
     }
     printf("ocs4: %f, ocs5: %f\n", ocs4, ocs5);
 
