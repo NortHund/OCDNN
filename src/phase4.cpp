@@ -228,7 +228,6 @@ void TrainBatch(LeNet5 *lenet, image *inputs, uint8 *labels, int batchSize)
 {
     double buffer[GETCOUNT(LeNet5)] = { 0 };
     int i = 0;
-#pragma omp parallel for
     for (i = 0; i < batchSize; ++i)
     {
         Feature features = { 0 };
@@ -238,7 +237,6 @@ void TrainBatch(LeNet5 *lenet, image *inputs, uint8 *labels, int batchSize)
         forward(lenet, &features, relu);
         load_target(&features, &errors, labels[i]);
         backward(lenet, &deltas, &errors, &features, relugrad);
-#pragma omp critical
         {
             FOREACH(j, GETCOUNT(LeNet5))
                 buffer[j] += ((double *)&deltas)[j];
@@ -379,7 +377,7 @@ void foo()
     int right = testing(lenet, test_data, test_label, COUNT_TEST);
     printf("%d/%d\n", right, COUNT_TEST);
     printf("Time:%u\n", (unsigned)(clock() - start));
-    //save(lenet, LENET_FILE);
+    save(lenet, LENET_FILE);
     free(lenet);
     free(train_data);
     free(train_label);
