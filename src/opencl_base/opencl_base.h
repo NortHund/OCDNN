@@ -55,5 +55,7 @@ int convertToString(const char *filename, std::string& s);
 
 int printPlatformInfo(bool print_extras);
 
+const char *getErrorString(cl_int error);
+
     /* data */
 #endif // OPENCL_BASE_H

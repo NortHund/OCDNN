@@ -153,13 +153,18 @@ public:
                                         0,
                                         NULL,
                                         &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
 
         kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
 
-    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr, double* optr)
+    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr)
     {
         iBufferd = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -448,7 +453,21 @@ static void copyModel(LeNet5 *lenet) {
                 for (int x3 = 0; x3 < w01h; ++x3)
                     matrixW01double[(x0 * layer1d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) + x3] = lenet->weight0_1[x0][x1][x2][x3];
 
+    //matrixW23double
+    for (int x0 = 0; x0 < layer2d; ++x0)
+        for (int x1 = 0; x1 < layer3d; ++x1)
+            for (int x2 = 0; x2 < w01h; ++x2)
+                for (int x3 = 0; x3 < w01h; ++x3)
+                    matrixW23double[(x0 * layer2d * w01h * w01w) + (x1 * w01h * w01w) + (x2 * w01w) +
+                                    x3] = lenet->weight2_3[x0][x1][x2][x3];
 
+    //matrixW45double
+    for (int x0 = 0; x0 < layer4d; ++x0)
+        for (int x1 = 0; x1 < layer5d; ++x1)
+            for (int x2 = 0; x2 < w01h; ++x2)
+                for (int x3 = 0; x3 < w01h; ++x3)
+                    matrixW45double[(x0 * layer4d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
+                                    x3] = lenet->weight4_5[x0][x1][x2][x3];
 }
 
 #define GETLENGTH(array) (sizeof(array)/sizeof(*(array)))
@@ -534,9 +553,31 @@ static void forward(LeNet5 *lenet, Feature *features, double(*action)(double))
     DOT_PRODUCT_FORWARD(features->layer5, features->output, lenet->weight5_6, lenet->bias5_6, action);
 }
 
-static void forward_ocl(LeNet5 *lenet, Feature *features, double(*action)(double))
+static void forward_ocl(LeNet5 *lenet, double* inptr, double* weightptr, double* outptr, double* biasptr, int ind, int inh, int inw, int outd, int outh, int outw, int wmh, int wmw)
 {
+    ocl_phase2.convolution_double_write(inw, inh, ind, wmw, wmh, outw, outh, outd, 0, 0,
+                                        inptr,
+                                        weightptr);
+    for (int x = 0; x < (ind); ++x) {
+        for (int y = 0; y < outd; ++y) {
+            ocl_phase2.convolution_double(inw, inh, ind, w01w, w01h, outw, outh, outd, x, y);
+        }
+    }
+    ocl_phase2.convolution_double_read(inw, inh, ind, w01w, w01h, outw, outh, outd, 0, 0,
+                                       outptr);
 
+    //Relu
+    for (int i=0;i<outd;++i) {
+        for (int j=0;j<outh;++j) {
+            for (int k=0;k<outw;++k) {
+                if (outptr[(i * outh * outw) + (j * outw) + k] + biasptr[i] > 0) {
+                    outptr[(i * outh * outw) + (j * outw) + k] += biasptr[i];
+                } else {
+                    outptr[(i * outh * outw) + (j * outw) + k] = 0;
+                }
+            }
+        }
+    }
 }
 
 static inline void load_input(Feature *features, image input)
@@ -651,7 +692,7 @@ uint8 Predict_ocl(LeNet5 *lenet, image input,uint8 count)
 {
     Feature features = { 0 };
     load_input(&features, input);
-    forward_ocl(lenet, &features, relu);
+    //forward_ocl(lenet, );
     return get_result(&features, count);
 }
 
@@ -767,7 +808,7 @@ int main() {
     //}
 
 
-    //matrixW01double
+    /*//matrixW01double
     for (int x0 = 0; x0 < layer0d; ++x0)
         for (int x1 = 0; x1 < layer1d; ++x1)
             for (int x2 = 0; x2 < w01h; ++x2)
@@ -775,130 +816,260 @@ int main() {
                     matrixW01double[(x0 * layer1d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
                                     x3] = lenet->weight0_1[x0][x1][x2][x3];
 
+    //matrixW23double
+    for (int x0 = 0; x0 < layer2d; ++x0)
+        for (int x1 = 0; x1 < layer3d; ++x1)
+            for (int x2 = 0; x2 < w01h; ++x2)
+                for (int x3 = 0; x3 < w01h; ++x3)
+                    matrixW23double[(x0 * layer2d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
+                                    x3] = lenet->weight2_3[x0][x1][x2][x3];
 
-    /*for (int x0 = 0; x0 < layer0d; ++x0) {
-        for (int x1 = 0; x1 < layer1d; ++x1) {
-            for (int x2 = 0; x2 < w01h; ++x2) {
-                for (int x3 = 0; x3 < w01h; ++x3) {
-                    printf("%f ", matrixW01double[(x0 * layer1d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) + x3]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-    printf("lenet w01\n");
-    for (int x0 = 0; x0 < layer0d; ++x0) {
-        for (int x1 = 0; x1 < layer1d; ++x1) {
-            for (int x2 = 0; x2 < w01h; ++x2) {
-                for (int x3 = 0; x3 < w01h; ++x3) {
-                    printf("%f ", lenet->weight0_1[x0][x1][x2][x3]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
+    //matrixW45double
+    for (int x0 = 0; x0 < layer4d; ++x0)
+        for (int x1 = 0; x1 < layer5d; ++x1)
+            for (int x2 = 0; x2 < w01h; ++x2)
+                for (int x3 = 0; x3 < w01h; ++x3)
+                    matrixW45double[(x0 * layer4d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
+                                    x3] = lenet->weight4_5[x0][x1][x2][x3];*/
 
-    Feature features = {0};
-    load_input(&features, test_data[2]);
+    copyModel(lenet);
+    //load input image
     load_input_ocl(test_data[2]);
 
-    /*for (int x1 = 0; x1 < layer0d; ++x1) {
-        for (int x2 = 0; x2 < layer0h; ++x2) {
-            for (int x3 = 0; x3 < layer0w; ++x3) {
-                printf("%d, s: %f , v: %f ",x2, features.input[x1][x2][x3], matrixL0double[(x1 * layer0h * layer0w) + ((x2) * layer0w) + x3]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
 
-    CONVOLUTION_FORWARD(features.input, features.layer1, lenet->weight0_1, lenet->bias0_1, relu);
-    double ocs0 = 0;
-    for (int x = 0; x < layer1d; ++x) {
-        for (int j = 0; j < layer1w; ++j) {
-            for (int i = 0; i < layer1h; ++i) {
-                ocs0 += features.layer1[x][j][i];
-                //printf("%f ", features.layer1[x][j][i]);
-            }
-            //printf("\n");
-        }
-        //printf("\n\n");
-    }
-    printf("ocs0: %f ", ocs0);
-
+    //layer 1 convolution
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
-                                        matrixW01double,
-                                        matrixL1double);
-
+                                        matrixW01double);
     for (int x = 0; x < (layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
-            /*for (int i = 0; i < (layer1h); ++i) {
-                for (int j = 0; j < (layer1w); ++j) {
-                    matrixL1double[(y * layer1h * layer1w) + (i * layer1w) + j] = 0;
-                    for (int ki = 0; ki < (w01h); ++ki) {
-                        for (int kj = 0; kj < (w01w); ++kj) {
-                            matrixL1double[(y * layer1h * layer1w) + (i * layer1w) + j]
-                            += matrixL0double[(x * layer0h * layer0w) + ((i + ki) * layer0w) + j + kj]
-                            * matrixW01double[(x * layer1d * w01h * w01h) + (y * w01h * w01h) + (i * w01w) + j];
-                        }
-                    }
-                }
-            }*/
         }
     }
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                        matrixL1double);
-    for (int i=0;i<layer1d;++i) {
-        for (int j=0;j<layer1h;++j) {
-            for (int k=0;k<layer1w;++k) {
+
+    //Relu
+    for (int i = 0; i < layer1d; ++i) {
+        for (int j = 0; j < layer1h; ++j) {
+            for (int k = 0; k < layer1w; ++k) {
                 if (matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] + lenet->bias0_1[i] > 0) {
                     matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] += lenet->bias0_1[i];
                 } else {
                     matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] = 0;
                 }
-                //printf("%f ",matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]);
             }
-            //printf("\n");
         }
-        //printf("\n\n");
     }
 
-    /*for (int j=0;j<(layer1d);++j)
-        for (int i=0;i<(layer1h * layer1w);++i)
-            matrixL1double[(j * layer1h * layer1w) + i]=relu(matrixL1double[(j * layer1h * layer1w) + i]+lenet->bias0_1[j]);*/
+    //layer 2 subsampling
+    const int len0 = (layer1h / layer2h);
+    const int len1 = (layer1w / layer2w);
+    for (int i = 0; i < (layer2d); ++i)
+        for (int o0 = 0; o0 < (layer2h); ++o0)
+            for (int o1 = 0; o1 < (layer2w); ++o1) {
+                int x0 = 0, x1 = 0, ismax;
+                for (int l0 = 0; l0 < len0; ++l0)
+                    for (int l1 = 0; l1 < len1; ++l1) {
+                        ismax = matrixL1double[((i) * layer1h * layer1w) + ((o0 * len0 + l0) * layer1w) +
+                                               (o1 * len1 + l1)]
+                                > matrixL1double[((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) +
+                                                 (o1 * len1 + x1)];
+                        x0 += ismax * (l0 - x0);
+                        x1 += ismax * (l1 - x1);
+                    }
+                matrixL2double[(i * layer2h * layer2w) + (o0 * layer2w) + o1] = matrixL1double[
+                        ((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) + (o1 * len1 + x1)];
+            }
 
-    double ocs1=0;
-    for (int i=0;i<layer1d;++i) {
+    //layer3 convolution - broken
+    ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
+                                        matrixL2double,
+                                        matrixW23double);
+    for (int x = 0; x < 1/*(layer2d)*/; ++x) { //here is the problem! if there is more input layers, the output is bugged
+        for (int y = 0; y < layer3d; ++y) {
+            ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
+        }
+    }
+    //ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0);
+    ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
+                                       matrixL3double);
+    //Relu
+    for (int i = 0; i < layer3d; ++i) {
+        for (int j = 0; j < layer3h; ++j) {
+            for (int k = 0; k < layer3w; ++k) {
+                if (matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] + lenet->bias2_3[i] > 0) {
+                    matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] += lenet->bias2_3[i];
+                } else {
+                    matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] = 0;
+                }
+            }
+        }
+    }
+
+    // layer 4 subsampling
+    const int len3 = (layer3h / layer4h);
+    const int len4 = (layer3w / layer4w);
+    for (int i = 0; i < (layer4d); ++i)
+        for (int o0 = 0; o0 < (layer4h); ++o0)
+            for (int o1 = 0; o1 < (layer4w); ++o1) {
+                int x0 = 0, x1 = 0, ismax;
+                for (int l0 = 0; l0 < len3; ++l0)
+                    for (int l1 = 0; l1 < len4; ++l1) {
+                        ismax = matrixL3double[((i) * layer3h * layer3w) + ((o0 * len0 + l0) * layer3w) +
+                                               (o1 * len1 + l1)]
+                                > matrixL3double[((i) * layer3h * layer3w) + ((o0 * len0 + x0) * layer3w) +
+                                                 (o1 * len1 + x1)];
+                        x0 += ismax * (l0 - x0);
+                        x1 += ismax * (l1 - x1);
+                    }
+                matrixL4double[(i * layer2h * layer2w) + (o0 * layer2w) + o1] = matrixL3double[
+                        ((i) * layer3h * layer3w) + ((o0 * len0 + x0) * layer3w) + (o1 * len1 + x1)];
+            }
+
+    //layer 5 convolution
+    ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
+                                        matrixL4double,
+                                        matrixW45double);
+
+    for (int x = 0; x < (layer4d); ++x) {
+        for (int y = 0; y < layer5d; ++y) {
+            ocl_phase2.convolution_double(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, x, y);
+        }
+    }
+    ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
+                                       matrixL5double);
+
+    //Relu
+    for (int i = 0; i < layer5d; ++i) {
+        for (int j = 0; j < layer5h; ++j) {
+            for (int k = 0; k < layer5w; ++k) {
+                if (matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] + lenet->bias4_5[i] > 0) {
+                    matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] += lenet->bias4_5[i];
+                } else {
+                    matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] = 0;
+                }
+            }
+        }
+    }
+
+    //output layer matrix multiplication
+    for (int y = 0; y < (sizeof(*lenet->weight5_6) / sizeof(*(*lenet->weight5_6))); ++y) {
+        matrixL6double[y] = 0;
+    }
+
+    for (int x = 0; x < (sizeof(lenet->weight5_6) / sizeof(*(lenet->weight5_6))); ++x) {
+        for (int y = 0; y < (sizeof(*lenet->weight5_6) / sizeof(*(*lenet->weight5_6))); ++y) {
+            //((double *) features.output)[y] += ((double *) features.layer5)[x] * lenet->weight5_6[x][y];
+            matrixL6double[y] += matrixL5double[x] * lenet->weight5_6[x][y];
+        }
+    }
+
+    for (int j = 0; j < (sizeof(lenet->bias5_6) / sizeof(*(lenet->bias5_6))); ++j) {
+        //((double *) features.output)[j] = relu(((double *) features.output)[j] + lenet->bias5_6[j]);
+        if (matrixL6double[j] + lenet->bias4_5[j] > 0) {
+            matrixL6double[j] += lenet->bias4_5[j];
+        } else {
+            matrixL6double[j] = 0;
+        }
+    }
+
+    const int outlen = OUTPUT;
+    uint8 result = 0;
+    double maxvalue = 0;
+    for (uint8 i = 1; i < OUTPUT; ++i) {
+        if (matrixL6double[i] > maxvalue) {
+            maxvalue = matrixL6double[i];
+            result = i;
+        }
+    }
+
+    //original version for reference
+    Feature features = {0};
+    load_input(&features, test_data[2]);
+    CONVOLUTION_FORWARD(features.input, features.layer1, lenet->weight0_1, lenet->bias0_1, relu);
+    double ocs0 = 0;
+    double ocs1 = 0;
+    for (int x = 0; x < layer1d; ++x) {
+        for (int j = 0; j < layer1w; ++j) {
+            for (int i = 0; i < layer1h; ++i) {
+                ocs0 += features.layer1[x][j][i];
+                ocs1 += matrixL1double[(x * layer1h * layer1w) + (i * layer1w) + j];
+            }
+        }
+    }
+    printf("ocs0: %f ocs1: %f \n", ocs0, ocs1);
+
+    /*ocs1 = 0;
+    for (int i = 0; i < layer1d; ++i) {
         for (int j = 0; j < layer1h; ++j) {
             for (int k = 0; k < layer1w; ++k) {
-                //ocs1 += matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k];
-                //printf("%d: %f and %f ", k, features.layer1[i][j][k], matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]);
-                if (abs(features.layer1[i][j][k] - matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]) > 0.0000001) {
-                    printf("mismatch: %f and %f \n", features.layer1[i][j][k], matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]);
+                if (abs(features.layer1[i][j][k] - matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]) >
+                    0.0000001) {
+                    printf("mismatch: %f and %f \n", features.layer1[i][j][k],
+                           matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]);
                 }
+            }
+        }
+    }
+    for (int x = 0; x < (layer1d * layer1h * layer1w); ++x)
+        ocs1 += matrixL1double[x];
+    printf("ocs1: %f\n", ocs1);*/
 
+    SUBSAMP_MAX_FORWARD(features.layer1, features.layer2);
+    double ocs2 = 0, ocs3 = 0;
+    for (int x = 0; x < layer2d; ++x) {
+        for (int j = 0; j < layer2h; ++j) {
+            for (int i = 0; i < layer2w; ++i) {
+                ocs2 += features.layer2[x][j][i];
+                ocs3 += matrixL2double[(x * layer2h * layer2w) + (j * layer2w) + i];
+                printf("id:%d, s:%f, v:%f ", i, features.layer2[x][j][i], matrixL2double[(x * layer3h * layer3w) + (j * layer3w) + i]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+    printf("ocs2: %f, ocs3: %f\n", ocs2, ocs3);
+
+
+    CONVOLUTION_FORWARD(features.layer2, features.layer3, lenet->weight2_3, lenet->bias2_3, relu);
+    //matrixW23double
+    for (int x0 = 0; x0 < layer2d; ++x0) {
+        for (int x1 = 0; x1 < layer3d; ++x1) {
+            for (int x2 = 0; x2 < w01h; ++x2) {
+                for (int x3 = 0; x3 < w01h; ++x3) {
+                    //printf("id %d, v: %f, s: %f ", x3, matrixW23double[(x0 * layer2d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) + x3], lenet->weight2_3[x0][x1][x2][x3]));
+                }
+                //printf("\n");
             }
             //printf("\n");
         }
         //printf("\n");
     }
-    for (int x=0;x<(layer1d * layer1h * layer1w);++x)
-        ocs1+=matrixL1double[x];
-    printf("ocs1: %f\n",ocs1);
 
-    SUBSAMP_MAX_FORWARD(features.layer1, features.layer2);
-    CONVOLUTION_FORWARD(features.layer2, features.layer3, lenet->weight2_3, lenet->bias2_3, relu);
+    double ocs4 = 0, ocs5 = 0;
+    for (int x = 0; x < layer3d; ++x) {
+        for (int j = 0; j < layer3h; ++j) {
+            for (int i = 0; i < layer3w; ++i) {
+                ocs4 += features.layer3[x][j][i];
+                ocs5 += matrixL3double[(x * layer3h * layer3w) + (j * layer3w) + i];
+                printf("id:%d, s:%f, v:%f ", i, features.layer3[x][j][i], matrixL3double[(x * layer3h * layer3w) + (j * layer3w) + i]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+    printf("ocs4: %f, ocs5: %f\n", ocs4, ocs5);
+
     SUBSAMP_MAX_FORWARD(features.layer3, features.layer4);
     CONVOLUTION_FORWARD(features.layer4, features.layer5, lenet->weight4_5, lenet->bias4_5, relu);
     DOT_PRODUCT_FORWARD(features.layer5, features.output, lenet->weight5_6, lenet->bias5_6, relu);
+
     int prediction = get_result(&features, 10);
 
+
+
+    printf("ocl prediction: %d true: %d\n", result, test_label[2]);
     printf("prediction: %d true: %d\n", prediction, test_label[2]);
 
 
