@@ -443,6 +443,9 @@ static void createVectors()
             matrixL0double[i * layer0w + j] = 0;
         }
     }
+
+    ics = (double*)malloc(sizeof(double));
+    ocs = (double*)malloc(sizeof(double));
 }
 
 static void copyModel(LeNet5 *lenet) {
@@ -835,6 +838,16 @@ int main() {
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
+
+    //ics doesn't have bias and relu taken into account yet
+    /*ics[0] = 0;
+    ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+    for (int i = 0; i < 1; i++) {
+        ocl_phase2.convolution_optimv2_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d,0,0);
+    }
+    ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+    printf("Optimized v2 ics: %.16f \n", ics[0]);*/
+
     for (int x = 0; x < (layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
@@ -1056,7 +1069,7 @@ int main() {
             }
         }
     }
-    printf("layer1: my: %f original: %f \n", ocs0, ocs1);
+    printf("layer1: original: %f accelerated: %f \n", ocs0, ocs1);
 
     /*ocs1 = 0;
     for (int i = 0; i < layer1d; ++i) {
@@ -1087,7 +1100,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer2: my: %f, original: %f\n", ocs2, ocs3);
+    printf("layer2: original: %f, vectorized: %f\n", ocs2, ocs3);
 
 
     CONVOLUTION_FORWARD(features.layer2, features.layer3, lenet->weight2_3, lenet->bias2_3, relu);
@@ -1120,7 +1133,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer3: my: %f, original: %f\n", ocs4, ocs5);
+    printf("layer3: original: %f, vectorized: %f\n", ocs4, ocs5);
 
     SUBSAMP_MAX_FORWARD(features.layer3, features.layer4);
     double ocs6 = 0, ocs7 = 0;
@@ -1135,7 +1148,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer4: my: %f, original: %f\n", ocs6, ocs7);
+    printf("layer4: original: %f, vectorized: %f\n", ocs6, ocs7);
 
     CONVOLUTION_FORWARD(features.layer4, features.layer5, lenet->weight4_5, lenet->bias4_5, relu);
     double ocs8 = 0, ocs9 = 0;
@@ -1150,7 +1163,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer5: my: %f, original: %f\n", ocs8, ocs9);
+    printf("layer5: original: %f, vectorized: %f\n", ocs8, ocs9);
 
     DOT_PRODUCT_FORWARD(features.layer5, features.output, lenet->weight5_6, lenet->bias5_6, relu);
 
