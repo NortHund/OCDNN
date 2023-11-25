@@ -836,8 +836,27 @@ int main() {
     //load input image
     load_input_ocl(test_data[2]);
 
+    for (int x = 0; x <(layer0d); ++x) {
+        for (int y = 0; y < layer1d; ++y) {
+            for (int row = 0; row < layer1h; ++row) {
+                for (int col = 0; col < layer1w; ++col) {
+
+                    double sum = 0;
+                    for (int i = 0; i < w01w; i++) {
+                        for (int j = 0; j < w01w; j++) {
+                            sum += matrixL0double[(x * layer0h * layer0w) + ((row + i) * layer0w) + (col + j)] *
+                                   matrixW01double[(x * layer1d * w01w * w01w) + (y * w01w * w01w) +
+                                                   (i * w01w) + j];
+                        }
+                    }
+                    matrixL1double[(y * layer1w * layer1h) + (row * layer1w) + col] = sum;
+                }
+            }
+        }
+    }
 
     //layer 1 convolution
+    /*
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
@@ -852,7 +871,7 @@ int main() {
         }
     }
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
-                                       matrixL1double);
+                                       matrixL1double);*/
 
     //Relu
     for (int i = 0; i < layer1d; ++i) {
@@ -888,19 +907,55 @@ int main() {
             }
 
     //layer3 convolution - broken
+    //zero out layer3 first before doing this:
+    for (int y = 0; y < layer3d; ++y) {
+        for (int row = 0; row < layer3h; ++row) {
+            for (int col = 0; col < layer3w; ++col) {
+                matrixL3double[(y * layer3w * layer3h) + (row * layer3w) + col] = 0;
+            }
+        }
+    }
+
+    /*
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
                                         matrixW23double);
-    for (int x = 0; x <1/*(layer2d)*/; ++x) { //here is the problem! if there is more input layers, the output is bugged
+    for (int x = 0; x <(layer2d); ++x) { //here is the problem! if there is more input layers, the output is bugged
         for (int y = 0; y < layer3d; ++y) {
             ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
         }
     }
     //ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0);
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
-                                       matrixL3double);
+                                       matrixL3double);*/
+
+
+
+    double ocssum = 0;
+    for (int x = 0; x <(layer2d); ++x) {
+        for (int y = 0; y < layer3d; ++y) {
+            for (int row = 0; row < layer3h; ++row) {
+                for (int col = 0; col < layer3w; ++col) {
+
+                    double sum = matrixL3double[(y * layer3w * layer3h) + (row * layer3w) + col];
+                    for (int i = 0; i < w01w; i++) {
+                        for (int j = 0; j < w01w; j++) {
+                            sum += matrixL2double[(x * layer2h * layer2w) + ((row + i) * layer2w) + (col + j)] *
+                                   matrixW23double[(x * layer3d * w01w * w01w) + (y * w01w * w01w) +
+                                          (i * w01w) + j];
+                            ocssum += matrixL2double[(x * layer2h * layer2w) + ((row + i) * layer2w) + (col + j)] *
+                                      matrixW23double[(x * layer3d * w01w * w01w) + (y * w01w * w01w) +
+                                                     (i * w01w) + j];
+                        }
+                    }
+                    matrixL3double[(y * layer3w * layer3h) + (row * layer3w) + col] = sum;
+                }
+            }
+        }
+    }
+
     //Relu
-    /*for (int i = 0; i < layer3d; ++i) {
+    for (int i = 0; i < layer3d; ++i) {
         for (int j = 0; j < layer3h; ++j) {
             for (int k = 0; k < layer3w; ++k) {
                 if (matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] + lenet->bias2_3[i] > 0) {
@@ -910,7 +965,7 @@ int main() {
                 }
             }
         }
-    }*/
+    }
 
     // layer 4 subsampling
     const int len3 = (layer3h / layer4h);
@@ -921,19 +976,29 @@ int main() {
                 int x0 = 0, x1 = 0, ismax;
                 for (int l0 = 0; l0 < len3; ++l0)
                     for (int l1 = 0; l1 < len4; ++l1) {
-                        ismax = matrixL3double[((i) * layer3h * layer3w) + ((o0 * len0 + l0) * layer3w) +
-                                               (o1 * len1 + l1)]
-                                > matrixL3double[((i) * layer3h * layer3w) + ((o0 * len0 + x0) * layer3w) +
-                                                 (o1 * len1 + x1)];
+                        ismax = matrixL3double[((i) * layer3h * layer3w) + ((o0 * len3 + l0) * layer3w) +
+                                               (o1 * len4 + l1)]
+                                > matrixL3double[((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) +
+                                                 (o1 * len4 + x1)];
                         x0 += ismax * (l0 - x0);
                         x1 += ismax * (l1 - x1);
                     }
-                matrixL4double[(i * layer2h * layer2w) + (o0 * layer2w) + o1] = matrixL3double[
-                        ((i) * layer3h * layer3w) + ((o0 * len0 + x0) * layer3w) + (o1 * len1 + x1)];
+                matrixL4double[(i * layer4h * layer4w) + (o0 * layer4w) + o1] = matrixL3double[
+                        ((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) + (o1 * len4 + x1)];
             }
 
     //layer 5 convolution
-    ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
+
+    //zero out layer3 first before doing this:
+    for (int y = 0; y < layer5d; ++y) {
+        for (int row = 0; row < layer5h; ++row) {
+            for (int col = 0; col < layer5w; ++col) {
+                matrixL5double[(y * layer5w * layer5h) + (row * layer5w) + col] = 0;
+            }
+        }
+    }
+
+    /*ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                         matrixL4double,
                                         matrixW45double);
 
@@ -943,7 +1008,27 @@ int main() {
         }
     }
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
-                                       matrixL5double);
+                                       matrixL5double);*/
+
+
+    for (int x = 0; x <(layer4d); ++x) {
+        for (int y = 0; y < layer5d; ++y) {
+            for (int row = 0; row < layer5h; ++row) {
+                for (int col = 0; col < layer5w; ++col) {
+
+                    double sum = matrixL5double[(y * layer5w * layer5h) + (row * layer5w) + col];
+                    for (int i = 0; i < w01w; i++) {
+                        for (int j = 0; j < w01w; j++) {
+                            sum += matrixL4double[(x * layer4h * layer4w) + ((row + i) * layer4w) + (col + j)] *
+                                   matrixW45double[(x * layer5d * w01w * w01w) + (y * w01w * w01w) +
+                                                   (i * w01w) + j];
+                        }
+                    }
+                    matrixL5double[(y * layer5w * layer5h) + (row * layer5w) + col] = sum;
+                }
+            }
+        }
+    }
 
     //Relu
     for (int i = 0; i < layer5d; ++i) {
@@ -1003,7 +1088,7 @@ int main() {
             }
         }
     }
-    printf("ocs0: %f ocs1: %f \n", ocs0, ocs1);
+    printf("layer1: ocs0: %f ocs1: %f \n", ocs0, ocs1);
 
     /*ocs1 = 0;
     for (int i = 0; i < layer1d; ++i) {
@@ -1034,7 +1119,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("ocs2: %f, ocs3: %f\n", ocs2, ocs3);
+    printf("layer2: ocs2: %f, ocs3: %f\n", ocs2, ocs3);
 
 
     CONVOLUTION_FORWARD(features.layer2, features.layer3, lenet->weight2_3, lenet->bias2_3, relu);
@@ -1067,10 +1152,38 @@ int main() {
         }
         //printf("\n");
     }
-    printf("ocs4: %f, ocs5: %f\n", ocs4, ocs5);
+    printf("layer3: ocs4: %f, ocs5: %f\n", ocs4, ocs5);
 
     SUBSAMP_MAX_FORWARD(features.layer3, features.layer4);
+    double ocs6 = 0, ocs7 = 0;
+    for (int x = 0; x < layer4d; ++x) {
+        for (int j = 0; j < layer4h; ++j) {
+            for (int i = 0; i < layer4w; ++i) {
+                ocs6 += features.layer4[x][j][i];
+                ocs7 += matrixL4double[(x * layer4h * layer4w) + (j * layer4w) + i];
+                //printf("id:%d, s:%f, v:%f ", i, features.layer4[x][j][i], matrixL3double[(x * layer4h * layer4w) + (j * layer4w) + i]);
+            }
+            //printf("\n");
+        }
+        //printf("\n");
+    }
+    printf("layer4: ocs6: %f, ocs7: %f\n", ocs6, ocs7);
+
     CONVOLUTION_FORWARD(features.layer4, features.layer5, lenet->weight4_5, lenet->bias4_5, relu);
+    double ocs8 = 0, ocs9 = 0;
+    for (int x = 0; x < layer5d; ++x) {
+        for (int j = 0; j < layer5h; ++j) {
+            for (int i = 0; i < layer5w; ++i) {
+                ocs8 += features.layer5[x][j][i];
+                ocs9 += matrixL5double[(x * layer5h * layer5w) + (j * layer5w) + i];
+                //printf("id:%d, s:%f, v:%f ", i, features.layer5[x][j][i], matrixL3double[(x * layer5h * layer5w) + (j * layer5w) + i]);
+            }
+            //printf("\n");
+        }
+        //printf("\n");
+    }
+    printf("layer5: ocs8: %f, ocs9: %f\n", ocs8, ocs9);
+
     DOT_PRODUCT_FORWARD(features.layer5, features.output, lenet->weight5_6, lenet->bias5_6, relu);
 
     int prediction = get_result(&features, 10);
