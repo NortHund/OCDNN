@@ -811,7 +811,7 @@ int main() {
     //load input image
     load_input_ocl(test_data[2]);
 
-    //layer1 convolution c++ version
+    /*//layer1 convolution c++ version
     for (int x = 0; x <(layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             for (int row = 0; row < layer1h; ++row) {
@@ -829,9 +829,9 @@ int main() {
                 }
             }
         }
-    }
+    }*/
 
-    /*//layer 1 convolution ocl
+    //layer 1 convolution ocl
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
@@ -841,7 +841,7 @@ int main() {
         }
     }
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
-                                       matrixL1double);*/
+                                       matrixL1double);
 
     //Relu
     for (int i = 0; i < layer1d; ++i) {
@@ -877,7 +877,7 @@ int main() {
             }
 
 
-    //layer3 convolution - broken
+    //layer3 convolution - working <3
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
                                         matrixW23double);
@@ -956,8 +956,8 @@ int main() {
                         ((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) + (o1 * len4 + x1)];
             }
 
-    //layer 5 convolution ocl --broken?
-    /*ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
+    //layer 5 convolution ocl
+    ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                         matrixL4double,
                                         matrixW45double);
 
@@ -967,8 +967,9 @@ int main() {
         }
     }
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
-                                       matrixL5double);*/
+                                       matrixL5double);
 
+    /*
     //zero out layer5 first before doing c++ conv:
     for (int y = 0; y < layer5d; ++y) {
         for (int row = 0; row < layer5h; ++row) {
@@ -996,6 +997,7 @@ int main() {
             }
         }
     }
+    */
 
     //Relu
     for (int i = 0; i < layer5d; ++i) {
@@ -1054,7 +1056,7 @@ int main() {
             }
         }
     }
-    printf("layer1: ocs0: %f ocs1: %f \n", ocs0, ocs1);
+    printf("layer1: my: %f original: %f \n", ocs0, ocs1);
 
     /*ocs1 = 0;
     for (int i = 0; i < layer1d; ++i) {
@@ -1085,7 +1087,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer2: ocs2: %f, ocs3: %f\n", ocs2, ocs3);
+    printf("layer2: my: %f, original: %f\n", ocs2, ocs3);
 
 
     CONVOLUTION_FORWARD(features.layer2, features.layer3, lenet->weight2_3, lenet->bias2_3, relu);
@@ -1118,7 +1120,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer3: ocs4: %f, ocs5: %f\n", ocs4, ocs5);
+    printf("layer3: my: %f, original: %f\n", ocs4, ocs5);
 
     SUBSAMP_MAX_FORWARD(features.layer3, features.layer4);
     double ocs6 = 0, ocs7 = 0;
@@ -1133,7 +1135,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer4: ocs6: %f, ocs7: %f\n", ocs6, ocs7);
+    printf("layer4: my: %f, original: %f\n", ocs6, ocs7);
 
     CONVOLUTION_FORWARD(features.layer4, features.layer5, lenet->weight4_5, lenet->bias4_5, relu);
     double ocs8 = 0, ocs9 = 0;
@@ -1148,7 +1150,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer5: ocs8: %f, ocs9: %f\n", ocs8, ocs9);
+    printf("layer5: my: %f, original: %f\n", ocs8, ocs9);
 
     DOT_PRODUCT_FORWARD(features.layer5, features.output, lenet->weight5_6, lenet->bias5_6, relu);
 
