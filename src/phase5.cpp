@@ -168,7 +168,7 @@ public:
     {
         iBufferd = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  iw * ih * sizeof(double),
+                                  id * iw * ih * sizeof(double),
                                   iptr,
                                   NULL);
 
@@ -812,7 +812,7 @@ int main() {
     load_input_ocl(test_data[2]);
 
     //layer1 convolution c++ version
-    /*for (int x = 0; x <(layer0d); ++x) {
+    for (int x = 0; x <(layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             for (int row = 0; row < layer1h; ++row) {
                 for (int col = 0; col < layer1w; ++col) {
@@ -829,9 +829,9 @@ int main() {
                 }
             }
         }
-    }*/
+    }
 
-    //layer 1 convolution ocl
+    /*//layer 1 convolution ocl
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
@@ -841,7 +841,7 @@ int main() {
         }
     }
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
-                                       matrixL1double);
+                                       matrixL1double);*/
 
     //Relu
     for (int i = 0; i < layer1d; ++i) {
@@ -876,22 +876,22 @@ int main() {
                         ((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) + (o1 * len1 + x1)];
             }
 
+
     //layer3 convolution - broken
-    /*
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
                                         matrixW23double);
-    for (int x = 0; x <(layer2d); ++x) { //here is the problem! if there is more input layers, the output is bugged
+    for (int x = 0; x < (layer2d); ++x) { //here is the problem! if there is more input layers, the output is bugged
         for (int y = 0; y < layer3d; ++y) {
             ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
         }
     }
     //ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0);
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
-                                       matrixL3double);*/
+                                       matrixL3double);
 
-
-    //zero out layer3 first before doing this:
+/*
+    //zero out layer3 first before doing c++ conv:
     for (int y = 0; y < layer3d; ++y) {
         for (int row = 0; row < layer3h; ++row) {
             for (int col = 0; col < layer3w; ++col) {
@@ -921,7 +921,7 @@ int main() {
                 }
             }
         }
-    }
+    }*/
 
     //Relu
     for (int i = 0; i < layer3d; ++i) {
@@ -956,7 +956,7 @@ int main() {
                         ((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) + (o1 * len4 + x1)];
             }
 
-    //layer 5 convolution ocl
+    //layer 5 convolution ocl --broken?
     /*ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                         matrixL4double,
                                         matrixW45double);

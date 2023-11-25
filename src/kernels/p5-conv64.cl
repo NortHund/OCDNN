@@ -4,11 +4,13 @@ __kernel void convolution_double(__global double* inputA, __global double* input
     int width = get_global_size(0);
     int height = get_global_size(1);
 
-    double sum = 0;
+    double sum = output[(layerB * width * height) + (row * width) + col];
 
     for (int i = 0; i < heightB; i++) {
         for (int j = 0; j < widthB; j++) {
           sum += inputA[(layerA * heightA * widthA) + ((row + i) * widthA) + (col + j)] * inputB[(layerA * depthB * heightB * widthB) + (layerB * heightB * widthB) + (i * widthB) + j];
+          //sum += inputA[(layerA * heightA * widthA) + ((row + i) * widthA) + (col + j)];
+          //sum += inputB[(layerA * depthB * heightB * widthB) + (layerB * heightB * widthB) + (i * widthB) + j];
         }
     }
 
