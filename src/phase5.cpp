@@ -807,36 +807,12 @@ int main() {
     //    printf("ip: %d, op: %d\n", ip, op);
     //}
 
-
-    /*//matrixW01double
-    for (int x0 = 0; x0 < layer0d; ++x0)
-        for (int x1 = 0; x1 < layer1d; ++x1)
-            for (int x2 = 0; x2 < w01h; ++x2)
-                for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW01double[(x0 * layer1d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
-                                    x3] = lenet->weight0_1[x0][x1][x2][x3];
-
-    //matrixW23double
-    for (int x0 = 0; x0 < layer2d; ++x0)
-        for (int x1 = 0; x1 < layer3d; ++x1)
-            for (int x2 = 0; x2 < w01h; ++x2)
-                for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW23double[(x0 * layer3d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
-                                    x3] = lenet->weight2_3[x0][x1][x2][x3];
-
-    //matrixW45double
-    for (int x0 = 0; x0 < layer4d; ++x0)
-        for (int x1 = 0; x1 < layer5d; ++x1)
-            for (int x2 = 0; x2 < w01h; ++x2)
-                for (int x3 = 0; x3 < w01h; ++x3)
-                    matrixW45double[(x0 * layer5d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) +
-                                    x3] = lenet->weight4_5[x0][x1][x2][x3];*/
-
     copyModel(lenet);
     //load input image
     load_input_ocl(test_data[2]);
 
-    for (int x = 0; x <(layer0d); ++x) {
+    //layer1 convolution c++ version
+    /*for (int x = 0; x <(layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             for (int row = 0; row < layer1h; ++row) {
                 for (int col = 0; col < layer1w; ++col) {
@@ -853,10 +829,9 @@ int main() {
                 }
             }
         }
-    }
+    }*/
 
-    //layer 1 convolution
-    /*
+    //layer 1 convolution ocl
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
@@ -865,13 +840,8 @@ int main() {
             ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
         }
     }
-    for (int x = 0; x < (layer0d); ++x) {
-        for (int y = 0; y < layer1d; ++y) {
-            ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
-        }
-    }
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
-                                       matrixL1double);*/
+                                       matrixL1double);
 
     //Relu
     for (int i = 0; i < layer1d; ++i) {
@@ -907,15 +877,6 @@ int main() {
             }
 
     //layer3 convolution - broken
-    //zero out layer3 first before doing this:
-    for (int y = 0; y < layer3d; ++y) {
-        for (int row = 0; row < layer3h; ++row) {
-            for (int col = 0; col < layer3w; ++col) {
-                matrixL3double[(y * layer3w * layer3h) + (row * layer3w) + col] = 0;
-            }
-        }
-    }
-
     /*
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
@@ -930,7 +891,15 @@ int main() {
                                        matrixL3double);*/
 
 
-
+    //zero out layer3 first before doing this:
+    for (int y = 0; y < layer3d; ++y) {
+        for (int row = 0; row < layer3h; ++row) {
+            for (int col = 0; col < layer3w; ++col) {
+                matrixL3double[(y * layer3w * layer3h) + (row * layer3w) + col] = 0;
+            }
+        }
+    }
+    //layer3 convolution in c++
     double ocssum = 0;
     for (int x = 0; x <(layer2d); ++x) {
         for (int y = 0; y < layer3d; ++y) {
@@ -987,17 +956,7 @@ int main() {
                         ((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) + (o1 * len4 + x1)];
             }
 
-    //layer 5 convolution
-
-    //zero out layer3 first before doing this:
-    for (int y = 0; y < layer5d; ++y) {
-        for (int row = 0; row < layer5h; ++row) {
-            for (int col = 0; col < layer5w; ++col) {
-                matrixL5double[(y * layer5w * layer5h) + (row * layer5w) + col] = 0;
-            }
-        }
-    }
-
+    //layer 5 convolution ocl
     /*ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                         matrixL4double,
                                         matrixW45double);
@@ -1010,7 +969,15 @@ int main() {
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                        matrixL5double);*/
 
-
+    //zero out layer5 first before doing c++ conv:
+    for (int y = 0; y < layer5d; ++y) {
+        for (int row = 0; row < layer5h; ++row) {
+            for (int col = 0; col < layer5w; ++col) {
+                matrixL5double[(y * layer5w * layer5h) + (row * layer5w) + col] = 0;
+            }
+        }
+    }
+    //layer5 conv in c++
     for (int x = 0; x <(layer4d); ++x) {
         for (int y = 0; y < layer5d; ++y) {
             for (int row = 0; row < layer5h; ++row) {
@@ -1050,13 +1017,11 @@ int main() {
 
     for (int x = 0; x < (sizeof(lenet->weight5_6) / sizeof(*(lenet->weight5_6))); ++x) {
         for (int y = 0; y < (sizeof(*lenet->weight5_6) / sizeof(*(*lenet->weight5_6))); ++y) {
-            //((double *) features.output)[y] += ((double *) features.layer5)[x] * lenet->weight5_6[x][y];
             matrixL6double[y] += matrixL5double[x] * lenet->weight5_6[x][y];
         }
     }
 
     for (int j = 0; j < (sizeof(lenet->bias5_6) / sizeof(*(lenet->bias5_6))); ++j) {
-        //((double *) features.output)[j] = relu(((double *) features.output)[j] + lenet->bias5_6[j]);
         if (matrixL6double[j] + lenet->bias4_5[j] > 0) {
             matrixL6double[j] += lenet->bias4_5[j];
         } else {
@@ -1064,6 +1029,7 @@ int main() {
         }
     }
 
+    //getting result from the output matrix/vector
     const int outlen = OUTPUT;
     uint8 result = 0;
     double maxvalue = 0;
@@ -1074,7 +1040,7 @@ int main() {
         }
     }
 
-    //original version for reference
+    //original version of Lenet for reference
     Feature features = {0};
     load_input(&features, test_data[2]);
     CONVOLUTION_FORWARD(features.input, features.layer1, lenet->weight0_1, lenet->bias0_1, relu);
