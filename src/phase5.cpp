@@ -202,6 +202,43 @@ public:
 
     }
 
+    unsigned convolution_double_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 0, sizeof(cl_mem), (void *)&iBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 1, sizeof(cl_mem), (void *)&wBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 2, sizeof(cl_mem), (void *)&icsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 3, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 5, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 6, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 7, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 8, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 9, sizeof(int), &iln);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 10, sizeof(int), &olm);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(10),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return 0;
+    }
+
     unsigned convolution_optimv2_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         double* midRW;
@@ -312,6 +349,39 @@ public:
 
         kernel_execution_times[3] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
         return ics[0];
+    }
+
+    unsigned convolution_double_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    {
+
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 0, sizeof(cl_mem), (void *)&oBufferd);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 1, sizeof(cl_mem), (void *)&ocsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 2, sizeof(int), &oh);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 3, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 4, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 5, sizeof(int), &ocsInd);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(9),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
     }
 
     unsigned convolution_optim_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
@@ -839,15 +909,13 @@ int main() {
                                         matrixL0double,
                                         matrixW01double);
 
-    //ics doesn't have bias and relu taken into account yet
-    /*ics[0] = 0;
+    //ics
+    ics[0] = 0;
     ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-    for (int i = 0; i < 1; i++) {
-        ocl_phase2.convolution_optimv2_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d,0,0);
-    }
+    ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d,0,0);
     ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-    printf("Optimized v2 ics: %.16f \n", ics[0]);*/
 
+    //convolution
     for (int x = 0; x < (layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
             ocl_phase2.convolution_double(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
@@ -855,6 +923,13 @@ int main() {
     }
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                        matrixL1double);
+
+    //ocs
+    ocs[0] = 0;
+    ocl_phase2.convolution_double_ocs_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+    ocl_phase2.convolution_double_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+    ocl_phase2.convolution_double_ocs_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
+    printf("layer 1 ics ocl: %f ics ocl: %f \n", ics[0], ocs[0]);
 
     //Relu
     for (int i = 0; i < layer1d; ++i) {
@@ -894,7 +969,14 @@ int main() {
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
                                         matrixW23double);
-    for (int x = 0; x < (layer2d); ++x) { //here is the problem! if there is more input layers, the output is bugged
+
+    //ics
+    ics[0] = 0;
+    ocl_phase2.convolution_double_ics_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
+    ocl_phase2.convolution_double_ics(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d,0,0);
+    ocl_phase2.convolution_double_ics_read(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
+
+    for (int x = 0; x < (layer2d); ++x) {
         for (int y = 0; y < layer3d; ++y) {
             ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
         }
@@ -902,6 +984,13 @@ int main() {
     //ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0);
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                        matrixL3double);
+
+    //ocs
+    ocs[0] = 0;
+    ocl_phase2.convolution_double_ocs_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, 0);
+    ocl_phase2.convolution_double_ocs(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, 0);
+    ocl_phase2.convolution_double_ocs_read(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, 0);
+    printf("layer 3 ics ocl: %f ics ocl: %f \n", ics[0], ocs[0]);
 
 /*
     //zero out layer3 first before doing c++ conv:
@@ -974,6 +1063,12 @@ int main() {
                                         matrixL4double,
                                         matrixW45double);
 
+    //ics
+    ics[0] = 0;
+    ocl_phase2.convolution_double_ics_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0);
+    ocl_phase2.convolution_double_ics(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d,0,0);
+    ocl_phase2.convolution_double_ics_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0);
+
     for (int x = 0; x < (layer4d); ++x) {
         for (int y = 0; y < layer5d; ++y) {
             ocl_phase2.convolution_double(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, x, y);
@@ -981,6 +1076,14 @@ int main() {
     }
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                        matrixL5double);
+
+    //ocs
+    ocs[0] = 0;
+    ocl_phase2.convolution_double_ocs_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, 0);
+    ocl_phase2.convolution_double_ocs(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, 0);
+    ocl_phase2.convolution_double_ocs_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, 0);
+    printf("layer 5 ics ocl: %f ics ocl: %f \n", ics[0], ocs[0]);
+
 
     /*
     //zero out layer5 first before doing c++ conv:
@@ -1069,7 +1172,7 @@ int main() {
             }
         }
     }
-    printf("layer1: original: %f accelerated: %f \n", ocs0, ocs1);
+    printf("layer1: original: %f, accelerated: %f \n", ocs0, ocs1);
 
     /*ocs1 = 0;
     for (int i = 0; i < layer1d; ++i) {
