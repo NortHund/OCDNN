@@ -72,6 +72,7 @@ double* matrixB56double;
 
 double *ics;
 double* ocs;
+double* csc;
 
 // Get kernel execution time in microseconds
 unsigned long get_kernel_execution_time(cl_event &event, cl_command_queue &command_queue)
@@ -331,15 +332,6 @@ public:
 
     unsigned cs_compare(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-        double* csc;
-        csc = (double*)malloc(ow * oh * sizeof(double));
-
-        cl_mem cscBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE,
-                                   ow * oh * sizeof(double),
-                                   NULL,
-                                   NULL);
-
         cl_int status;
         //Setting buffers to kernel arguments
         status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&icsBuffer);
@@ -368,63 +360,64 @@ public:
 
         kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-        //Reading result from GPU memory to main memory
-        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            cscBuffer,
-                                            0,
-                                            0,
-                                     ow * oh * sizeof(double),
-                                            csc,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[7] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        printf("csc: \n");
-        for (int i = 0; i < ow * oh; i++) {
-            printf("%f ", csc[i]);
-            if ((i % 28) == 0) {
-                printf("\n");
-            }
-        }
-        printf("csc: \n");
-
-        free(csc);
-
         return (unsigned)status;
     }
 
-    unsigned cs_compare_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
+    unsigned cs_compare_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* optr)
     {
-        oBuffer = clCreateBuffer(_ocl_base->context,
+        icsBuffer = clCreateBuffer(_ocl_base->context,
                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                 id * iw * ih * sizeof(double),
+                                 iw * ih * sizeof(double),
                                  iptr,
                                  NULL);
 
 
         ocsBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                   ow * oh * sizeof(double),
+                                   optr,
+                                   NULL);
+
+        cscBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_WRITE,
-                                   od * ow * oh * sizeof(double),
+                                   ow * oh * sizeof(double),
                                    NULL,
                                    NULL);
     }
 
     double cs_compare_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
     {
+        csc = (double*)malloc(ow * oh * sizeof(double));
+
         //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            ocsBuffer,
-                                            0,
-                                            0,
-                                            od * ow * oh * sizeof(double),
-                                            optr,
-                                            0,
-                                            NULL,
-                                            &_event);
+                                     cscBuffer,
+                                     0,
+                                     0,
+                                     ow * oh * sizeof(double),
+                                     csc,
+                                     0,
+                                     NULL,
+                                     &_event);
 
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        kernel_execution_times[7] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        for (int i = 0; i < layer1h; i++) {
+            for (int j = 0; j < layer1w; j++) {
+                printf("csc:%f ",csc[i * layer1w + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+        printf("----------------------------\n");
+
+        /*printf("csc: \n");
+        for (int i = 0; i < 10; i++) {
+            printf("%f ", csc[i]);
+        }
+        printf("\n");*/
+
+        free(csc);
 
     }
 
@@ -437,6 +430,8 @@ public:
         std::cout << "  Input sum read: " << kernel_execution_times[3] << " us\n";
         std::cout << "  Output sum: " << kernel_execution_times[4] << " us\n";
         std::cout << "  Output sum read: " << kernel_execution_times[5] << " us\n";
+        std::cout << "  Checksum compare: " << kernel_execution_times[6] << " us\n";
+        std::cout << "  Checksum compare read: " << kernel_execution_times[7] << " us\n";
         std::cout << "\n\n";
     }
 
@@ -447,6 +442,7 @@ public:
     cl_mem oBuffer = nullptr;
     cl_mem ocsBuffer = nullptr;
     cl_mem icsBuffer = nullptr;
+    cl_mem cscBuffer = nullptr;
 
 private:
     cl_program prog_cv_d;
@@ -972,14 +968,17 @@ int main() {
                 printf("checksum mismatch: in:%f out:%f ",matrixL1insum[i * layer1w + j] ,matrixL1outsum[i * layer1w + j]);
                 printf("\n");
             }
-            //printf("%f ",matrixL1outsum[i * layer1w + j]);
+            //printf("%f ",matrixL1insum[i * layer1w + j]);
         }
         //printf("\n");
     }
+    //printf("\n");
+    //printf("\n");
+    ocl_phase2.cs_compare_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, matrixL1insum, matrixL1outsum);
+    ocl_phase2.cs_compare(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+    ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
 
-    ocl_phase2.cs_compare(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
-
-    /* checking in c++
+    /* //compare in c++
     double check = 0;
     for (int i = 0; i < layer1h; i++) {
         for (int j = 0; j < layer1w; j++) {

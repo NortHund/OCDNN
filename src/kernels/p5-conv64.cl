@@ -57,16 +57,17 @@ __kernel void cs_compare(__global double* inputCs, __global double* outputCs, __
 
     double diff = 0;
 
-    diff = inputCs[(row * width) + col] - outputCs[(row * width) + col];
-    if (diff < 0) {
-        diff = diff * (-1);
+    diff = fabs(inputCs[(row * width) + col] - outputCs[(row * width) + col]);
+    //if (diff < 0) {
+    //    diff = diff * (-1);
+    //}
+
+    if (diff > 0.0000000000000000000000001) {
+        //result[wgNum] = diff;
+        result[(row * width) + col] = diff +1;
     }
 
-    result[wgNum] = 1;
-
-    //if (diff > 0.0001) {
-    //    result[(row * width) + col] = 1 + wgNum;
-    //}
+    //result[(row * width) + col] = outputCs[(row * width) + col];
 
 
 }
