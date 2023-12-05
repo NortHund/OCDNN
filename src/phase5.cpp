@@ -51,7 +51,8 @@ double* matrixL5double;
 double* matrixL6double;
 
 double* matrixL0sum;
-double* matrixL1sum;
+double* matrixL1insum;
+double* matrixL1outsum;
 
 double* matrixW01double;
 double* matrixW12double;
@@ -103,28 +104,15 @@ public:
 
     void init_programs()
     {
-        prog_mm_int = _ocl_base->CreateProgramFromFile("kernels/p2-mm-int32.cl");
-        prog_mm_float = _ocl_base->CreateProgramFromFile("kernels/p2-mm-f32.cl");
         prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/p5-conv64.cl");
-        prog_cv_oc = _ocl_base->CreateProgramFromFile("kernels/convolution-oc.cl");
     }
 
     void init_kernels()
     {
-        _ocl_base->CreateKernelFromProgram(prog_mm_int, "mm_int"); //0
-        _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_float"); //1
-        _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_fl"); //2
-        _ocl_base->CreateKernelFromProgram(prog_cv_oc, "convolution_oc"); //3
-        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_short"); //4
-        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_char"); //5
-        _ocl_base->CreateKernelFromProgram(prog_mm_float, "mm_double"); //6
-        _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_double"); //7
-        _ocl_base->CreateKernelFromProgram(prog_mm_int , "mm_int_cs"); //8
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ocs"); //9
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_double_ics"); //10
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ics"); //11
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim_ocs"); //12
-        _ocl_base->CreateKernelFromProgram(prog_cv_d , "convolution_optim2_ics"); //13
+        _ocl_base->CreateKernelFromProgram(prog_cv_d, "convolution_double"); //0
+        _ocl_base->CreateKernelFromProgram(prog_cv_d, "input_sum"); //1
+        _ocl_base->CreateKernelFromProgram(prog_cv_d, "output_sum"); //2
+        _ocl_base->CreateKernelFromProgram(prog_cv_d, "cs_compare"); //3
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -132,17 +120,17 @@ public:
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *)&iBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *)&wBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 2, sizeof(cl_mem), (void *)&oBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 3, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 4, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 5, sizeof(int), &id);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 6, sizeof(int), &wh);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 7, sizeof(int), &ww);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 8, sizeof(int), &od);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 9, sizeof(int), &iln);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 10, sizeof(int), &olm);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *)&wBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 3, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 5, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 6, sizeof(int), &wh);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 7, sizeof(int), &ww);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 8, sizeof(int), &od);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 9, sizeof(int), &iln);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 10, sizeof(int), &olm);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -150,7 +138,7 @@ public:
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(7),
+                                        _ocl_base->GetKernel(0),
                                         2,
                                         NULL,
                                         global_work_size,
@@ -171,19 +159,19 @@ public:
 
     unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr)
     {
-        iBufferd = clCreateBuffer(_ocl_base->context,
+        iBuffer = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                   id * iw * ih * sizeof(double),
                                   iptr,
                                   NULL);
 
-        wBufferd = clCreateBuffer(_ocl_base->context,
+        wBuffer = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                   id * od * ww * wh * sizeof(double),
                                   wptr,
                                   NULL);
 
-        oBufferd = clCreateBuffer(_ocl_base->context,
+        oBuffer = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE,
                                   od * ow * oh * sizeof(double),
                                   NULL,
@@ -194,7 +182,7 @@ public:
     {
         //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            oBufferd,
+                                            oBuffer,
                                             0,
                                             0,
                                             od * ow * oh * sizeof(double),
@@ -207,22 +195,14 @@ public:
 
     }
 
-    unsigned convolution_double_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned input_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 0, sizeof(cl_mem), (void *)&iBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 1, sizeof(cl_mem), (void *)&wBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 2, sizeof(cl_mem), (void *)&icsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 3, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 4, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 5, sizeof(int), &id);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 6, sizeof(int), &wh);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 7, sizeof(int), &ww);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 8, sizeof(int), &od);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 9, sizeof(int), &iln);
-        status = clSetKernelArg(_ocl_base->GetKernel(10), 10, sizeof(int), &olm);
+        status = clSetKernelArg(_ocl_base->GetKernel(1), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(1), 1, sizeof(cl_mem), (void *)&icsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(1), 2, sizeof(int), &id);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -230,7 +210,7 @@ public:
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(10),
+                                        _ocl_base->GetKernel(1),
                                         2,
                                         NULL,
                                         global_work_size,
@@ -238,136 +218,58 @@ public:
                                         0,
                                         NULL,
                                         &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
 
         kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-        return 0;
+        return (unsigned)status;
     }
 
-    unsigned convolution_optimv2_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned input_sum_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
     {
-        double* midRW;
-        double* midCL;
-        double* cornerMat;
-        double* matSum;
+        iBuffer = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  id * iw * ih * sizeof(double),
+                                  iptr,
+                                  NULL);
 
-        int k1 = ww - 1;
-
-        midRW = (double *) malloc(k1 * 2 * sizeof(double));
-        midCL = (double*)malloc(k1 * 2 * sizeof(double));
-        cornerMat = (double*)malloc((k1 * 2) * (k1 * 2) * sizeof(double));
-        matSum = (double*)malloc(ww * wh * sizeof(double));
-
-        cl_mem midRWBuffer = clCreateBuffer(_ocl_base->context,
-                                            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                            k1 * 2 * sizeof(double),
-                                            midRW,
-                                            NULL);
-
-        cl_mem midCLBuffer = clCreateBuffer(_ocl_base->context,
-                                            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                            k1 * 2 * sizeof(double),
-                                            midCL,
-                                            NULL);
-
-        cl_mem cornerMatBuffer = clCreateBuffer(_ocl_base->context,
-                                                CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                                (k1 * 2) * (k1 * 2) * sizeof(double),
-                                                cornerMat,
-                                                NULL);
-
-        cl_mem matSumBuffer = clCreateBuffer(_ocl_base->context,
-                                             CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                             ww * wh * sizeof(double),
-                                             matSum,
-                                             NULL);
-
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 0, sizeof(cl_mem), (void *)&iBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 1, sizeof(cl_mem), (void *)&wBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 2, sizeof(cl_mem), (void *)&icsBuffer);
-        //status = clSetKernelArg(_ocl_base->GetKernel(13), 3, sizeof(cl_mem), (void *)&midRWBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 3, k1 * 2 * sizeof(double), NULL);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 4, k1 * 2 * sizeof(double), NULL);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 5, (k1 * 2) * (k1 * 2) * sizeof(double), NULL);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 6, wh * wh * sizeof(double), NULL);
-        //status = clSetKernelArg(_ocl_base->GetKernel(13), 4, sizeof(cl_mem), (void *)&midCLBuffer);
-        //status = clSetKernelArg(_ocl_base->GetKernel(13), 5, sizeof(cl_mem), (void *)&cornerMatBuffer);
-        //status = clSetKernelArg(_ocl_base->GetKernel(13), 6, sizeof(cl_mem), (void *)&matSumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 7, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 8, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 9, sizeof(int), &id);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 10, sizeof(int), &wh);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 11, sizeof(int), &ww);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 12, sizeof(int), &oh);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 13, sizeof(int), &ow);
-        status = clSetKernelArg(_ocl_base->GetKernel(13), 14, sizeof(int), &od);
-
-        size_t global_work_size[1];
-        global_work_size[0] = 1;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(13),
-                                        1,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-
-        kernel_execution_times[8] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        free(midRW);
-        free(midCL);
-        free(cornerMat);
-        free(matSum);
-
-
-        return 0;
-    }
-
-    unsigned convolution_double_ics_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
 
         icsBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   sizeof(double),
-                                   ics,
-                                   NULL);
-
+                                  CL_MEM_READ_WRITE,
+                                  od * ow * oh * sizeof(double),
+                                  NULL,
+                                  NULL);
     }
 
-    double convolution_double_ics_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm) {
-
+    double input_sum_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
+    {
+        //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
                                             icsBuffer,
                                             0,
                                             0,
-                                            sizeof(double),
-                                            ics,
+                                            od * ow * oh * sizeof(double),
+                                            optr,
                                             0,
                                             NULL,
                                             &_event);
 
         kernel_execution_times[3] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-        return ics[0];
+
     }
 
-    unsigned convolution_double_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    unsigned output_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
-
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 0, sizeof(cl_mem), (void *)&oBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 1, sizeof(cl_mem), (void *)&ocsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 2, sizeof(int), &oh);
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 3, sizeof(int), &ow);
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 4, sizeof(int), &od);
-        status = clSetKernelArg(_ocl_base->GetKernel(9), 5, sizeof(int), &ocsInd);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&ocsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(int), &id);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -375,7 +277,7 @@ public:
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(9),
+                                        _ocl_base->GetKernel(2),
                                         2,
                                         NULL,
                                         global_work_size,
@@ -383,23 +285,66 @@ public:
                                         0,
                                         NULL,
                                         &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
 
         kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
 
-    unsigned convolution_optim_ocs(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    unsigned output_sum_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
     {
-        cl_int status;
+        oBuffer = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  id * iw * ih * sizeof(double),
+                                  iptr,
+                                  NULL);
 
+
+        ocsBuffer = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_WRITE,
+                                  od * ow * oh * sizeof(double),
+                                  NULL,
+                                  NULL);
+    }
+
+    double output_sum_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
+    {
+        //Reading result from GPU memory to main memory
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            ocsBuffer,
+                                            0,
+                                            0,
+                                            od * ow * oh * sizeof(double),
+                                            optr,
+                                            0,
+                                            NULL,
+                                            &_event);
+
+        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+    }
+
+    unsigned cs_compare(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        double* csc;
+        csc = (double*)malloc(ow * oh * sizeof(double));
+
+        cl_mem cscBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE,
+                                   ow * oh * sizeof(double),
+                                   NULL,
+                                   NULL);
+
+        cl_int status;
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(12), 0, sizeof(cl_mem), (void *)&oBufferd);
-        status = clSetKernelArg(_ocl_base->GetKernel(12), 1, sizeof(cl_mem), (void *)&ocsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(12), 2, sizeof(int), &oh);
-        status = clSetKernelArg(_ocl_base->GetKernel(12), 3, sizeof(int), &ow);
-        status = clSetKernelArg(_ocl_base->GetKernel(12), 4, sizeof(int), &od);
-        status = clSetKernelArg(_ocl_base->GetKernel(12), 5, sizeof(int), &ocsInd);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&icsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&ocsBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -407,7 +352,7 @@ public:
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(12),
+                                        _ocl_base->GetKernel(3),
                                         2,
                                         NULL,
                                         global_work_size,
@@ -415,40 +360,72 @@ public:
                                         0,
                                         NULL,
                                         &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        //Reading result from GPU memory to main memory
+        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            cscBuffer,
+                                            0,
+                                            0,
+                                     ow * oh * sizeof(double),
+                                            csc,
+                                            0,
+                                            NULL,
+                                            &_event);
 
         kernel_execution_times[7] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        printf("csc: \n");
+        for (int i = 0; i < ow * oh; i++) {
+            printf("%f ", csc[i]);
+            if ((i % 28) == 0) {
+                printf("\n");
+            }
+        }
+        printf("csc: \n");
+
+        free(csc);
 
         return (unsigned)status;
     }
 
-    unsigned convolution_double_ocs_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    unsigned cs_compare_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
     {
+        oBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                 id * iw * ih * sizeof(double),
+                                 iptr,
+                                 NULL);
+
+
         ocsBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   sizeof(double),
-                                   ocs,
+                                   CL_MEM_READ_WRITE,
+                                   od * ow * oh * sizeof(double),
+                                   NULL,
                                    NULL);
-
-
     }
 
-    double convolution_double_ocs_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, int ocsInd)
+    double cs_compare_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
     {
         //Reading result from GPU memory to main memory
-        cl_int status;
-        status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                     ocsBuffer,
-                                     0,
-                                     0,
-                                     sizeof(double),
-                                     ocs,
-                                     0,
-                                     NULL,
-                                     &_event);
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            ocsBuffer,
+                                            0,
+                                            0,
+                                            od * ow * oh * sizeof(double),
+                                            optr,
+                                            0,
+                                            NULL,
+                                            &_event);
 
         kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-        //printf("Convolution-double ocl ocs: %f \n", ocs[ocsInd]);
     }
 
     void print_kernel_execution_times()
@@ -456,32 +433,30 @@ public:
         std::cout << "OpenCL kernel execution times:\n";
         std::cout << "  Convolution: " << kernel_execution_times[0] << " us\n";
         std::cout << "  Convolution read: " << kernel_execution_times[1] << " us\n";
-        std::cout << "  Input checksum optimized v2: " << kernel_execution_times[8] << " us\n";
-        std::cout << "  Input checksum read: " << kernel_execution_times[3] << " us\n";
-        std::cout << "  Output checksum optimized: " << kernel_execution_times[7] << " us\n";
-        std::cout << "  Output checksum read: " << kernel_execution_times[5] << " us\n\n";
+        std::cout << "  Input sum: " << kernel_execution_times[2] << " us\n";
+        std::cout << "  Input sum read: " << kernel_execution_times[3] << " us\n";
+        std::cout << "  Output sum: " << kernel_execution_times[4] << " us\n";
+        std::cout << "  Output sum read: " << kernel_execution_times[5] << " us\n";
+        std::cout << "\n\n";
     }
 
     std::unique_ptr<OCL_Base> _ocl_base;
 
-    cl_mem iBufferd = nullptr;
-    cl_mem wBufferd = nullptr;
-    cl_mem oBufferd = nullptr;
+    cl_mem iBuffer = nullptr;
+    cl_mem wBuffer = nullptr;
+    cl_mem oBuffer = nullptr;
     cl_mem ocsBuffer = nullptr;
     cl_mem icsBuffer = nullptr;
 
 private:
-    cl_program prog_mm_int ;
-    cl_program prog_mm_float;
     cl_program prog_cv_d;
-    cl_program prog_cv_oc;
 
     cl_event _event;
 
     // 0 - convolution
     // 1 - convolution read
-    // 2 - ics
-    // 3 - ics read
+    // 2 - input_sum
+    // 3 - input_sum_read
     // 4 - ocs
     // 5 - ocs read
     unsigned long kernel_execution_times[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -507,7 +482,8 @@ static void createVectors()
     matrixW56double = (double*)malloc((layer5d) * (OUTPUT) * (layer5w * layer5h) * sizeof(double));
 
     matrixL0sum = (double*)malloc((layer0w * layer0h) * sizeof(double));
-    matrixL1sum = (double*)malloc((layer1w * layer1h) * sizeof(double));
+    matrixL1insum = (double*)malloc((layer1w * layer1h) * sizeof(double));
+    matrixL1outsum = (double*)malloc((layer1w * layer1h) * sizeof(double));
     matrixW01sum = (double*)malloc((layer0d) * (w01w * w01h) * sizeof(double));
 
     matrixB01double = (double*)malloc((layer1d) * sizeof(double));
@@ -926,38 +902,51 @@ int main() {
         }
     }*/
 
-    for (int i = 0; i < layer0h; i++) {
+    //input sum in c++
+    /*for (int i = 0; i < layer0h; i++) {
         for (int j = 0; j < layer0w; j++) {
             matrixL0sum[i * layer0w + j] = matrixL0double[i * layer0w + j];
         }
-    }
+    }*/
 
-    //matrix ics:
+    //input sum matrix
+    ocl_phase2.input_sum_write(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0,
+                                        matrixL0double);
+    ocl_phase2.input_sum(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0);
+    ocl_phase2.input_sum_read(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0,
+                                       matrixL0sum);
+
+    /*for (int i = 0; i < layer0h; i++) {
+        for (int j = 0; j < layer0w; j++) {
+            printf("s:%f v:%f ",matrixL0sum[i * layer0w + j], matrixL0double[i * layer0w + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    printf("----------------------------\n");*/
+
+    //matrix cs:
     ocl_phase2.convolution_double_write(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0,
                                         matrixL0sum,
                                         matrixW01sum);
     ocl_phase2.convolution_double(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0);
     ocl_phase2.convolution_double_read(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0,
-                                       matrixL1sum);
+                                       matrixL1insum);
 
-    for (int i = 0; i < layer1h; i++) {
+    ocl_phase2.print_kernel_execution_times();
+
+    /*for (int i = 0; i < layer1h; i++) {
         for (int j = 0; j < layer1w; j++) {
-            //printf("%f ",matrixL1sum[i * layer1w + j]);
+            printf("%f ",matrixL1insum[i * layer1w + j]);
         }
-        //printf("\n");
-    }
+        printf("\n");
+    }*/
 
 
     //layer 1 convolution ocl
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
                                         matrixW01double);
-
-    //ics
-    ics[0] = 0;
-    ocl_phase2.convolution_double_ics_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-    ocl_phase2.convolution_double_ics(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-    ocl_phase2.convolution_double_ics_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
     //convolution
     for (int x = 0; x < (layer0d); ++x) {
@@ -968,6 +957,29 @@ int main() {
     ocl_phase2.convolution_double_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                        matrixL1double);
 
+
+    ocl_phase2.output_sum_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
+                               matrixL1double);
+    ocl_phase2.output_sum(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
+    ocl_phase2.output_sum_read(layer1w, layer0h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
+                              matrixL1outsum);
+
+    //printf("\n");
+    //printf("\n");
+    for (int i = 0; i < layer1h; i++) {
+        for (int j = 0; j < layer1w; j++) {
+            if (abs(matrixL1insum[i * layer1w + j] - matrixL1outsum[i * layer1w + j]) > 0.0000001) {
+                printf("checksum mismatch: in:%f out:%f ",matrixL1insum[i * layer1w + j] ,matrixL1outsum[i * layer1w + j]);
+                printf("\n");
+            }
+            //printf("%f ",matrixL1outsum[i * layer1w + j]);
+        }
+        //printf("\n");
+    }
+
+    ocl_phase2.cs_compare(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
+
+    /* checking in c++
     double check = 0;
     for (int i = 0; i < layer1h; i++) {
         for (int j = 0; j < layer1w; j++) {
@@ -979,25 +991,22 @@ int main() {
         }
         //printf("\n");
     }
-    //printf("\n");
+    //printf("\n");*/
 
     //ocs
     ocs[0] = 0;
-    ocl_phase2.convolution_double_ocs_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
-    ocl_phase2.convolution_double_ocs(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
-    ocl_phase2.convolution_double_ocs_read(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, 0);
-    printf("layer 1 ics ocl: %f ics ocl: %f \n", ics[0], ocs[0]);
 
-    printf("matrixW01sum: \n");
+    /*printf("matrixW01sum: \n");
     for (int x0 = 0; x0 < layer0d; ++x0) {
         for (int x2 = 0; x2 < w01h; ++x2) {
             for (int x3 = 0; x3 < w01h; ++x3) {
-                printf("%f ", matrixW01sum[(x0 * w01h * w01w) + (x2 * w01w) + x3]);
+                //printf("%f ", matrixW01sum[(x0 * w01h * w01w) + (x2 * w01w) + x3]);
             }
-            printf("\n");
+            //printf("\n");
         }
-        printf("\n");
-    }
+        //printf("\n");
+    }*/
+
     //Relu
     for (int i = 0; i < layer1d; ++i) {
         for (int j = 0; j < layer1h; ++j) {
@@ -1037,12 +1046,6 @@ int main() {
                                         matrixL2double,
                                         matrixW23double);
 
-    //ics
-    ics[0] = 0;
-    ocl_phase2.convolution_double_ics_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
-    ocl_phase2.convolution_double_ics(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d,0,0);
-    ocl_phase2.convolution_double_ics_read(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
-
     for (int x = 0; x < (layer2d); ++x) {
         for (int y = 0; y < layer3d; ++y) {
             ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
@@ -1051,13 +1054,6 @@ int main() {
     //ocl_phase2.convolution_double(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0);
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                        matrixL3double);
-
-    //ocs
-    ocs[0] = 0;
-    ocl_phase2.convolution_double_ocs_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, 0);
-    ocl_phase2.convolution_double_ocs(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, 0);
-    ocl_phase2.convolution_double_ocs_read(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, 0);
-    printf("layer 3 ics ocl: %f ics ocl: %f \n", ics[0], ocs[0]);
 
 /*
     //zero out layer3 first before doing c++ conv:
@@ -1130,12 +1126,6 @@ int main() {
                                         matrixL4double,
                                         matrixW45double);
 
-    //ics
-    ics[0] = 0;
-    ocl_phase2.convolution_double_ics_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0);
-    ocl_phase2.convolution_double_ics(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d,0,0);
-    ocl_phase2.convolution_double_ics_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0);
-
     for (int x = 0; x < (layer4d); ++x) {
         for (int y = 0; y < layer5d; ++y) {
             ocl_phase2.convolution_double(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, x, y);
@@ -1143,14 +1133,6 @@ int main() {
     }
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                        matrixL5double);
-
-    //ocs
-    ocs[0] = 0;
-    ocl_phase2.convolution_double_ocs_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, 0);
-    ocl_phase2.convolution_double_ocs(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, 0);
-    ocl_phase2.convolution_double_ocs_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, 0);
-    printf("layer 5 ics ocl: %f ics ocl: %f \n", ics[0], ocs[0]);
-
 
     /*
     //zero out layer5 first before doing c++ conv:
@@ -1365,7 +1347,8 @@ int main() {
     free(matrixL6double);
 
     free(matrixL0sum);
-    free(matrixL1sum);
+    free(matrixL1insum);
+    free(matrixL1outsum);
 
     free(matrixW01double);
     free(matrixW12double);
