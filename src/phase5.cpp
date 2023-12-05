@@ -380,21 +380,21 @@ public:
 
         cscBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_WRITE,
-                                   ow * oh * sizeof(double),
+                                   10 * sizeof(double),
                                    NULL,
                                    NULL);
     }
 
     double cs_compare_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
     {
-        csc = (double*)malloc(ow * oh * sizeof(double));
+        csc = (double*)malloc(10 * sizeof(double));
 
         //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
                                      cscBuffer,
                                      0,
                                      0,
-                                     ow * oh * sizeof(double),
+                                     10 * sizeof(double),
                                      csc,
                                      0,
                                      NULL,
@@ -402,20 +402,20 @@ public:
 
         kernel_execution_times[7] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-        for (int i = 0; i < layer1h; i++) {
+        /*for (int i = 0; i < layer1h; i++) {
             for (int j = 0; j < layer1w; j++) {
                 printf("csc:%f ",csc[i * layer1w + j]);
             }
             printf("\n");
         }
         printf("\n");
-        printf("----------------------------\n");
+        printf("----------------------------\n");*/
 
-        /*printf("csc: \n");
+        printf("csc: \n");
         for (int i = 0; i < 10; i++) {
             printf("%f ", csc[i]);
         }
-        printf("\n");*/
+        printf("\n");
 
         free(csc);
 
