@@ -965,11 +965,12 @@ int main() {
     }*/
 
     //input sum matrix
-    ocl_phase2.input_sum_write(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0,
+    /*ocl_phase2.input_sum_write(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0,
                                         matrixL0double);
     ocl_phase2.input_sum(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0);
     ocl_phase2.input_sum_read(layer0w, layer0h, 1, w01w, w01h, layer0w, layer0h, 1, 0, 0,
                                        matrixL0sum);
+    */
 
     /*for (int i = 0; i < layer0h; i++) {
         for (int j = 0; j < layer0w; j++) {
@@ -982,8 +983,8 @@ int main() {
 
     //matrix cs:
     int counter = 0;
-    ocl_phase2.convolution_double_write(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0,
-                                        matrixL0sum,
+    ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
+                                        matrixL0double,
                                         matrixW01sum);
     ocl_phase2.convolution_double(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0);
     counter++;
@@ -1456,7 +1457,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer3: original: %f, vectorized: %f\n", ocs4, ocs5);
+    printf("layer3: original: %f, ocl accelerated: %f\n", ocs4, ocs5);
 
     SUBSAMP_MAX_FORWARD(features.layer3, features.layer4);
     double ocs6 = 0, ocs7 = 0;
@@ -1486,7 +1487,7 @@ int main() {
         }
         //printf("\n");
     }
-    printf("layer5: original: %f, vectorized: %f\n", ocs8, ocs9);
+    printf("layer5: original: %f, ocl accelerated: %f\n", ocs8, ocs9);
 
     DOT_PRODUCT_FORWARD(features.layer5, features.output, lenet->weight5_6, lenet->bias5_6, relu);
 
