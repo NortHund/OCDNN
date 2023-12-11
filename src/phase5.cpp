@@ -71,6 +71,7 @@ double* matrixW56double;
 
 double* matrixW01sum;
 double* matrixW23sum;
+double* matrixW23csum;
 double* matrixW45sum;
 
 double* matrixB01double;
@@ -436,8 +437,6 @@ public:
         std::cout << "OpenCL kernel execution times:\n";
         std::cout << "  Convolution: " << kernel_execution_times[0] << " us\n";
         std::cout << "  Convolution read: " << kernel_execution_times[1] << " us\n";
-        std::cout << "  Input sum: " << kernel_execution_times[2] << " us\n";
-        std::cout << "  Input sum read: " << kernel_execution_times[3] << " us\n";
         std::cout << "  Output sum: " << kernel_execution_times[4] << " us\n";
         std::cout << "  Output sum read: " << kernel_execution_times[5] << " us\n";
         std::cout << "  Checksum compare: " << kernel_execution_times[6] << " us\n";
@@ -496,6 +495,7 @@ static void createVectors()
     matrixL3insum = (double*)malloc((layer3w * layer3h) * sizeof(double));
     matrixL3outsum = (double*)malloc((layer3w * layer3h) * sizeof(double));
     matrixW23sum = (double*)malloc((layer2d) * (w23w * w23h) * sizeof(double));
+    matrixW23csum = (double*)malloc((w23w * w23h) * sizeof(double));
 
     matrixL4sum = (double*)malloc((layer4w * layer4h) * sizeof(double));
     matrixL5insum = (double*)malloc((layer5w * layer5h) * sizeof(double));
@@ -561,12 +561,14 @@ static void copyModel(LeNet5 *lenet) {
         }
     }
 
-    /*for (int x2 = 0; x2 < w23h; ++x2) {
+    /*
+    //matrixW23csum
+    for (int x2 = 0; x2 < w23h; ++x2) {
         for (int x3 = 0; x3 < w23h; ++x3) {
-            matrixW23sum[(x2 * w23w) + x3] = 0;
+            matrixW23csum[(x2 * w23w) + x3] = 0;
             for (int x0 = 0; x0 < layer2d; ++x0) {
                 for (int x1 = 0; x1 < layer3d; ++x1) {
-                    matrixW23sum[(x2 * w01w) + x3] += matrixW23double[
+                    matrixW23csum[(x2 * w01w) + x3] += matrixW23double[
                             (x0 * layer3d * w23h * w23h) + (x1 * w23h * w23w) + (x2 * w23w) + x3];
                 }
             }
@@ -992,6 +994,7 @@ int main() {
                                        matrixL1insum);
     printf("conv layer 1 ics convolutions: %d \n", counter);
 
+    ocl_phase2.print_kernel_execution_times();
 
     //ocl_phase2.print_kernel_execution_times();
 
@@ -1020,6 +1023,7 @@ int main() {
                                        matrixL1double);
 
     printf("conv layer 0-1 convolutions: %d \n", counter);
+    ocl_phase2.print_kernel_execution_times();
 
     ocl_phase2.output_sum_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
                                matrixL1double);
@@ -1106,6 +1110,7 @@ int main() {
                         ((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) + (o1 * len1 + x1)];
             }
 
+
     //input sum matrix layer2
     /*ocl_phase2.input_sum_write(layer2w, layer2h, layer2d, w01w, w01h, layer2w, layer2h, 1, 0, 0,
                                matrixL2double);
@@ -1113,24 +1118,52 @@ int main() {
     ocl_phase2.input_sum_read(layer2w, layer2h, layer2d, w01w, w01h, layer2w, layer2h, 1, 0, 0,
                               matrixL2sum);*/
 
-    //printf("layer2sum:\n");
+    /*printf("layer2\n");
+    for (int x = 0; x < layer2d; ++x) {
+        for (int j = 0; j < layer2h; ++j) {
+            for (int i = 0; i < layer2w; ++i) {
+                printf("%f ", matrixL2double[(x * layer2h * layer2w) + (j * layer2w) + i]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+    printf("\n");
+    */
+
+    /*
+    printf("layer2sum:\n");
     for (int i = 0; i < layer2h; i++) {
         for (int j = 0; j < layer2w; j++) {
-            //printf("%f ",matrixL2sum[i * layer2w + j]);
+            printf("%f ",matrixL2sum[i * layer2w + j]);
         }
-        //printf("\n");
-    }
+        printf("\n");
+    }*/
 
-    //printf("matrixW23sum: \n");
+    /*
+    printf("matrixW23sum: \n");
     for (int x0 = 0; x0 < layer2d; ++x0) {
         for (int x2 = 0; x2 < w01h; ++x2) {
             for (int x3 = 0; x3 < w01h; ++x3) {
-                //printf("%f ", matrixW23sum[(x0 * w01h * w01w) + (x2 * w01w) + x3]);
+                printf("%f ", matrixW23sum[(x0 * w01h * w01w) + (x2 * w01w) + x3]);
             }
-            //printf("\n");
+            printf("\n");
         }
-        //printf("\n");
+        printf("\n");
     }
+    */
+
+    /*
+    printf("matrixW23csum: \n");
+    for (int x0 = 0; x0 < 1; ++x0) {
+        for (int x2 = 0; x2 < w01h; ++x2) {
+            for (int x3 = 0; x3 < w01h; ++x3) {
+                printf("%f ", matrixW23csum[(x2 * w01w) + x3]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
 
 
     //layer 3 matrix cs:
@@ -1146,15 +1179,32 @@ int main() {
                                        matrixL3insum);
 
     printf("conv layer 3 ics convolutions: %d \n", counter);
+    ocl_phase2.print_kernel_execution_times();
 
-    //printf("layer3insum:\n");
+    /*printf("layer3insum:\n");
     for (int i = 0; i < layer3h; i++) {
         for (int j = 0; j < layer3w; j++) {
-            //printf("%f ",matrixL3insum[i * layer3w + j]);
+            printf("%f ",matrixL3insum[i * layer3w + j]);
+            matrixL3insum[i * layer3w + j] = 0;
         }
-        //printf("\n");
-    }
+        printf("\n");
+    }*/
 
+    ocl_phase2.convolution_double_write(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
+                                        matrixL2sum,
+                                        matrixW23sum);
+        ocl_phase2.convolution_double(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0);
+    ocl_phase2.convolution_double_read(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
+                                       matrixL3insum);
+
+    /*
+    printf("layer3insum - compact:\n");
+    for (int i = 0; i < layer3h; i++) {
+        for (int j = 0; j < layer3w; j++) {
+            printf("%f ",matrixL3insum[i * layer3w + j]);
+        }
+        printf("\n");
+    }*/
 
     //layer3 convolution - working <3
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
@@ -1172,6 +1222,7 @@ int main() {
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                        matrixL3double);
     printf("conv layer 2-3 convolutions: %d \n",counter);
+    ocl_phase2.print_kernel_execution_times();
 
     ocl_phase2.output_sum_write(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
                                 matrixL3double);
@@ -1277,6 +1328,7 @@ int main() {
                                        matrixL5insum);
 
     printf("conv layer 5 ics convolutions: %d \n",counter);
+    ocl_phase2.print_kernel_execution_times();
 
     //layer 5 convolution ocl
     ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
@@ -1293,6 +1345,7 @@ int main() {
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                        matrixL5double);
     printf("conv layer 4-5 convolutions: %d \n",counter);
+    ocl_phase2.print_kernel_execution_times();
 
     //layer 5 output cs
     ocl_phase2.output_sum_write(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
@@ -1539,6 +1592,7 @@ int main() {
 
     free(matrixW01sum);
     free(matrixW23sum);
+    free(matrixW23csum);
     free(matrixW45sum);
 
     free(matrixB01double);
