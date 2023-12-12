@@ -169,7 +169,7 @@ public:
         return (unsigned)status;
     }
 
-    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr)
+    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr, double* optr)
     {
         iBuffer = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -184,9 +184,9 @@ public:
                                   NULL);
 
         oBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE,
+                                  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                   od * ow * oh * sizeof(double),
-                                  NULL,
+                                  optr,
                                   NULL);
     }
 
@@ -374,7 +374,7 @@ public:
         return (unsigned)status;
     }
 
-    unsigned cs_compare_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* optr)
+    unsigned cs_compare_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* optr, double* csptr)
     {
         icsBuffer = clCreateBuffer(_ocl_base->context,
                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -390,15 +390,15 @@ public:
                                    NULL);
 
         cscBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE,
+                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                    5 * sizeof(double),
-                                   NULL,
+                                   csptr,
                                    NULL);
     }
 
     double cs_compare_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
     {
-        csc = (double*)malloc(5 * sizeof(double));
+        for (int i = 0; i < 5; i++) { csc[i] = 0; }
 
         //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
@@ -427,9 +427,6 @@ public:
             printf("%f ", csc[i]);
         }
         printf("\n");
-
-        free(csc);
-
     }
 
     void print_kernel_execution_times()
@@ -514,9 +511,31 @@ static void createVectors()
             matrixL0double[i * layer0w + j] = 0;
         }
     }
+    for (int i = 0; i < (layer1d * layer1h * layer1w); i++) {
+        matrixL1double[i] = 0;
+    }
+    for (int i = 0; i < (layer3d * layer3h * layer3w); i++) {
+        matrixL3double[i] = 0;
+    }
+    for (int i = 0; i < (layer5d * layer5h * layer5w); i++) {
+        matrixL5double[i] = 0;
+    }
+    for (int i = 0; i < (layer1h * layer1w); i++) {
+        matrixL1insum[i] = 0;
+    }
+    for (int i = 0; i < (layer3h * layer3w); i++) {
+        matrixL3insum[i] = 0;
+    }
+    for (int i = 0; i < (layer5h * layer5w); i++) {
+        matrixL5insum[i] = 0;
+    }
 
     ics = (double*)malloc(sizeof(double));
     ocs = (double*)malloc(sizeof(double));
+    csc = (double*)malloc(5 * sizeof(double));
+    for (int i = 0; i < (5); i++) {
+        csc[i] = 0;
+    }
 }
 
 static void copyModel(LeNet5 *lenet) {
@@ -685,7 +704,8 @@ static void forward_ocl(LeNet5 *lenet, double* inptr, double* weightptr, double*
 {
     ocl_phase2.convolution_double_write(inw, inh, ind, wmw, wmh, outw, outh, outd, 0, 0,
                                         inptr,
-                                        weightptr);
+                                        weightptr,
+                                        outptr);
     for (int x = 0; x < (ind); ++x) {
         for (int y = 0; y < outd; ++y) {
             ocl_phase2.convolution_double(inw, inh, ind, w01w, w01h, outw, outh, outd, x, y);
@@ -987,14 +1007,15 @@ int main() {
     int counter = 0;
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
                                         matrixL0double,
-                                        matrixW01sum);
+                                        matrixW01sum,
+                                        matrixL1insum);
     ocl_phase2.convolution_double(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0);
     counter++;
     ocl_phase2.convolution_double_read(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0,
                                        matrixL1insum);
     printf("conv layer 1 ics convolutions: %d \n", counter);
 
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     //ocl_phase2.print_kernel_execution_times();
 
@@ -1009,7 +1030,8 @@ int main() {
     //layer 1 convolution ocl
     ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL0double,
-                                        matrixW01double);
+                                        matrixW01double,
+                                        matrixL1double);
 
     //convolution
     counter = 0;
@@ -1023,7 +1045,7 @@ int main() {
                                        matrixL1double);
 
     printf("conv layer 0-1 convolutions: %d \n", counter);
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     ocl_phase2.output_sum_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
                                matrixL1double);
@@ -1045,23 +1067,24 @@ int main() {
     }
     //printf("\n");
     //printf("\n");
-    ocl_phase2.cs_compare_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, matrixL1insum, matrixL1outsum);
+    for (int i = 0; i < 5; i++) { csc[i] = 0; }
+    ocl_phase2.cs_compare_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, matrixL1insum, matrixL1outsum, csc);
     ocl_phase2.cs_compare(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
     ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
 
-    /* //compare in c++
-    double check = 0;
+    //compare in c++
+    /*double check = 0;
     for (int i = 0; i < layer1h; i++) {
         for (int j = 0; j < layer1w; j++) {
             check = 0;
             for (int k = 0; k < layer1d; k++) {
                 check += matrixL1double[(k * layer1w * layer1h) + (i * layer1w) + j];
             }
-            //printf("s: %f , c: %f ",matrixL1sum[i * layer1w + j], check);
+            printf("c: %f ", check);
         }
-        //printf("\n");
+        printf("\n");
     }
-    //printf("\n");*/
+    printf("\n");*/
 
     //ocs
     ocs[0] = 0;
@@ -1170,7 +1193,8 @@ int main() {
     counter=0;
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
                                         matrixL2double,
-                                        matrixW23sum);
+                                        matrixW23sum,
+                                        matrixL3insum);
     for (int x = 0; x < (layer2d); ++x) {
         ocl_phase2.convolution_double(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, x, 0);
         counter++;
@@ -1179,7 +1203,7 @@ int main() {
                                        matrixL3insum);
 
     printf("conv layer 3 ics convolutions: %d \n", counter);
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     /*printf("layer3insum:\n");
     for (int i = 0; i < layer3h; i++) {
@@ -1192,7 +1216,8 @@ int main() {
 
     ocl_phase2.convolution_double_write(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
                                         matrixL2sum,
-                                        matrixW23sum);
+                                        matrixW23sum,
+                                        matrixL3insum);
         ocl_phase2.convolution_double(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0);
     ocl_phase2.convolution_double_read(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
                                        matrixL3insum);
@@ -1209,7 +1234,8 @@ int main() {
     //layer3 convolution - working <3
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
-                                        matrixW23double);
+                                        matrixW23double,
+                                        matrixL3double);
 
     counter=0;
     for (int x = 0; x < (layer2d); ++x) {
@@ -1222,7 +1248,7 @@ int main() {
     ocl_phase2.convolution_double_read(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                        matrixL3double);
     printf("conv layer 2-3 convolutions: %d \n",counter);
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     ocl_phase2.output_sum_write(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
                                 matrixL3double);
@@ -1238,7 +1264,8 @@ int main() {
         //printf("\n");
     }
 
-    ocl_phase2.cs_compare_write(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, matrixL3insum, matrixL3outsum);
+    for (int i = 0; i < 5; i++) { csc[i] = 0; }
+    ocl_phase2.cs_compare_write(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, matrixL3insum, matrixL3outsum, csc);
     ocl_phase2.cs_compare(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
     ocl_phase2.cs_compare_read(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, csc);
 
@@ -1318,7 +1345,8 @@ int main() {
     //layer 5 matrix cs:
     ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
                                         matrixL4double,
-                                        matrixW45sum);
+                                        matrixW45sum,
+                                        matrixL5insum);
     counter =0;
     for (int x = 0; x < (layer4d); ++x) {
         ocl_phase2.convolution_double(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, x, 0);
@@ -1328,12 +1356,13 @@ int main() {
                                        matrixL5insum);
 
     printf("conv layer 5 ics convolutions: %d \n",counter);
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     //layer 5 convolution ocl
     ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                         matrixL4double,
-                                        matrixW45double);
+                                        matrixW45double,
+                                        matrixL5double);
 
     counter = 0;
     for (int x = 0; x < (layer4d); ++x) {
@@ -1345,17 +1374,18 @@ int main() {
     ocl_phase2.convolution_double_read(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
                                        matrixL5double);
     printf("conv layer 4-5 convolutions: %d \n",counter);
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     //layer 5 output cs
+
     ocl_phase2.output_sum_write(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
                                 matrixL5double);
     ocl_phase2.output_sum(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0);
     ocl_phase2.output_sum_read(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
                                matrixL5outsum);
 
-
-    ocl_phase2.cs_compare_write(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0, matrixL5insum, matrixL5outsum);
+    for (int i = 0; i < 5; i++) { csc[i] = 0; }
+    ocl_phase2.cs_compare_write(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0, matrixL5insum, matrixL5outsum, csc);
     ocl_phase2.cs_compare(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0);
     ocl_phase2.cs_compare_read(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0, csc);
 
@@ -1561,7 +1591,7 @@ int main() {
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
 
-    ocl_phase2.print_kernel_execution_times();
+    //ocl_phase2.print_kernel_execution_times();
 
     free(matrixL0double);
     free(matrixL1double);
@@ -1604,6 +1634,7 @@ int main() {
 
     free(ics);
     free(ocs);
+    free(csc);
 
     printPlatformInfo(false);
     return 0;

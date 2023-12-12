@@ -63,7 +63,7 @@ __kernel void cs_compare(__global double* inputCs, __global double* outputCs, __
     //}
 
     //change this to a very low value and some results will start failing
-    if (diff > 0.0001) {
+    if (diff > 0.0000001) {
         result[wgNum] = diff + 1;
         //result[(row * width) + col] = diff +1;
     }
