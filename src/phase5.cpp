@@ -398,8 +398,6 @@ public:
 
     double cs_compare_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
     {
-        for (int i = 0; i < 5; i++) { csc[i] = 0; }
-
         //Reading result from GPU memory to main memory
         cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
                                      cscBuffer,
@@ -481,7 +479,7 @@ static void createVectors()
     matrixW23double = (double*)malloc((layer2d) * (layer3d) * (w23w * w23h) * sizeof(double));
     matrixW34double = (double*)malloc((layer3d) * (layer4d) * (w34w * w34h) * sizeof(double));
     matrixW45double = (double*)malloc((layer4d) * (layer5d) * (w45w * w45h) * sizeof(double));
-    matrixW56double = (double*)malloc((layer5d) * (OUTPUT) * (layer5w * layer5h) * sizeof(double));
+    matrixW56double = (double*)malloc((layer5d * layer5w * layer5h) * (OUTPUT) * sizeof(double));
 
     matrixL0sum = (double*)malloc((layer0w * layer0h) * sizeof(double));
     matrixL1insum = (double*)malloc((layer1w * layer1h) * sizeof(double));
@@ -615,6 +613,32 @@ static void copyModel(LeNet5 *lenet) {
             }
         }
     }
+
+    //matrixW56double
+    for (int x0 = 0; x0 < (layer5d * layer5h * layer5w); ++x0)
+        for (int x1 = 0; x1 < OUTPUT; ++x1)
+            matrixW56double[(x0 * OUTPUT) + (x1)] = lenet->weight5_6[x0][x1];
+
+    //matrixB01double
+    for (int x0 = 0; x0 < layer1d; ++x0) {
+        matrixB01double[x0] = lenet->bias0_1[x0];
+    }
+
+    //matrixB23double
+    for (int x0 = 0; x0 < layer3d; ++x0) {
+        matrixB23double[x0] = lenet->bias2_3[x0];
+    }
+
+    //matrixB45double
+    for (int x0 = 0; x0 < layer5d; ++x0) {
+        matrixB45double[x0] = lenet->bias4_5[x0];
+    }
+
+    //matrixB56double
+    for (int x0 = 0; x0 < OUTPUT; ++x0) {
+        matrixB56double[x0] = lenet->bias5_6[x0];
+    }
+
 }
 
 #define GETLENGTH(array) (sizeof(array)/sizeof(*(array)))
@@ -1104,8 +1128,8 @@ int main() {
     for (int i = 0; i < layer1d; ++i) {
         for (int j = 0; j < layer1h; ++j) {
             for (int k = 0; k < layer1w; ++k) {
-                if (matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] + lenet->bias0_1[i] > 0) {
-                    matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] += lenet->bias0_1[i];
+                if (matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] + matrixB01double[i] > 0) {
+                    matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] += matrixB01double[i];
                 } else {
                     matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] = 0;
                 }
@@ -1306,8 +1330,8 @@ int main() {
     for (int i = 0; i < layer3d; ++i) {
         for (int j = 0; j < layer3h; ++j) {
             for (int k = 0; k < layer3w; ++k) {
-                if (matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] + lenet->bias2_3[i] > 0) {
-                    matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] += lenet->bias2_3[i];
+                if (matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] + matrixB23double[i] > 0) {
+                    matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] += matrixB23double[i];
                 } else {
                     matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] = 0;
                 }
@@ -1423,8 +1447,8 @@ int main() {
     for (int i = 0; i < layer5d; ++i) {
         for (int j = 0; j < layer5h; ++j) {
             for (int k = 0; k < layer5w; ++k) {
-                if (matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] + lenet->bias4_5[i] > 0) {
-                    matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] += lenet->bias4_5[i];
+                if (matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] + matrixB45double[i] > 0) {
+                    matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] += matrixB45double[i];
                 } else {
                     matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] = 0;
                 }
@@ -1444,8 +1468,8 @@ int main() {
     }
 
     for (int j = 0; j < (sizeof(lenet->bias5_6) / sizeof(*(lenet->bias5_6))); ++j) {
-        if (matrixL6double[j] + lenet->bias4_5[j] > 0) {
-            matrixL6double[j] += lenet->bias4_5[j];
+        if (matrixL6double[j] + lenet->bias5_6[j] > 0) {
+            matrixL6double[j] += lenet->bias5_6[j];
         } else {
             matrixL6double[j] = 0;
         }
