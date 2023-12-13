@@ -3,6 +3,7 @@ output-img/*.png
 output-img/*.txt
 .vscode
 .idea
+.cache
 
 cmake-build-debug/
 
