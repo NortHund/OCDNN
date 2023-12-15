@@ -1,10 +1,10 @@
 Phase 5:
--Add cl_mem freeing to the program
--calculate accuracy when running the prediction multiple times
--bug breaks the accuracy of opencl implementation when running prediction multiple times, but not when running any index once
-    likely related to not zeroing buffers between runs
+-Add cl_mem freeing to the program -done
+-calculate accuracy when running the prediction multiple times -loop done
+-bug breaks the accuracy of opencl implementation when running prediction multiple times, but not when running any index once -fixed by zeroing the vectors before prediction
+    likely related to not zeroing buffers between runs - probably was
 -Study and fix the bug related to getting false results from predictions, likely related to layer 6 and result code, maybe biases 5_6
     *Fixed, it was due to W56 going out of bounds
 -accelerate everything with opencl
 -maybe move each layer to its own function to clean up forward_ocl()
--come up with a good way to create or write to buffers in ocl to increase performance
+-come up with a good way to create or write to buffers in ocl to increase performance - current performance is horrible

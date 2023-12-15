@@ -50,15 +50,12 @@ double* matrixL4double;
 double* matrixL5double;
 double* matrixL6double;
 
-double* matrixL0sum;
 double* matrixL1insum;
 double* matrixL1outsum;
 
-double* matrixL2sum;
 double* matrixL3insum;
 double* matrixL3outsum;
 
-double* matrixL4sum;
 double* matrixL5insum;
 double* matrixL5outsum;
 
@@ -71,7 +68,6 @@ double* matrixW56double;
 
 double* matrixW01sum;
 double* matrixW23sum;
-double* matrixW23csum;
 double* matrixW45sum;
 
 double* matrixB01double;
@@ -84,6 +80,9 @@ double* matrixB56double;
 double *ics;
 double* ocs;
 double* csc;
+
+int abft_err = 0;
+int abft_err_ind = 0;
 
 // Get kernel execution time in microseconds
 unsigned long get_kernel_execution_time(cl_event &event, cl_command_queue &command_queue)
@@ -205,6 +204,10 @@ public:
 
         kernel_execution_times[1] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
+        clReleaseMemObject(iBuffer);
+        clReleaseMemObject(wBuffer);
+        clReleaseMemObject(oBuffer);
+
     }
 
     unsigned input_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -272,6 +275,8 @@ public:
 
         kernel_execution_times[3] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
+        clReleaseMemObject(iBuffer);
+        clReleaseMemObject(icsBuffer);
     }
 
     unsigned output_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -339,6 +344,8 @@ public:
 
         kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
+        clReleaseMemObject(oBuffer);
+        clReleaseMemObject(ocsBuffer);
     }
 
     unsigned cs_compare(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -425,6 +432,10 @@ public:
             printf("%f ", csc[i]);
         }
         printf("\n");*/
+
+        clReleaseMemObject(icsBuffer);
+        clReleaseMemObject(ocsBuffer);
+        clReleaseMemObject(cscBuffer);
     }
 
     void print_kernel_execution_times()
@@ -481,18 +492,14 @@ static void createVectors()
     matrixW45double = (double*)malloc((layer4d) * (layer5d) * (w45w * w45h) * sizeof(double));
     matrixW56double = (double*)malloc((layer5d * layer5w * layer5h) * (OUTPUT) * sizeof(double));
 
-    matrixL0sum = (double*)malloc((layer0w * layer0h) * sizeof(double));
     matrixL1insum = (double*)malloc((layer1w * layer1h) * sizeof(double));
     matrixL1outsum = (double*)malloc((layer1w * layer1h) * sizeof(double));
     matrixW01sum = (double*)malloc((layer0d) * (w01w * w01h) * sizeof(double));
 
-    matrixL2sum = (double*)malloc((layer2w * layer2h) * sizeof(double));
     matrixL3insum = (double*)malloc((layer3w * layer3h) * sizeof(double));
     matrixL3outsum = (double*)malloc((layer3w * layer3h) * sizeof(double));
     matrixW23sum = (double*)malloc((layer2d) * (w23w * w23h) * sizeof(double));
-    matrixW23csum = (double*)malloc((w23w * w23h) * sizeof(double));
 
-    matrixL4sum = (double*)malloc((layer4w * layer4h) * sizeof(double));
     matrixL5insum = (double*)malloc((layer5w * layer5h) * sizeof(double));
     matrixL5outsum = (double*)malloc((layer5w * layer5h) * sizeof(double));
     matrixW45sum = (double*)malloc((layer4d) * (w45w * w45h) * sizeof(double));
@@ -577,21 +584,6 @@ static void copyModel(LeNet5 *lenet) {
             }
         }
     }
-
-    /*
-    //matrixW23csum
-    for (int x2 = 0; x2 < w23h; ++x2) {
-        for (int x3 = 0; x3 < w23h; ++x3) {
-            matrixW23csum[(x2 * w23w) + x3] = 0;
-            for (int x0 = 0; x0 < layer2d; ++x0) {
-                for (int x1 = 0; x1 < layer3d; ++x1) {
-                    matrixW23csum[(x2 * w01w) + x3] += matrixW23double[
-                            (x0 * layer3d * w23h * w23h) + (x1 * w23h * w23w) + (x2 * w23w) + x3];
-                }
-            }
-        }
-    }*/
-
 
     //matrixW45double
     for (int x0 = 0; x0 < layer4d; ++x0)
@@ -724,6 +716,53 @@ static void forward(LeNet5 *lenet, Feature *features, double(*action)(double))
     DOT_PRODUCT_FORWARD(features->layer5, features->output, lenet->weight5_6, lenet->bias5_6, action);
 }
 
+static void zero_vectors()
+{
+    for (int i = 0; i < (layer0h * layer0w * layer0d); i++) {
+        matrixL0double[i] = 0;
+    }
+    for (int i = 0; i < (layer1d * layer1h * layer1w); i++) {
+        matrixL1double[i] = 0;
+    }
+    for (int i = 0; i < (layer2d * layer2h * layer2w); i++) {
+        matrixL2double[i] = 0;
+    }
+    for (int i = 0; i < (layer3d * layer3h * layer3w); i++) {
+        matrixL3double[i] = 0;
+    }
+    for (int i = 0; i < (layer4d * layer4h * layer4w); i++) {
+        matrixL4double[i] = 0;
+    }
+    for (int i = 0; i < (layer5d * layer5h * layer5w); i++) {
+        matrixL5double[i] = 0;
+    }
+    for (int i = 0; i < (OUTPUT); i++) {
+        matrixL6double[i] = 0;
+    }
+    for (int i = 0; i < (layer1h * layer1w); i++) {
+        matrixL1insum[i] = 0;
+    }
+    for (int i = 0; i < (layer1h * layer1w); i++) {
+        matrixL1outsum[i] = 0;
+    }
+    for (int i = 0; i < (layer3h * layer3w); i++) {
+        matrixL3insum[i] = 0;
+    }
+    for (int i = 0; i < (layer3h * layer3w); i++) {
+        matrixL3outsum[i] = 0;
+    }
+    for (int i = 0; i < (layer5h * layer5w); i++) {
+        matrixL5insum[i] = 0;
+    }
+    for (int i = 0; i < (layer5h * layer5w); i++) {
+        matrixL5outsum[i] = 0;
+    }
+    for (int i = 0; i < (5); i++) {
+        csc[i] = 0;
+    }
+
+}
+
 static void forward_ocl()
 {
     int abftflag = 0;
@@ -823,15 +862,6 @@ static void forward_ocl()
 
     //printf("conv layer 3 ics convolutions: %d \n", counter);
 
-    ocl_phase2.convolution_double_write(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
-                                        matrixL2sum,
-                                        matrixW23sum,
-                                        matrixL3insum);
-    ocl_phase2.convolution_double(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0);
-    ocl_phase2.convolution_double_read(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
-                                       matrixL3insum);
-
-
     //layer3 convolution
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, 0, 0,
                                         matrixL2double,
@@ -862,6 +892,7 @@ static void forward_ocl()
 
     if (csc[0] != 0) {
         abftflag = 1;
+        printf("layer3");
     }
 
     //Relu
@@ -1003,7 +1034,8 @@ static void forward_ocl()
         printf("%f ",matrixL6double[i]);
     }
     printf("\n");*/
-    printf("abft flag: %d\n", abftflag);
+    //printf("abft flag: %d\n", abftflag);
+    abft_err = abftflag;
 
 }
 
@@ -1117,6 +1149,7 @@ uint8 Predict(LeNet5 *lenet, image input, uint8 count)
 
 uint8 Predict_ocl(image input, uint8 count)
 {
+    zero_vectors();
     load_input_ocl(input);
     forward_ocl();
 
@@ -1129,6 +1162,10 @@ uint8 Predict_ocl(image input, uint8 count)
             maxvalue = matrixL6double[i];
             result = i;
         }
+    }
+    if (abft_err != 0) {
+        printf("abft flag raised\n");
+        abft_err = 0;
     }
     //printf("result: %d\n",result);
     return result;
@@ -1172,10 +1209,10 @@ int testing(LeNet5 *lenet, image *test_data, uint8 *test_label,int total_size)
     {
         uint8 l = test_label[i];
         int p = Predict(lenet, test_data[i], 10);
-        printf("prediction: %d \n", p);
+        //printf("prediction c++: %d \n", p);
         right += l == p;
-        if (i * 100 / total_size > percent)
-            printf("test:%2d%%\n", percent = i * 100 / total_size);
+        /*if (i * 100 / total_size > percent)
+            printf("test:%2d%%\n", percent = i * 100 / total_size);*/
     }
     return right;
 }
@@ -1187,9 +1224,10 @@ int testing_ocl(image *test_data, uint8 *test_label, int total_size)
     {
         uint8 l = test_label[i];
         int p = Predict_ocl(test_data[i], 10);
+        //printf("prediction ocl: %d \n", p);
         right += l == p;
-        if (i * 100 / total_size > percent)
-            printf("test:%2d%%\n", percent = i * 100 / total_size);
+        /*if (i * 100 / total_size > percent)
+            printf("test:%2d%%\n", percent = i * 100 / total_size);*/
     }
     return right;
 }
@@ -1225,7 +1263,7 @@ int main() {
     image *test_data = (image *) calloc(COUNT_TEST, sizeof(image));
     uint8 *test_label = (uint8 *) calloc(COUNT_TEST, sizeof(uint8));
     if (read_data(test_data, test_label, COUNT_TEST, FILE_TEST_IMAGE, FILE_TEST_LABEL)) {
-        printf("ERROR!!!\nDataset File Not Found! Please Copy Dataset to the Folder Including the exe\n");
+        printf("ERROR!\nDataset File Not Found! Please Copy Dataset to the Folder Including the exe\n");
         free(test_data);
         free(test_label);
         system("pause");
@@ -1240,17 +1278,15 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    //int right = testing(lenet, test_data, test_label, 1);
+    //int right = testing(lenet, test_data, test_label, 100);
     //printf("right: %d \n", right);
 
-    //int right_ocl = testing_ocl(test_data, test_label, 1);
-    //printf("right ocl: %d \n", right_ocl);
+    int right_ocl = testing_ocl(test_data, test_label, 100);
+    printf("ocl accuracy: %d / 100 \n", right_ocl);
 
-    int right = 0;
-    int p = Predict(lenet, test_data[120], 10);
-    int oclp = Predict_ocl(test_data[120], 10);
-
-    printf("c: %d, ocl: %d \n",p, oclp);
+    // p = Predict(lenet, test_data[120], 10);
+    //int oclp = Predict_ocl(test_data[120], 10);
+    //printf("c: %d, ocl: %d \n",p, oclp);
 
     //printf("%d/%d\n", right, COUNT_TEST);
     free(lenet);
@@ -1270,15 +1306,12 @@ int main() {
     free(matrixL5double);
     free(matrixL6double);
 
-    free(matrixL0sum);
     free(matrixL1insum);
     free(matrixL1outsum);
 
-    free(matrixL2sum);
     free(matrixL3insum);
     free(matrixL3outsum);
 
-    free(matrixL4sum);
     free(matrixL5insum);
     free(matrixL5outsum);
 
@@ -1291,7 +1324,6 @@ int main() {
 
     free(matrixW01sum);
     free(matrixW23sum);
-    free(matrixW23csum);
     free(matrixW45sum);
 
     free(matrixB01double);
