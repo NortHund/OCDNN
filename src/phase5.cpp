@@ -1146,13 +1146,13 @@ uint8 Predict(LeNet5 *lenet, image input, uint8 count)
     forward(lenet, &features, relu);
 
     //print L6 floats here
-    printf("layer6 c++:\n");
+    /*printf("layer6 c++:\n");
     for (uint8 i = 0; i < OUTPUT; ++i) {
         printf("%f ", features.output[i]);
     }
     printf("\n");
 
-    printf("c++ result: %d \n", get_result(&features, count));
+    printf("c++ result: %d \n", get_result(&features, count));*/
 
     return get_result(&features, count);
 }
@@ -1164,11 +1164,11 @@ uint8 Predict_ocl(image input, uint8 count)
     forward_ocl();
 
     //print L6 floats here
-    printf("layer6:\n");
+    /*printf("layer6:\n");
     for (uint8 i = 0; i < OUTPUT; ++i) {
         printf("%f ", matrixL6double[i]);
     }
-    printf("\n");
+    printf("\n");*/
 
     //getting result from the output matrix/vector
     const int outlen = OUTPUT;
@@ -1180,11 +1180,13 @@ uint8 Predict_ocl(image input, uint8 count)
             result = i;
         }
     }
+
     if (abft_err != 0) {
         printf("abft flag raised\n");
         abft_err = 0;
     }
-    printf("ocl prediction: %d\n",result);
+
+    //printf("ocl prediction: %d\n",result);
     return result;
 }
 
@@ -1295,13 +1297,11 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    int right = testing(lenet, test_data, test_label, 1000);
-    printf("right: %d / 100 \n", right);
+    //int right = testing(lenet, test_data, test_label, 100);
+    //printf("right: %d / 100 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 1000);
-
-    printf("right: %d / 1000 \n", right);
-    printf("ocl accuracy: %d / 1000 \n", right_ocl);
+    int right_ocl = testing_ocl(test_data, test_label, 100);
+    printf("ocl accuracy: %d / 100 \n", right_ocl);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
