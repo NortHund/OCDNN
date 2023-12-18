@@ -1239,12 +1239,19 @@ int testing(LeNet5 *lenet, image *test_data, uint8 *test_label,int total_size)
 int testing_ocl(image *test_data, uint8 *test_label, int total_size)
 {
     int right = 0, percent = 0;
+    int acctemp = 0;
     for (int i = 0; i < total_size; ++i)
     {
         uint8 l = test_label[i];
         int p = Predict_ocl(test_data[i], 10);
         //printf("prediction ocl: %d \n", p);
         right += l == p;
+        acctemp += l == p;
+        if (i % 100 == 0) {
+            printf("accuracy: %d / 100\n", acctemp);
+            printf("Total accuracy: %d / %d \n", right, i);
+            acctemp = 0;
+        }
         /*if (i * 100 / total_size > percent)
             printf("test:%2d%%\n", percent = i * 100 / total_size);*/
     }
@@ -1300,8 +1307,8 @@ int main() {
     //int right = testing(lenet, test_data, test_label, 100);
     //printf("right: %d / 100 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 100);
-    printf("ocl accuracy: %d / 100 \n", right_ocl);
+    int right_ocl = testing_ocl(test_data, test_label, COUNT_TEST);
+    printf("ocl accuracy: %d / %d \n", right_ocl, COUNT_TEST);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
