@@ -15,7 +15,7 @@ __kernel void relu(__global double* input, __global double* output, __global dou
 
 }
 
-__kernel void maxpool(__global double* input, __global double* output, int depth, int ih, int iw) {
+__kernel void maxpool(__global double* input, __global double* output, int depth, int ih, int iw, int k_s, int st) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
@@ -25,9 +25,9 @@ __kernel void maxpool(__global double* input, __global double* output, int depth
     double val = 0;
 
 
-    for (int i = 0; i < 2; ++i) {
-        for (int j = 0; j < 2; ++j) {
-            val = input[(depth * ih * iw) + ((row * 2) * iw) + ((col* 2)) + j];
+    for (int i = 0; i < k_s; ++i) {
+        for (int j = 0; j < k_s; ++j) {
+            val = input[(depth * ih * iw) + ((row * st) * iw) + ((col * st)) + j];
             if (val > max) {
                 max = val;
             }

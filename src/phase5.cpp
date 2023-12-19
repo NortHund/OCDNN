@@ -518,7 +518,7 @@ public:
         clReleaseMemObject(biasBuffer);
     }
 
-    unsigned maxpool(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned maxpool(int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
 
@@ -528,6 +528,8 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(5), 2, sizeof(int), &olm);
         status = clSetKernelArg(_ocl_base->GetKernel(5), 3, sizeof(int), &ih);
         status = clSetKernelArg(_ocl_base->GetKernel(5), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 5, sizeof(int), &kernel_size);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 6, sizeof(int), &stride);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -545,7 +547,7 @@ public:
                                         &_event);
         if (status != CL_SUCCESS) {
             std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            std::cerr << "At d: " << olm  << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -971,7 +973,7 @@ static void forward_ocl()
     //ocs
     ocs[0] = 0;
 
-    //relu
+    //layer1 relu
     ocl_phase2.relu_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
                                         matrixL1double,
                                         matrixB01double);
@@ -985,7 +987,7 @@ static void forward_ocl()
     ocl_phase2.maxpool_write(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0,
                           matrixL1double);
     for (int y = 0; y < layer2d; ++y) {
-        ocl_phase2.maxpool(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, y);
+        ocl_phase2.maxpool(layer1w, layer1h, layer1d, 2, 2, layer2w, layer2h, layer2d, 0, y);
     }
     ocl_phase2.maxpool_read(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0,
                          matrixL2double);
@@ -1093,6 +1095,7 @@ static void forward_ocl()
     }
 
     //Relu
+    /*
     for (int i = 0; i < layer3d; ++i) {
         for (int j = 0; j < layer3h; ++j) {
             for (int k = 0; k < layer3w; ++k) {
@@ -1103,7 +1106,17 @@ static void forward_ocl()
                 }
             }
         }
+    }*/
+
+    //layer3 relu
+    ocl_phase2.relu_write(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0,
+                          matrixL3double,
+                          matrixB23double);
+    for (int y = 0; y < layer3d; ++y) {
+        ocl_phase2.relu(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, y);
     }
+    ocl_phase2.relu_read(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0,
+                         matrixL3double);
 
     // layer 4 subsampling
     const int len3 = (layer3h / layer4h);
@@ -1175,7 +1188,7 @@ static void forward_ocl()
     }
 
     //Relu
-    for (int i = 0; i < layer5d; ++i) {
+    /*for (int i = 0; i < layer5d; ++i) {
         for (int j = 0; j < layer5h; ++j) {
             for (int k = 0; k < layer5w; ++k) {
                 if (matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] + matrixB45double[i] > 0) {
@@ -1185,7 +1198,17 @@ static void forward_ocl()
                 }
             }
         }
+    }*/
+
+    //layer5 relu
+    ocl_phase2.relu_write(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
+                          matrixL5double,
+                          matrixB45double);
+    for (int y = 0; y < layer5d; ++y) {
+        ocl_phase2.relu(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, y);
     }
+    ocl_phase2.relu_read(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
+                         matrixL5double);
 
     /*for (int i = 0; i < layer5d; ++i) {
         for (int j = 0; j < layer5h; ++j) {
