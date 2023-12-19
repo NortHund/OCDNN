@@ -992,60 +992,6 @@ static void forward_ocl()
     ocl_phase2.maxpool_read(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0,
                          matrixL2double);
 
-    /*printf("Layer 2 ocl: \n");
-    for (int i = 0; i < (1); ++i) {
-        for (int j = 0; j < (layer2h); ++j) {
-            for (int k = 0; k < (layer2w); ++k) {
-                printf("%f ", matrixL2double[(i * layer2h * layer2w) + (j * layer2w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
-
-    /*for (int i = 0; i < (layer2d); ++i) {
-        for (int j = 0; j < (layer2h); ++j) {
-            for (int k = 0; k < (layer2w); ++k) {
-                matrixL2double[(i * layer2h * layer2w) + (j * layer2w) + k] = 0;
-            }
-        }
-    }*/
-
-    //layer 2 subsampling
-    //const int len0 = (layer1h / layer2h);
-    //const int len1 = (layer1w / layer2w);
-
-    //printf("layer1w: %d \n", layer1w);
-    //printf("llayer2w: %d \n", layer2w);
-    /*for (int i = 0; i < (layer2d); ++i)
-        for (int o0 = 0; o0 < (layer2h); ++o0)
-            for (int o1 = 0; o1 < (layer2w); ++o1) {
-                int x0 = 0, x1 = 0, ismax = 0;
-                //printf("ismax: %d \n", ismax); ismax value depends on previous runs?
-                for (int l0 = 0; l0 < len0; ++l0)
-                    for (int l1 = 0; l1 < len1; ++l1) {
-                        ismax = matrixL1double[((i) * layer1h * layer1w) + ((o0 * len0 + l0) * layer1w) +
-                                               (o1 * len1 + l1)]
-                                > matrixL1double[((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) +
-                                                 (o1 * len1 + x1)];
-                        x0 += ismax * (l0 - x0);
-                        x1 += ismax * (l1 - x1);
-                    }
-                matrixL2double[(i * layer2h * layer2w) + (o0 * layer2w) + o1] = matrixL1double[
-                        ((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) + (o1 * len1 + x1)];
-            }*/
-
-    /*printf("Layer 2 ref: \n");
-    for (int i = 0; i < (1); ++i) {
-        for (int j = 0; j < (layer2h); ++j) {
-            for (int k = 0; k < (layer2w); ++k) {
-                printf("%f ", matrixL2double[(i * layer2h * layer2w) + (j * layer2w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
-
     //layer 3 matrix cs:
     counter=0;
     ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
@@ -1094,20 +1040,6 @@ static void forward_ocl()
         printf("layer3");
     }
 
-    //Relu
-    /*
-    for (int i = 0; i < layer3d; ++i) {
-        for (int j = 0; j < layer3h; ++j) {
-            for (int k = 0; k < layer3w; ++k) {
-                if (matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] + matrixB23double[i] > 0) {
-                    matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] += matrixB23double[i];
-                } else {
-                    matrixL3double[(i * layer3h * layer3w) + (j * layer3w) + k] = 0;
-                }
-            }
-        }
-    }*/
-
     //layer3 relu
     ocl_phase2.relu_write(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0,
                           matrixL3double,
@@ -1118,46 +1050,6 @@ static void forward_ocl()
     ocl_phase2.relu_read(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0,
                          matrixL3double);
 
-    // layer 4 subsampling
-    const int len3 = (layer3h / layer4h);
-    const int len4 = (layer3w / layer4w);
-    //printf("len3: %d \n", len3);
-    //printf("len4: %d \n", len4);
-    for (int i = 0; i < (layer4d); ++i)
-        for (int o0 = 0; o0 < (layer4h); ++o0)
-            for (int o1 = 0; o1 < (layer4w); ++o1) {
-                int x0 = 0, x1 = 0, ismax;
-                for (int l0 = 0; l0 < len3; ++l0)
-                    for (int l1 = 0; l1 < len4; ++l1) {
-                        ismax = matrixL3double[((i) * layer3h * layer3w) + ((o0 * len3 + l0) * layer3w) +
-                                               (o1 * len4 + l1)]
-                                > matrixL3double[((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) +
-                                                 (o1 * len4 + x1)];
-                        x0 += ismax * (l0 - x0);
-                        x1 += ismax * (l1 - x1);
-                    }
-                matrixL4double[(i * layer4h * layer4w) + (o0 * layer4w) + o1] = matrixL3double[
-                        ((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) + (o1 * len4 + x1)];
-            }
-
-    /*printf("Layer 4 ref: \n");
-    for (int i = 0; i < (1); ++i) {
-        for (int j = 0; j < (layer4h); ++j) {
-            for (int k = 0; k < (layer4w); ++k) {
-                printf("%f ", matrixL4double[(i * layer4h * layer4w) + (j * layer4w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
-
-    /*for (int i = 0; i < (layer4d); ++i) {
-        for (int j = 0; j < (layer4h); ++j) {
-            for (int k = 0; k < (layer4w); ++k) {
-                matrixL4double[(i * layer4h * layer4w) + (j * layer4w) + k] = 0;
-            }
-        }
-    }*/
 
     //layer4 ocl max pooling
     ocl_phase2.maxpool_write(layer3w, layer3h, layer3d, w01w, w01h, layer4w, layer4h, layer4d, 0, 0,
@@ -1167,17 +1059,6 @@ static void forward_ocl()
     }
     ocl_phase2.maxpool_read(layer3w, layer3h, layer3d, w01w, w01h, layer4w, layer4h, layer4d, 0, 0,
                             matrixL4double);
-
-    /*printf("Layer 4 ocl: \n");
-    for (int i = 0; i < (1); ++i) {
-        for (int j = 0; j < (layer4h); ++j) {
-            for (int k = 0; k < (layer4w); ++k) {
-                printf("%f ", matrixL4double[(i * layer4h * layer4w) + (j * layer4w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
 
     //layer 5 matrix cs:
     ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
@@ -1227,19 +1108,6 @@ static void forward_ocl()
     if (csc[0] != 0) {
         abftflag = 1;
     }
-
-    //Relu
-    /*for (int i = 0; i < layer5d; ++i) {
-        for (int j = 0; j < layer5h; ++j) {
-            for (int k = 0; k < layer5w; ++k) {
-                if (matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] + matrixB45double[i] > 0) {
-                    matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] += matrixB45double[i];
-                } else {
-                    matrixL5double[(i * layer5h * layer5w) + (j * layer5w) + k] = 0;
-                }
-            }
-        }
-    }*/
 
     //layer5 relu
     ocl_phase2.relu_write(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0,
@@ -1565,11 +1433,11 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    int right = testing(lenet, test_data, test_label, 10);
-    printf("c++ right: %d / 10 \n", right);
+    int right = testing(lenet, test_data, test_label, 100);
+    printf("c++ right: %d / 100 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 10);
-    printf("ocl accuracy: %d / %d \n", right_ocl, 10);
+    int right_ocl = testing_ocl(test_data, test_label, 100);
+    printf("ocl accuracy: %d / %d \n", right_ocl, 100);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
