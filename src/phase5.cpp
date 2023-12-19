@@ -1121,6 +1121,8 @@ static void forward_ocl()
     // layer 4 subsampling
     const int len3 = (layer3h / layer4h);
     const int len4 = (layer3w / layer4w);
+    //printf("len3: %d \n", len3);
+    //printf("len4: %d \n", len4);
     for (int i = 0; i < (layer4d); ++i)
         for (int o0 = 0; o0 < (layer4h); ++o0)
             for (int o1 = 0; o1 < (layer4w); ++o1) {
@@ -1137,6 +1139,45 @@ static void forward_ocl()
                 matrixL4double[(i * layer4h * layer4w) + (o0 * layer4w) + o1] = matrixL3double[
                         ((i) * layer3h * layer3w) + ((o0 * len3 + x0) * layer3w) + (o1 * len4 + x1)];
             }
+
+    /*printf("Layer 4 ref: \n");
+    for (int i = 0; i < (1); ++i) {
+        for (int j = 0; j < (layer4h); ++j) {
+            for (int k = 0; k < (layer4w); ++k) {
+                printf("%f ", matrixL4double[(i * layer4h * layer4w) + (j * layer4w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
+
+    /*for (int i = 0; i < (layer4d); ++i) {
+        for (int j = 0; j < (layer4h); ++j) {
+            for (int k = 0; k < (layer4w); ++k) {
+                matrixL4double[(i * layer4h * layer4w) + (j * layer4w) + k] = 0;
+            }
+        }
+    }*/
+
+    //layer4 ocl max pooling
+    ocl_phase2.maxpool_write(layer3w, layer3h, layer3d, w01w, w01h, layer4w, layer4h, layer4d, 0, 0,
+                             matrixL3double);
+    for (int y = 0; y < layer4d; ++y) {
+        ocl_phase2.maxpool(layer3w, layer3h, layer3d, 2, 2, layer4w, layer4h, layer4d, 0, y);
+    }
+    ocl_phase2.maxpool_read(layer3w, layer3h, layer3d, w01w, w01h, layer4w, layer4h, layer4d, 0, 0,
+                            matrixL4double);
+
+    /*printf("Layer 4 ocl: \n");
+    for (int i = 0; i < (1); ++i) {
+        for (int j = 0; j < (layer4h); ++j) {
+            for (int k = 0; k < (layer4w); ++k) {
+                printf("%f ", matrixL4double[(i * layer4h * layer4w) + (j * layer4w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
 
     //layer 5 matrix cs:
     ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, 0, 0,

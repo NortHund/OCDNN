@@ -24,10 +24,9 @@ __kernel void maxpool(__global double* input, __global double* output, int depth
     double max = 0;
     double val = 0;
 
-
     for (int i = 0; i < k_s; ++i) {
         for (int j = 0; j < k_s; ++j) {
-            val = input[(depth * ih * iw) + ((row * st) * iw) + ((col * st)) + j];
+            val = input[(depth * ih * iw) + (((row * st) + i) * iw) + ((col * st) + j)];
             if (val > max) {
                 max = val;
             }
