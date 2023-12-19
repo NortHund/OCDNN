@@ -126,6 +126,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "output_sum"); //2
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "cs_compare"); //3
         _ocl_base->CreateKernelFromProgram(prog_util, "relu"); //4
+        _ocl_base->CreateKernelFromProgram(prog_util, "maxpool"); //4
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -522,10 +523,11 @@ public:
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&oBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&biasBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 3, sizeof(int), &olm);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 2, sizeof(int), &olm);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 3, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 4, sizeof(int), &iw);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -533,7 +535,7 @@ public:
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(4),
+                                        _ocl_base->GetKernel(5),
                                         2,
                                         NULL,
                                         global_work_size,
@@ -585,7 +587,6 @@ public:
 
         clReleaseMemObject(iBuffer);
         clReleaseMemObject(oBuffer);
-        clReleaseMemObject(biasBuffer);
     }
 
     void print_kernel_execution_times()
@@ -989,13 +990,36 @@ static void forward_ocl()
     ocl_phase2.maxpool_read(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0,
                          matrixL2double);
 
+    /*printf("Layer 2 ocl: \n");
+    for (int i = 0; i < (1); ++i) {
+        for (int j = 0; j < (layer2h); ++j) {
+            for (int k = 0; k < (layer2w); ++k) {
+                printf("%f ", matrixL2double[(i * layer2h * layer2w) + (j * layer2w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
+
+    /*for (int i = 0; i < (layer2d); ++i) {
+        for (int j = 0; j < (layer2h); ++j) {
+            for (int k = 0; k < (layer2w); ++k) {
+                matrixL2double[(i * layer2h * layer2w) + (j * layer2w) + k] = 0;
+            }
+        }
+    }*/
+
     //layer 2 subsampling
-    /*const int len0 = (layer1h / layer2h);
-    const int len1 = (layer1w / layer2w);
-    for (int i = 0; i < (layer2d); ++i)
+    //const int len0 = (layer1h / layer2h);
+    //const int len1 = (layer1w / layer2w);
+
+    //printf("layer1w: %d \n", layer1w);
+    //printf("llayer2w: %d \n", layer2w);
+    /*for (int i = 0; i < (layer2d); ++i)
         for (int o0 = 0; o0 < (layer2h); ++o0)
             for (int o1 = 0; o1 < (layer2w); ++o1) {
-                int x0 = 0, x1 = 0, ismax;
+                int x0 = 0, x1 = 0, ismax = 0;
+                //printf("ismax: %d \n", ismax); ismax value depends on previous runs?
                 for (int l0 = 0; l0 < len0; ++l0)
                     for (int l1 = 0; l1 < len1; ++l1) {
                         ismax = matrixL1double[((i) * layer1h * layer1w) + ((o0 * len0 + l0) * layer1w) +
@@ -1008,6 +1032,17 @@ static void forward_ocl()
                 matrixL2double[(i * layer2h * layer2w) + (o0 * layer2w) + o1] = matrixL1double[
                         ((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) + (o1 * len1 + x1)];
             }*/
+
+    /*printf("Layer 2 ref: \n");
+    for (int i = 0; i < (1); ++i) {
+        for (int j = 0; j < (layer2h); ++j) {
+            for (int k = 0; k < (layer2w); ++k) {
+                printf("%f ", matrixL2double[(i * layer2h * layer2w) + (j * layer2w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
 
     //layer 3 matrix cs:
     counter=0;
@@ -1466,11 +1501,11 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    int right = testing(lenet, test_data, test_label, 200);
-    printf("c++ right: %d / 200 \n", right);
+    int right = testing(lenet, test_data, test_label, 10);
+    printf("c++ right: %d / 10 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 200);
-    printf("ocl accuracy: %d / %d \n", right_ocl, 200);
+    int right_ocl = testing_ocl(test_data, test_label, 10);
+    printf("ocl accuracy: %d / %d \n", right_ocl, 10);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
