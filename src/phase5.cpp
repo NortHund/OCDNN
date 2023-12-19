@@ -116,6 +116,7 @@ public:
     void init_programs()
     {
         prog_cv_d = _ocl_base->CreateProgramFromFile("kernels/p5-conv64.cl");
+        prog_util = _ocl_base->CreateProgramFromFile("kernels/p5-util.cl");
     }
 
     void init_kernels()
@@ -124,6 +125,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "input_sum"); //1
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "output_sum"); //2
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "cs_compare"); //3
+        _ocl_base->CreateKernelFromProgram(prog_util, "relu"); //4
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -438,6 +440,154 @@ public:
         clReleaseMemObject(cscBuffer);
     }
 
+    unsigned relu(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&biasBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 3, sizeof(int), &olm);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(4),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned relu_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* bptr)
+    {
+        iBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                 id * iw * ih * sizeof(double),
+                                 iptr,
+                                 NULL);
+
+
+        oBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE,
+                                   od * ow * oh * sizeof(double),
+                                   NULL,
+                                   NULL);
+
+        biasBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    od * sizeof(double),
+                                    bptr,
+                                    NULL);
+    }
+
+    double relu_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
+    {
+        //Reading result from GPU memory to main memory
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            oBuffer,
+                                            0,
+                                            0,
+                                            od * ow * oh * sizeof(double),
+                                            optr,
+                                            0,
+                                            NULL,
+                                            &_event);
+
+        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        clReleaseMemObject(iBuffer);
+        clReleaseMemObject(oBuffer);
+        clReleaseMemObject(biasBuffer);
+    }
+
+    unsigned maxpool(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&biasBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 3, sizeof(int), &olm);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(4),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned maxpool_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
+    {
+        iBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                 id * iw * ih * sizeof(double),
+                                 iptr,
+                                 NULL);
+
+
+        oBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_WRITE,
+                                 od * ow * oh * sizeof(double),
+                                 NULL,
+                                 NULL);
+    }
+
+    double maxpool_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
+    {
+        //Reading result from GPU memory to main memory
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            oBuffer,
+                                            0,
+                                            0,
+                                            od * ow * oh * sizeof(double),
+                                            optr,
+                                            0,
+                                            NULL,
+                                            &_event);
+
+        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        clReleaseMemObject(iBuffer);
+        clReleaseMemObject(oBuffer);
+        clReleaseMemObject(biasBuffer);
+    }
+
     void print_kernel_execution_times()
     {
         std::cout << "OpenCL kernel execution times:\n";
@@ -458,9 +608,11 @@ public:
     cl_mem ocsBuffer = nullptr;
     cl_mem icsBuffer = nullptr;
     cl_mem cscBuffer = nullptr;
+    cl_mem biasBuffer = nullptr;
 
 private:
     cl_program prog_cv_d;
+    cl_program prog_util;
 
     cl_event _event;
 
@@ -470,6 +622,10 @@ private:
     // 3 - input_sum_read
     // 4 - ocs
     // 5 - ocs read
+    // 6 - csc
+    // 7 - csc
+    // 8 - relu
+    // 9 - relu read
     unsigned long kernel_execution_times[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 };
 
@@ -814,21 +970,27 @@ static void forward_ocl()
     //ocs
     ocs[0] = 0;
 
-    //Relu
-    for (int i = 0; i < layer1d; ++i) {
-        for (int j = 0; j < layer1h; ++j) {
-            for (int k = 0; k < layer1w; ++k) {
-                if (matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] + matrixB01double[i] > 0) {
-                    matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] += matrixB01double[i];
-                } else {
-                    matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k] = 0;
-                }
-            }
-        }
+    //relu
+    ocl_phase2.relu_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
+                                        matrixL1double,
+                                        matrixB01double);
+    for (int y = 0; y < layer1d; ++y) {
+        ocl_phase2.relu(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, y);
     }
+    ocl_phase2.relu_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0,
+                                       matrixL1double);
+
+    //layer 2 ocl max pooling
+    ocl_phase2.maxpool_write(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0,
+                          matrixL1double);
+    for (int y = 0; y < layer2d; ++y) {
+        ocl_phase2.maxpool(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, y);
+    }
+    ocl_phase2.maxpool_read(layer1w, layer1h, layer1d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0,
+                         matrixL2double);
 
     //layer 2 subsampling
-    const int len0 = (layer1h / layer2h);
+    /*const int len0 = (layer1h / layer2h);
     const int len1 = (layer1w / layer2w);
     for (int i = 0; i < (layer2d); ++i)
         for (int o0 = 0; o0 < (layer2h); ++o0)
@@ -845,7 +1007,7 @@ static void forward_ocl()
                     }
                 matrixL2double[(i * layer2h * layer2w) + (o0 * layer2w) + o1] = matrixL1double[
                         ((i) * layer1h * layer1w) + ((o0 * len0 + x0) * layer1w) + (o1 * len1 + x1)];
-            }
+            }*/
 
     //layer 3 matrix cs:
     counter=0;
@@ -1247,9 +1409,9 @@ int testing_ocl(image *test_data, uint8 *test_label, int total_size)
         //printf("prediction ocl: %d \n", p);
         right += l == p;
         acctemp += l == p;
-        if (i % 100 == 0) {
-            printf("accuracy: %d / 100\n", acctemp);
-            printf("Total accuracy: %d / %d \n", right, i);
+        if (i % 100 == 0 && i != 0) {
+            printf("ocl accuracy: %d / 100\n", acctemp);
+            printf("ocl total accuracy: %d / %d \n", right, i);
             acctemp = 0;
         }
         /*if (i * 100 / total_size > percent)
@@ -1304,11 +1466,11 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    //int right = testing(lenet, test_data, test_label, 100);
-    //printf("right: %d / 100 \n", right);
+    int right = testing(lenet, test_data, test_label, 200);
+    printf("c++ right: %d / 200 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, COUNT_TEST);
-    printf("ocl accuracy: %d / %d \n", right_ocl, COUNT_TEST);
+    int right_ocl = testing_ocl(test_data, test_label, 200);
+    printf("ocl accuracy: %d / %d \n", right_ocl, 200);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
