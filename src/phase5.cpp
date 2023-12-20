@@ -1258,7 +1258,7 @@ static void forward_ocl()
             matrixL6double[j] = 0;
         }
     }*/
-    
+
     /*printf("L6: ");
     for (uint8 i = 1; i < OUTPUT; ++i) {
         printf("%f ",matrixL6double[i]);
@@ -1534,11 +1534,11 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    int right = testing(lenet, test_data, test_label, 10);
-    printf("c++ right: %d / 10 \n", right);
+    int right = testing(lenet, test_data, test_label, 100);
+    printf("c++ right: %d / 100 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 10);
-    printf("ocl accuracy: %d / %d \n", right_ocl, 10);
+    int right_ocl = testing_ocl(test_data, test_label, 100);
+    printf("ocl accuracy: %d / %d \n", right_ocl, 100);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
