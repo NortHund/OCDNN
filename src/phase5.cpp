@@ -24,6 +24,10 @@ int layer5w = LENGTH_FEATURE5;
 int layer5h = LENGTH_FEATURE5;
 int layer5d = LAYER5;
 
+int layer6w = OUTPUT;
+int layer6h = 1;
+int layer6d = 1;
+
 int w01w = 5;
 int w01h = 5;
 
@@ -126,7 +130,8 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "output_sum"); //2
         _ocl_base->CreateKernelFromProgram(prog_cv_d, "cs_compare"); //3
         _ocl_base->CreateKernelFromProgram(prog_util, "relu"); //4
-        _ocl_base->CreateKernelFromProgram(prog_util, "maxpool"); //4
+        _ocl_base->CreateKernelFromProgram(prog_util, "maxpool"); //5
+        _ocl_base->CreateKernelFromProgram(prog_util, "flatmat"); //6
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -589,6 +594,91 @@ public:
 
         clReleaseMemObject(iBuffer);
         clReleaseMemObject(oBuffer);
+    }
+
+    unsigned flatmat(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 0, sizeof(cl_mem), (void *)&iBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 1, sizeof(cl_mem), (void *)&oBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 2, sizeof(cl_mem), (void *)&wBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 3, sizeof(cl_mem), (void *)&biasBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 4, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 5, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 6, sizeof(int), &iw);
+
+        size_t global_work_size[1];
+        global_work_size[0] = ow;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(6),
+                                        1,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned flatmat_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr, double* bptr)
+    {
+        iBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                 id * iw * ih * sizeof(double),
+                                 iptr,
+                                 NULL);
+
+
+        oBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_WRITE,
+                                 od * ow * oh * sizeof(double),
+                                 NULL,
+                                 NULL);
+
+        wBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    id * iw * ih * ow * sizeof(double),
+                                    wptr,
+                                    NULL);
+
+        biasBuffer = clCreateBuffer(_ocl_base->context,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                 ow * sizeof(double),
+                                 bptr,
+                                 NULL);
+    }
+
+    double flatmat_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
+    {
+        //Reading result from GPU memory to main memory
+        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
+                                            oBuffer,
+                                            0,
+                                            0,
+                                            od * ow * oh * sizeof(double),
+                                            optr,
+                                            0,
+                                            NULL,
+                                            &_event);
+
+        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        clReleaseMemObject(iBuffer);
+        clReleaseMemObject(oBuffer);
+        clReleaseMemObject(wBuffer);
     }
 
     void print_kernel_execution_times()
@@ -1135,6 +1225,7 @@ static void forward_ocl()
     }
 
     //printf("L5 and W56: \n");
+    /*
     for (int x = 0; x < (layer5d * layer5h * layer5w); ++x) {
         for (int y = 0; y < (OUTPUT); ++y) {
             matrixL6double[y] += matrixL5double[x] * matrixW56double[x * (OUTPUT) + y];
@@ -1143,7 +1234,16 @@ static void forward_ocl()
         //printf("L5: %f \n",matrixL5double[x]);
     }
     //printf("\n");
+    */
 
+    //flattened matrix multiplication
+    ocl_phase2.flatmat_write(layer5w, layer5h, layer5d, w01w, w01h, layer6w, layer6h, layer6d, 0, 0,
+                          matrixL5double,
+                          matrixW56double,
+                          matrixB56double);
+    ocl_phase2.flatmat(layer5w, layer5h, layer5d, w01w, w01h, layer6w, layer6h, layer6d, 0, 0);
+    ocl_phase2.flatmat_read(layer5w, layer5h, layer5d, w01w, w01h, layer6w, layer6h, layer6d, 0, 0,
+                         matrixL6double);
 
     /*printf("L6: ");
     for (uint8 i = 1; i < OUTPUT; ++i) {
@@ -1151,13 +1251,14 @@ static void forward_ocl()
     }
     printf("\n");*/
 
-    for (int j = 0; j < (OUTPUT); ++j) {
+    /*for (int j = 0; j < (OUTPUT); ++j) {
         if (matrixL6double[j] + matrixB56double[j] > 0) {
             matrixL6double[j] += matrixB56double[j];
         } else {
             matrixL6double[j] = 0;
         }
-    }
+    }*/
+    
     /*printf("L6: ");
     for (uint8 i = 1; i < OUTPUT; ++i) {
         printf("%f ",matrixL6double[i]);
@@ -1433,11 +1534,11 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    int right = testing(lenet, test_data, test_label, 100);
-    printf("c++ right: %d / 100 \n", right);
+    int right = testing(lenet, test_data, test_label, 10);
+    printf("c++ right: %d / 10 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 100);
-    printf("ocl accuracy: %d / %d \n", right_ocl, 100);
+    int right_ocl = testing_ocl(test_data, test_label, 10);
+    printf("ocl accuracy: %d / %d \n", right_ocl, 10);
 
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);

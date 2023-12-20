@@ -36,28 +36,16 @@ __kernel void maxpool(__global double* input, __global double* output, int depth
 
 }
 
-__kernel void maxpool_ref(__global double* input, __global double* output, int depth, int ih, int iw) {
+__kernel void flatmat(__global double* input, __global double* output, __global double* weights, __global double* bias, int id, int ih, int iw) {
     int col = get_global_id(0);
-    int row = get_global_id(1);
     int width = get_global_size(0);
-    int height = get_global_size(1);
 
-    const int len0 = (ih / height);
-    const int len1 = (iw / width);
-    int x0 = 0;
-    int x1 = 0;
-    int ismax = 0;
-    for (int l0 = 0; l0 < len0; ++l0) {
-        for (int l1 = 0; l1 < len1; ++l1) {
-            ismax = input[(depth * ih * iw) + ((row * len0 + l0) * iw) +
-                                   ((col * len1) + l1)]
-                    > input[(depth * ih * iw) + ((row * len0 + x0) * iw) +
-                                     ((col * len1) + x1)];
-            x0 += ismax * (l0 - x0);
-            x1 += ismax * (l1 - x1);
-        }
+    double sum = 0;
+
+    for (int x = 0; x < (id * ih * iw); ++x) {
+        sum += input[x] * weights[x * (width) + col];
     }
-    output[(depth * height * width) + (row * width) + col] = input[
-            (depth * ih * iw) + ((row * len0 + x0) * width) + ((col * len1) + x1)];
+
+    output[col] = sum + bias[col];
 
 }
