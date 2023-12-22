@@ -73,6 +73,7 @@ double* matrixW56double;
 double* matrixW01sum;
 double* matrixW23sum;
 double* matrixW45sum;
+double* matrixW56sum;
 
 double* matrixB01double;
 double* matrixB12double;
@@ -753,6 +754,8 @@ static void createVectors()
     matrixL5outsum = (double*)malloc((layer5w * layer5h) * sizeof(double));
     matrixW45sum = (double*)malloc((layer4d) * (w45w * w45h) * sizeof(double));
 
+    matrixW56sum = (double*)malloc((layer5d * layer5w * layer5h) * sizeof(double));
+
     matrixB01double = (double*)malloc((layer1d) * sizeof(double));
     matrixB12double = (double*)malloc((layer2d) * sizeof(double));
     matrixB23double = (double*)malloc((layer3d) * sizeof(double));
@@ -860,6 +863,13 @@ static void copyModel(LeNet5 *lenet) {
         for (int x1 = 0; x1 < OUTPUT; ++x1)
             matrixW56double[(x0 * OUTPUT) + (x1)] = lenet->weight5_6[x0][x1];
 
+    //matrixW56double
+    for (int x0 = 0; x0 < (layer5d * layer5h * layer5w); ++x0) {
+        matrixW56sum[x0] = 0;
+        for (int x1 = 0; x1 < OUTPUT; ++x1) {
+            matrixW56sum[x0] += matrixW56double[(x0 * OUTPUT) + (x1)];
+        }
+    }
     //matrixB01double
     for (int x0 = 0; x0 < layer1d; ++x0) {
         matrixB01double[x0] = lenet->bias0_1[x0];
@@ -1245,11 +1255,34 @@ static void forward_ocl()
     ocl_phase2.flatmat_read(layer5w, layer5h, layer5d, w01w, w01h, layer6w, layer6h, layer6d, 0, 0,
                          matrixL6double);
 
-    /*printf("L6: ");
-    for (uint8 i = 1; i < OUTPUT; ++i) {
-        printf("%f ",matrixL6double[i]);
+    //flattened matrix ocs
+    ocl_phase2.flatmat_write(layer5w, layer5h, layer5d, w01w, w01h, 1, layer6h, layer6d, 0, 0,
+                             matrixL5double,
+                             matrixW56sum,
+                             nullptr);
+    ocl_phase2.flatmat(layer5w, layer5h, layer5d, w01w, w01h, 1, layer6h, layer6d, 0, 0);
+    ocl_phase2.flatmat_read(layer5w, layer5h, layer5d, w01w, w01h, 1, layer6h, layer6d, 0, 0,
+                            ics);
+
+
+    //printf("l6 ics: %f\n", ics[0]);
+
+    //printf("L6: ");
+    for (uint8 i = 0; i < OUTPUT; ++i) {
+        //printf("%f ",matrixL6double[i]);
+        ocs[0] += matrixL6double[i];
+        ics[0] += matrixB56double[i];
     }
-    printf("\n");*/
+    //printf("\n");
+
+    //printf("l6 ics with bias: %f\n", ics[0]);
+    //printf("l6 ocs: %f\n", ocs[0]);
+
+    if (abs(ics[0] - ocs[0]) > 0.00001) {
+        printf("l6 ics with bias: %f\n", ics[0]);
+        printf("l6 ocs: %f\n", ocs[0]);
+        abftflag = 1;
+    }
 
     /*for (int j = 0; j < (OUTPUT); ++j) {
         if (matrixL6double[j] + matrixB56double[j] > 0) {
@@ -1581,6 +1614,7 @@ int main() {
     free(matrixW01sum);
     free(matrixW23sum);
     free(matrixW45sum);
+    free(matrixW56sum);
 
     free(matrixB01double);
     free(matrixB12double);
