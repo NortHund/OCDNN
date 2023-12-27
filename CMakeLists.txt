@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(OCDNN VERSION 0.1)
 
 add_library(compiler_flags INTERFACE)
-target_compile_features(compiler_flags INTERFACE cxx_std_23)
+target_compile_features(compiler_flags INTERFACE cxx_std_20)
 
 # add compiler warning flags just when building this project via
 # the BUILD_INTERFACE generator expression

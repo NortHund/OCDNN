@@ -1256,7 +1256,7 @@ static void forward_ocl()
                          matrixL6double);
 
     //flattened matrix ocs
-    ocl_phase2.flatmat_write(layer5w, layer5h, layer5d, w01w, w01h, 1, layer6h, layer6d, 0, 0,
+    /*ocl_phase2.flatmat_write(layer5w, layer5h, layer5d, w01w, w01h, 1, layer6h, layer6d, 0, 0,
                              matrixL5double,
                              matrixW56sum,
                              nullptr);
@@ -1282,7 +1282,7 @@ static void forward_ocl()
         printf("l6 ics with bias: %f\n", ics[0]);
         printf("l6 ocs: %f\n", ocs[0]);
         abftflag = 1;
-    }
+    }*/
 
     /*for (int j = 0; j < (OUTPUT); ++j) {
         if (matrixL6double[j] + matrixB56double[j] > 0) {
