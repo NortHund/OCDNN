@@ -1521,6 +1521,34 @@ int testing_ocl(image *test_data, uint8 *test_label, int total_size)
     return right;
 }
 
+int testing_comb(LeNet5 *lenet, image *test_data, uint8 *test_label, int total_size)
+{
+    int right = 0, percent = 0;
+    int acctemp = 0;
+    for (int i = 0; i < total_size; ++i)
+    {
+        uint8 l = test_label[i];
+        int p = Predict_ocl(test_data[i], 10);
+        int pp = Predict(lenet, test_data[i], 10);
+        //printf("prediction ocl: %d \n", p);
+
+        if (p != pp) {
+            printf("Prediction mismatch! ocl:%d, c++:%d \n", p, pp);
+        }
+
+        right += l == p;
+        acctemp += l == p;
+        if (i % 100 == 0 && i != 0) {
+            printf("ocl accuracy: %d / 100\n", acctemp);
+            printf("ocl total accuracy: %d / %d \n", right, i);
+            acctemp = 0;
+        }
+        /*if (i * 100 / total_size > percent)
+            printf("test:%2d%%\n", percent = i * 100 / total_size);*/
+    }
+    return right;
+}
+
 int save(LeNet5 *lenet, char filename[])
 {
     FILE *fp = fopen(filename, "wb");
@@ -1567,12 +1595,15 @@ int main() {
     copyModel(lenet);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
-    int right = testing(lenet, test_data, test_label, 100);
-    printf("c++ right: %d / 100 \n", right);
+    //int right = testing(lenet, test_data, test_label, 100);
+    //printf("c++ right: %d / 100 \n", right);
 
-    int right_ocl = testing_ocl(test_data, test_label, 100);
-    printf("ocl accuracy: %d / %d \n", right_ocl, 100);
+    //int right_ocl = testing_ocl(test_data, test_label, 100);
+    //printf("ocl accuracy: %d / %d \n", right_ocl, 100);
 
+    int right_comb = testing_comb(lenet, test_data, test_label, 200);
+    printf("accuracy: %d / %d \n", right_comb, 100);
+    
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
     //printf("c: %d, ocl: %d \n",p, oclp);
