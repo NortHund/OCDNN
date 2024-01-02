@@ -135,6 +135,46 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_util, "flatmat"); //6
     }
 
+    unsigned write_weightsums(double* w01sptr, double* w23sptr, double* w45sptr) {
+        w01sumBuffer = clCreateBuffer(_ocl_base->context,
+                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                     layer0d * w01w * w01h * sizeof(double),
+                                     w01sptr,
+                                     NULL);
+
+        w23sumBuffer = clCreateBuffer(_ocl_base->context,
+                                      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                      layer3d * w23w * w23h * sizeof(double),
+                                      w23sptr,
+                                      NULL);
+
+        w45sumBuffer = clCreateBuffer(_ocl_base->context,
+                                      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                      layer5d * w45w * w45h * sizeof(double),
+                                      w45sptr,
+                                      NULL);
+    }
+
+    unsigned write_layersums(double* l1iptr, double* l1optr, double* csptr) {
+        l1insumBuffer = clCreateBuffer(_ocl_base->context,
+                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                     layer1d * layer1h * layer1w * sizeof(double),
+                                     l1iptr,
+                                     NULL);
+
+        l1outsumBuffer = clCreateBuffer(_ocl_base->context,
+                                       CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                       layer1d * layer1h * layer1w * sizeof(double),
+                                       l1optr,
+                                       NULL);
+
+        cscBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                   5 * sizeof(double),
+                                   csptr,
+                                   NULL);
+    }
+
     unsigned write_image(double* l0ptr) {
        l0Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -263,6 +303,15 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l1Buffer);
     }
 
+    unsigned setbufs_l01ics() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l0Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w01sumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l1insumBuffer);
+    }
+
     unsigned setbufs_l23() {
         cl_int status;
 
@@ -272,6 +321,15 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l3Buffer);
     }
 
+    unsigned setbufs_l23ics() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l2Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w23sumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l3insumBuffer);
+    }
+
     unsigned setbufs_l45() {
         cl_int status;
 
@@ -279,6 +337,15 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l4Buffer);
         status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w45Buffer);
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l5Buffer);
+    }
+
+    unsigned setbufs_l45ics() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l4Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w45sumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l5insumBuffer);
     }
 
     double buf_read(int ow, int oh, int od, double* optr)
@@ -348,7 +415,7 @@ public:
 
     }
 
-    unsigned convolution_nb(int layer, int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned convolution_nb(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
         //Setting kernel arguments
@@ -495,8 +562,7 @@ public:
     unsigned zero_bufs()
     {
         cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l3Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l4Buffer);
+
     }
 
     unsigned free_bufs()
@@ -528,6 +594,18 @@ public:
         clReleaseMemObject(w23Buffer);
         clReleaseMemObject(w45Buffer);
         clReleaseMemObject(w56Buffer);
+
+        clReleaseMemObject(l1insumBuffer);
+        clReleaseMemObject(l3insumBuffer);
+        clReleaseMemObject(l5insumBuffer);
+        clReleaseMemObject(l1outsumBuffer);
+        clReleaseMemObject(l3outsumBuffer);
+        clReleaseMemObject(l5outsumBuffer);
+
+        clReleaseMemObject(w01sumBuffer);
+        clReleaseMemObject(w23sumBuffer);
+        clReleaseMemObject(w45sumBuffer);
+        clReleaseMemObject(w56sumBuffer);
     }
 
     unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -683,6 +761,60 @@ public:
         clReleaseMemObject(icsBuffer);
     }
 
+    unsigned setbufs_l01ocs() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l1Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l1outsumBuffer);
+    }
+
+    unsigned setbufs_l23ocs() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l3Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l3outsumBuffer);
+    }
+
+    unsigned setbufs_l45ocs() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l5Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
+    }
+
+    unsigned output_sum_nb(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(int), &id);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(2),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
     unsigned output_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
@@ -750,6 +882,60 @@ public:
 
         clReleaseMemObject(oBuffer);
         clReleaseMemObject(ocsBuffer);
+    }
+
+    unsigned setbufs_l01csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l1insumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l1outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l23csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l3insumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l3outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l45csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l5insumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned cs_compare_nb(int layer, int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 3, sizeof(int), &layer);
+
+        size_t global_work_size[2];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(3),
+                                        2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
     }
 
     unsigned cs_compare(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -1119,6 +1305,18 @@ public:
     cl_mem w45Buffer = nullptr;
     cl_mem w56Buffer = nullptr;
 
+    cl_mem l1insumBuffer = nullptr;
+    cl_mem l1outsumBuffer = nullptr;
+    cl_mem l3insumBuffer = nullptr;
+    cl_mem l3outsumBuffer = nullptr;
+    cl_mem l5insumBuffer = nullptr;
+    cl_mem l5outsumBuffer = nullptr;
+
+    cl_mem w01sumBuffer = nullptr;
+    cl_mem w23sumBuffer = nullptr;
+    cl_mem w45sumBuffer = nullptr;
+    cl_mem w56sumBuffer = nullptr;
+
 private:
     cl_program prog_cv_d;
     cl_program prog_util;
@@ -1200,6 +1398,15 @@ static void createVectors()
     }
     for (int i = 0; i < (layer5h * layer5w); i++) {
         matrixL5insum[i] = 0;
+    }
+    for (int i = 0; i < (layer1h * layer1w); i++) {
+        matrixL1outsum[i] = 0;
+    }
+    for (int i = 0; i < (layer3h * layer3w); i++) {
+        matrixL3outsum[i] = 0;
+    }
+    for (int i = 0; i < (layer5h * layer5w); i++) {
+        matrixL5outsum[i] = 0;
     }
 
     ics = (double*)malloc(sizeof(double));
@@ -1441,42 +1648,11 @@ static void forward_ocl()
 {
     int abftflag = 0;
     int counter = 0;
-    int abft = 0;
+    int abft = 2;
 
-
-
-    /*ocl_phase2.buf_read(layer0d, layer0h, layer0w, matrixL0double);
-    printf("l0 \n");
-    for (int i = 0; i < layer0d; ++i) {
-        for (int j = 0; j < layer0h; ++j) {
-            for (int k = 0; k < layer0w; ++k) {
-                printf("%f ", matrixL0double[(i * layer0h * layer0w) + (j * layer0w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
-
-    /*ocl_phase2.weight_read();
-    printf("w01 \n");
-    for (int x0 = 0; x0 < layer0d; ++x0)
-        for (int x1 = 0; x1 < layer1d; ++x1)
-            for (int x2 = 0; x2 < w01h; ++x2)
-                for (int x3 = 0; x3 < w01h; ++x3)
-                    printf("%f ", matrixW01double[(x0 * layer1d * w01h * w01h) + (x1 * w01h * w01w) + (x2 * w01w) + x3]);
-
-    ocl_phase2.bias_read();
-    printf("\n b01 \n");
-    for (int x1 = 0; x1 < layer1d; ++x1) {
-        printf("%f ", matrixB01double[x1]);
-    }*/
-
-    if (abft == 1) {
-        ocl_phase2.convolution_double_write(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
-                                            matrixL0double,
-                                            matrixW01sum,
-                                            matrixL1insum);
-        ocl_phase2.convolution_double(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0);
+    if (abft == 2) {
+        ocl_phase2.setbufs_l01ics();
+        ocl_phase2.convolution_nb(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0);
         counter++;
         ocl_phase2.convolution_double_read(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0,
                                            matrixL1insum);
@@ -1485,44 +1661,24 @@ static void forward_ocl()
 
     //layer 1 convolution ocl
     ocl_phase2.setbufs_l01();
-
     //convolution
     counter = 0;
     for (int x = 0; x < (layer0d); ++x) {
         for (int y = 0; y < layer1d; ++y) {
-            ocl_phase2.convolution_nb(1, layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
+            ocl_phase2.convolution_nb(layer0w, layer0h, layer0d, w01w, w01h, layer1w, layer1h, layer1d, x, y);
             counter++;
         }
     }
     //printf("conv layer 0-1 convolutions: %d \n", counter);
 
-    /*ocl_phase2.buf_read(layer1d, layer1h, layer1w, matrixL1double);
-    printf("l1 \n");
-    for (int i = 0; i < 1; ++i) {
-        for (int j = 0; j < layer1h; ++j) {
-            for (int k = 0; k < layer1w; ++k) {
-                printf("%f ", matrixL1double[(i * layer1h * layer1w) + (j * layer1w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
-
-    if (abft == 1) {
-        ocl_phase2.output_sum_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
-                                    matrixL1double);
-        ocl_phase2.output_sum(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
-        ocl_phase2.output_sum_read(layer1w, layer0h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0,
-                                   matrixL1outsum);
+    if (abft == 2) {
+        ocl_phase2.setbufs_l01ocs();
+        ocl_phase2.output_sum_nb(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
 
         for (int i = 0; i < 5; i++) { csc[i] = 0; }
-        ocl_phase2.cs_compare_write(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, matrixL1insum, matrixL1outsum, csc);
-        ocl_phase2.cs_compare(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
-        ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
+        ocl_phase2.setbufs_l01csc();
+        ocl_phase2.cs_compare_nb(0, layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
-        if (csc[0] != 0) {
-            abftflag = 1;
-        }
     }
 
     //ocs
@@ -1535,7 +1691,6 @@ static void forward_ocl()
         ocl_phase2.relu_nb(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, y);
     }
 
-
     //layer 2 ocl max pooling
     ocl_phase2.setbuf_l12();
 
@@ -1543,21 +1698,14 @@ static void forward_ocl()
         ocl_phase2.maxpool_nb(layer1w, layer1h, layer1d, 2, 2, layer2w, layer2h, layer2d, 0, y);
     }
 
-    if (abft == 1) {
+    if (abft == 2) {
         //layer 3 matrix cs:
         counter=0;
-        ocl_phase2.convolution_double_write(layer2w, layer2h, layer2d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
-                                            matrixL2double,
-                                            matrixW23sum,
-                                            matrixL3insum);
+        ocl_phase2.setbufs_l23ics();
         for (int x = 0; x < (layer2d); ++x) {
-            ocl_phase2.convolution_double(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, x, 0);
+            ocl_phase2.convolution_nb(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, x, 0);
             counter++;
         }
-        ocl_phase2.convolution_double_read(layer2w, layer2h, 1, w01w, w01h, layer3w, layer3h, 1, 0, 0,
-                                           matrixL3insum);
-
-        //printf("conv layer 3 ics convolutions: %d \n", counter);
     }
 
     //layer3 convolution
@@ -1566,28 +1714,18 @@ static void forward_ocl()
     counter=0;
     for (int x = 0; x < (layer2d); ++x) {
         for (int y = 0; y < layer3d; ++y) {
-            ocl_phase2.convolution_nb(3, layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
+            ocl_phase2.convolution_nb(layer2w, layer2h, layer2d, w23w, w23h, layer3w, layer3h, layer3d, x, y);
             counter++;
         }
     }
     //printf("conv layer 2-3 convolutions: %d \n",counter);
 
-    if (abft == 1) {
-        ocl_phase2.output_sum_write(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
-                                    matrixL3double);
-        ocl_phase2.output_sum(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0);
-        ocl_phase2.output_sum_read(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0,
-                                   matrixL3outsum);
+    if (abft == 2) {
+        ocl_phase2.setbufs_l23ocs();
+        ocl_phase2.output_sum_nb(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0);
 
-        for (int i = 0; i < 5; i++) { csc[i] = 0; }
-        ocl_phase2.cs_compare_write(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, matrixL3insum, matrixL3outsum, csc);
-        ocl_phase2.cs_compare(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
-        ocl_phase2.cs_compare_read(layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0, csc);
-
-        if (csc[0] != 0) {
-            abftflag = 1;
-            printf("layer3");
-        }
+        ocl_phase2.setbufs_l23csc();
+        ocl_phase2.cs_compare_nb(1, layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
     }
 
     ocl_phase2.setbuf_l3rb();
@@ -1603,20 +1741,14 @@ static void forward_ocl()
         ocl_phase2.maxpool_nb(layer3w, layer3h, layer3d, 2, 2, layer4w, layer4h, layer4d, 0, y);
     }
 
-    if (abft == 1 ) {
+    if (abft == 2) {
         //layer 5 matrix cs:
-        ocl_phase2.convolution_double_write(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
-                                            matrixL4double,
-                                            matrixW45sum,
-                                            matrixL5insum);
+        ocl_phase2.setbufs_l45ics();
         counter =0;
         for (int x = 0; x < (layer4d); ++x) {
-            ocl_phase2.convolution_double(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, x, 0);
+            ocl_phase2.convolution_nb(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, 1, x, 0);
             counter++;
         }
-        ocl_phase2.convolution_double_read(layer4w, layer4h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0,
-                                           matrixL5insum);
-
         //printf("conv layer 5 ics convolutions: %d \n",counter);
     }
 
@@ -1626,28 +1758,19 @@ static void forward_ocl()
     counter = 0;
     for (int x = 0; x < (layer4d); ++x) {
         for (int y = 0; y < layer5d; ++y) {
-            ocl_phase2.convolution_nb(5, layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, x, y);
+            ocl_phase2.convolution_nb(layer4w, layer4h, layer4d, w01w, w01h, layer5w, layer5h, layer5d, x, y);
             counter++;
         }
     }
     //printf("conv layer 4-5 convolutions: %d \n",counter);
 
-    if (abft == 1) {
+    if (abft == 2) {
         //layer 5 output cs
-        ocl_phase2.output_sum_write(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
-                                    matrixL5double);
-        ocl_phase2.output_sum(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0);
-        ocl_phase2.output_sum_read(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0,
-                                   matrixL5outsum);
+        ocl_phase2.setbufs_l45ocs();
+        ocl_phase2.output_sum_nb(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0);
 
-        for (int i = 0; i < 5; i++) { csc[i] = 0; }
-        ocl_phase2.cs_compare_write(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0, matrixL5insum, matrixL5outsum, csc);
-        ocl_phase2.cs_compare(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0);
-        ocl_phase2.cs_compare_read(layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0, csc);
-
-        if (csc[0] != 0) {
-            abftflag = 1;
-        }
+        ocl_phase2.setbufs_l45csc();
+        ocl_phase2.cs_compare_nb(2, layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0);
     }
 
 
@@ -1667,6 +1790,20 @@ static void forward_ocl()
             printf("\n");
         }
     }*/
+
+    //abft results:
+    ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
+
+    //printf("csc: \n");
+    for (int i = 0; i < 5; i++) {
+        //printf("%f ", csc[i]);
+        if (csc[i] != 0) {
+            abftflag = 1;
+        }
+    }
+    //printf("\n");
+
+
 
     //output layer matrix multiplication
     for (int y = 0; y < (OUTPUT); ++y) {
@@ -1842,7 +1979,6 @@ static double f64rand()
     return *(double *)&lvalue - 3;
 }
 
-
 uint8 Predict(LeNet5 *lenet, image input, uint8 count)
 {
     Feature features = { 0 };
@@ -1864,9 +2000,12 @@ uint8 Predict(LeNet5 *lenet, image input, uint8 count)
 uint8 Predict_ocl(image input, uint8 count)
 {
     zero_vectors();
+
     load_input_ocl(input);
     ocl_phase2.write_image(matrixL0double);
+
     ocl_phase2.write_layer(matrixL1double, matrixL2double, matrixL3double, matrixL4double, matrixL5double);
+    ocl_phase2.write_layersums(matrixL1insum, matrixL1outsum, csc);
 
     forward_ocl();
 
@@ -2040,6 +2179,7 @@ int main() {
 
     ocl_phase2.write_weights(matrixW01double, matrixW23double, matrixW45double, matrixW56double);
     ocl_phase2.write_bias(matrixB01double, matrixB23double, matrixB45double, matrixB56double);
+    ocl_phase2.write_weightsums(matrixW01sum, matrixW23sum, matrixW45sum);
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
     //int right = testing(lenet, test_data, test_label, 100);

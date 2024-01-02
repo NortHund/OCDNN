@@ -47,7 +47,7 @@ __kernel void output_sum(__global double* input, __global double* output, int de
   output[(row * width) + col] = sum;
 }
 
-__kernel void cs_compare(__global double* inputCs, __global double* outputCs, __global double* result) {
+__kernel void cs_compare(__global double* inputCs, __global double* outputCs, __global double* result, int layer) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
@@ -61,8 +61,9 @@ __kernel void cs_compare(__global double* inputCs, __global double* outputCs, __
 
     //change this to a very low value and some results will start failing
     if (diff > 0.000000001) {
-        result[0] = diff + 1;
+        result[layer] = diff + 1;
     }
+    //result[layer] = diff + 1;
 
 
 
