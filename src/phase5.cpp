@@ -1698,17 +1698,20 @@ uint8 Predict(LeNet5 *lenet, image input, uint8 count)
     return get_result(&features, count);
 }
 
-uint8 Predict_ocl(image input, uint8 count)
+uint8 Predict_ocl(image input, int abft, uint8 count)
 {
     zero_vectors();
 
     load_input_ocl(input);
     ocl_phase2.write_image(matrixL0double);
-
     ocl_phase2.write_layer(matrixL1double, matrixL2double, matrixL3double, matrixL4double, matrixL5double, matrixL6double);
-    ocl_phase2.write_layersums(matrixL1insum, matrixL1outsum, matrixL3insum, matrixL3outsum, matrixL5insum, matrixL5outsum, matrixL6insum, csc);
 
-    forward_ocl(1);
+    if (abft == 1) {
+        ocl_phase2.write_layersums(matrixL1insum, matrixL1outsum, matrixL3insum, matrixL3outsum, matrixL5insum, matrixL5outsum, matrixL6insum, csc);
+    }
+    
+
+    forward_ocl(abft);
 
     //print L6 floats here
     //printf("layer6 Ocl: ");
@@ -1790,7 +1793,7 @@ int testing_ocl(image *test_data, uint8 *test_label, int total_size)
     for (int i = 0; i < total_size; ++i)
     {
         uint8 l = test_label[i];
-        int p = Predict_ocl(test_data[i], 10);
+        int p = Predict_ocl(test_data[i], 1, 10);
         //printf("prediction ocl: %d \n", p);
         right += l == p;
         acctemp += l == p;
@@ -1805,14 +1808,14 @@ int testing_ocl(image *test_data, uint8 *test_label, int total_size)
     return right;
 }
 
-int testing_comb(LeNet5 *lenet, image *test_data, uint8 *test_label, int total_size)
+int testing_comb(LeNet5 *lenet, image *test_data, uint8 *test_label, int abft, int total_size)
 {
     int right = 0, percent = 0;
     int acctemp = 0;
     for (int i = 0; i < total_size; ++i)
     {
         uint8 l = test_label[i];
-        int p = Predict_ocl(test_data[i], 10);
+        int p = Predict_ocl(test_data[i], abft, 10);
         int pp = Predict(lenet, test_data[i], 10);
         //printf("prediction ocl: %d \n", p);
 
@@ -1878,9 +1881,16 @@ int main() {
     createVectors();
     copyModel(lenet);
 
+    int abft_enable = 1;
+
     ocl_phase2.write_weights(matrixW01double, matrixW23double, matrixW45double, matrixW56double);
     ocl_phase2.write_bias(matrixB01double, matrixB23double, matrixB45double, matrixB56double);
-    ocl_phase2.write_weightsums(matrixW01sum, matrixW23sum, matrixW45sum, matrixW56sum);
+
+
+    if (abft_enable == 1) {
+        ocl_phase2.write_weightsums(matrixW01sum, matrixW23sum, matrixW45sum, matrixW56sum);
+    }
+    
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
     //int right = testing(lenet, test_data, test_label, 100);
@@ -1889,9 +1899,10 @@ int main() {
     //int right_ocl = testing_ocl(test_data, test_label, 100);
     //printf("ocl accuracy: %d / %d \n", right_ocl, 100);
 
-    int right_comb = testing_comb(lenet, test_data, test_label, 2);
-    printf("accuracy: %d / %d \n", right_comb, 2);
-
+    for (int i = 0; i < 10; i++) {
+        int right_comb = testing_comb(lenet, test_data, test_label, abft_enable,  100);
+        printf("accuracy: %d / %d \n", right_comb, 100);
+    }
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
     //printf("c: %d, ocl: %d \n",p, oclp);
@@ -1924,6 +1935,9 @@ int main() {
 
     free(matrixL5insum);
     free(matrixL5outsum);
+
+    free(matrixL6insum);
+    free(matrixL6outsum);
 
     free(matrixW01double);
     free(matrixW12double);
