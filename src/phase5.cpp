@@ -521,6 +521,7 @@ public:
         clReleaseMemObject(l1insumBuffer);
         clReleaseMemObject(l3insumBuffer);
         clReleaseMemObject(l5insumBuffer);
+        clReleaseMemObject(l6insumBuffer);
 
         clReleaseMemObject(l1outsumBuffer);
         clReleaseMemObject(l3outsumBuffer);
@@ -852,7 +853,7 @@ public:
                                             l6insumBuffer,
                                             0,
                                             0,
-                                            od * ow * oh * sizeof(double),
+                                            sizeof(double),
                                             optr,
                                             0,
                                             NULL,
@@ -1050,8 +1051,8 @@ static void createVectors()
     matrixL5outsum = (double*)malloc((layer5w * layer5h) * sizeof(double));
     matrixW45sum = (double*)malloc((layer4d) * (w45w * w45h) * sizeof(double));
 
-    matrixL6insum = (double*)malloc(OUTPUT * sizeof(double));
-    matrixL6outsum = (double*)malloc(OUTPUT * sizeof(double));
+    matrixL6insum = (double*)malloc(sizeof(double));
+    matrixL6outsum = (double*)malloc(sizeof(double));
     matrixW56sum = (double*)malloc((layer5d * layer5w * layer5h) * sizeof(double));
 
     matrixB01double = (double*)malloc((layer1d) * sizeof(double));
@@ -1093,6 +1094,8 @@ static void createVectors()
     for (int i = 0; i < (layer5h * layer5w); i++) {
         matrixL5outsum[i] = 0;
     }
+    matrixL6insum[0] = 2;
+    matrixL6outsum[0] = 0;
 
     ics = (double*)malloc(sizeof(double));
     ocs = (double*)malloc(sizeof(double));
@@ -1323,12 +1326,9 @@ static void zero_vectors()
     for (int i = 0; i < (layer5h * layer5w); i++) {
         matrixL5outsum[i] = 0;
     }
-    for (int i = 0; i < (layer6w); i++) {
-        matrixL6insum[i] = 0;
-    }
-    for (int i = 0; i < (layer6w); i++) {
-        matrixL6outsum[i] = 0;
-    }
+    matrixL6insum[0] = 2;
+    matrixL6outsum[0] = 0;
+    
     for (int i = 0; i < (5); i++) {
         csc[i] = 0;
     }

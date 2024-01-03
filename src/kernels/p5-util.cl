@@ -65,5 +65,6 @@ __kernel void flatmat_ics(__global double* input, __global double* output, __glo
     }
 
     output[0] = sum;
+    //output[0] = 4;
 
 }
