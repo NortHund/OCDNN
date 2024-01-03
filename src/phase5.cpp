@@ -155,6 +155,14 @@ public:
                                       NULL);
     }
 
+    unsigned write_image(double* l0ptr) {
+        l0Buffer = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  layer0d * layer0h * layer0w * sizeof(double),
+                                  l0ptr,
+                                  NULL);
+    }
+
     unsigned write_layersums(double* l1iptr, double* l1optr, double* csptr) {
         l1insumBuffer = clCreateBuffer(_ocl_base->context,
                                      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -172,14 +180,6 @@ public:
                                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                    5 * sizeof(double),
                                    csptr,
-                                   NULL);
-    }
-
-    unsigned write_image(double* l0ptr) {
-       l0Buffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   layer0d * layer0h * layer0w * sizeof(double),
-                                   l0ptr,
                                    NULL);
     }
 
@@ -303,13 +303,19 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l1Buffer);
     }
 
-    unsigned setbufs_l01ics() {
+    unsigned setbuf_l1rb()
+    {
         cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l1Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l1rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b01Buffer);
+    }
 
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l0Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w01sumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l1insumBuffer);
+    unsigned setbuf_l12()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l1rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l2Buffer);
     }
 
     unsigned setbufs_l23() {
@@ -321,13 +327,19 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l3Buffer);
     }
 
-    unsigned setbufs_l23ics() {
+    unsigned setbuf_l34()
+    {
         cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l3rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l4Buffer);
+    }
 
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l2Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w23sumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l3insumBuffer);
+    unsigned setbuf_l3rb()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l3Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l3rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b23Buffer);
     }
 
     unsigned setbufs_l45() {
@@ -339,6 +351,33 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l5Buffer);
     }
 
+    unsigned setbuf_l5rb()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l5Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l5rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b45Buffer);
+    }
+
+
+    unsigned setbufs_l01ics() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l0Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w01sumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l1insumBuffer);
+    }
+
+    unsigned setbufs_l23ics() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l2Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w23sumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l3insumBuffer);
+    }
+
     unsigned setbufs_l45ics() {
         cl_int status;
 
@@ -346,6 +385,104 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *) &l4Buffer);
         status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *) &w45sumBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *) &l5insumBuffer);
+    }
+
+    unsigned setbufs_l01ocs() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l1Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l1outsumBuffer);
+    }
+
+    unsigned setbufs_l23ocs() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l3Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l3outsumBuffer);
+    }
+
+    unsigned setbufs_l45ocs() {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l5Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
+    }
+
+    unsigned setbufs_l01csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l1insumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l1outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l23csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l3insumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l3outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l45csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l5insumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned zero_bufs()
+    {
+        cl_int status;
+
+    }
+
+    unsigned free_bufs()
+    {
+        clReleaseMemObject(iBuffer);
+        clReleaseMemObject(wBuffer);
+        clReleaseMemObject(oBuffer);
+        clReleaseMemObject(ocsBuffer);
+        clReleaseMemObject(icsBuffer);
+        clReleaseMemObject(cscBuffer);
+        clReleaseMemObject(biasBuffer);
+
+        clReleaseMemObject(l0Buffer);
+        clReleaseMemObject(l1Buffer);
+        clReleaseMemObject(l1rbBuffer);
+        clReleaseMemObject(l2Buffer);
+        clReleaseMemObject(l3Buffer);
+        clReleaseMemObject(l3rbBuffer);
+        clReleaseMemObject(l4Buffer);
+        clReleaseMemObject(l5Buffer);
+        clReleaseMemObject(l5rbBuffer);
+
+        clReleaseMemObject(b01Buffer);
+        clReleaseMemObject(b23Buffer);
+        clReleaseMemObject(b45Buffer);
+        clReleaseMemObject(b56Buffer);
+
+        clReleaseMemObject(w01Buffer);
+        clReleaseMemObject(w23Buffer);
+        clReleaseMemObject(w45Buffer);
+        clReleaseMemObject(w56Buffer);
+
+        clReleaseMemObject(l1insumBuffer);
+        clReleaseMemObject(l3insumBuffer);
+        clReleaseMemObject(l5insumBuffer);
+
+        clReleaseMemObject(l1outsumBuffer);
+        clReleaseMemObject(l3outsumBuffer);
+        clReleaseMemObject(l5outsumBuffer);
+
+        clReleaseMemObject(w01sumBuffer);
+        clReleaseMemObject(w23sumBuffer);
+        clReleaseMemObject(w45sumBuffer);
+        clReleaseMemObject(w56sumBuffer);
     }
 
     double buf_read(int ow, int oh, int od, double* optr)
@@ -357,40 +494,6 @@ public:
                                             0,
                                             od * ow * oh * sizeof(double),
                                             optr,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[1] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-    }
-
-    double weight_read()
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            w01Buffer,
-                                            0,
-                                            0,
-                                            layer0d * layer1d * w01h * w01w * sizeof(double),
-                                            matrixW01double,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[1] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-
-    }
-
-    double bias_read()
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            b01Buffer,
-                                            0,
-                                            0,
-                                            layer1d * sizeof(double),
-                                            matrixB01double,
                                             0,
                                             NULL,
                                             &_event);
@@ -453,30 +556,6 @@ public:
         return (unsigned)status;
     }
 
-    unsigned setbuf_l1rb()
-    {
-        cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l1Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l1rbBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b01Buffer);
-    }
-
-    unsigned setbuf_l3rb()
-    {
-        cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l3Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l3rbBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b23Buffer);
-    }
-
-    unsigned setbuf_l5rb()
-    {
-        cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l5Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l5rbBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b45Buffer);
-    }
-
     unsigned relu_nb(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
@@ -507,20 +586,6 @@ public:
         kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
-    }
-
-    unsigned setbuf_l12()
-    {
-        cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l1rbBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l2Buffer);
-    }
-
-    unsigned setbuf_l34()
-    {
-        cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l3rbBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l4Buffer);
     }
 
     unsigned maxpool_nb(int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int od, int iln, int olm)
@@ -559,232 +624,6 @@ public:
         return (unsigned)status;
     }
 
-    unsigned zero_bufs()
-    {
-        cl_int status;
-
-    }
-
-    unsigned free_bufs()
-    {
-        clReleaseMemObject(iBuffer);
-        clReleaseMemObject(wBuffer);
-        clReleaseMemObject(oBuffer);
-        clReleaseMemObject(ocsBuffer);
-        clReleaseMemObject(icsBuffer);
-        clReleaseMemObject(cscBuffer);
-        clReleaseMemObject(biasBuffer);
-
-        clReleaseMemObject(l0Buffer);
-        clReleaseMemObject(l1Buffer);
-        clReleaseMemObject(l1rbBuffer);
-        clReleaseMemObject(l2Buffer);
-        clReleaseMemObject(l3Buffer);
-        clReleaseMemObject(l3rbBuffer);
-        clReleaseMemObject(l4Buffer);
-        clReleaseMemObject(l5Buffer);
-        clReleaseMemObject(l5rbBuffer);
-
-        clReleaseMemObject(b01Buffer);
-        clReleaseMemObject(b23Buffer);
-        clReleaseMemObject(b45Buffer);
-        clReleaseMemObject(b56Buffer);
-
-        clReleaseMemObject(w01Buffer);
-        clReleaseMemObject(w23Buffer);
-        clReleaseMemObject(w45Buffer);
-        clReleaseMemObject(w56Buffer);
-
-        clReleaseMemObject(l1insumBuffer);
-        clReleaseMemObject(l3insumBuffer);
-        clReleaseMemObject(l5insumBuffer);
-        clReleaseMemObject(l1outsumBuffer);
-        clReleaseMemObject(l3outsumBuffer);
-        clReleaseMemObject(l5outsumBuffer);
-
-        clReleaseMemObject(w01sumBuffer);
-        clReleaseMemObject(w23sumBuffer);
-        clReleaseMemObject(w45sumBuffer);
-        clReleaseMemObject(w56sumBuffer);
-    }
-
-    unsigned convolution_double(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
-    {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 1, sizeof(cl_mem), (void *)&wBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 2, sizeof(cl_mem), (void *)&oBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 3, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 4, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 5, sizeof(int), &id);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 6, sizeof(int), &wh);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 7, sizeof(int), &ww);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 8, sizeof(int), &od);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 9, sizeof(int), &iln);
-        status = clSetKernelArg(_ocl_base->GetKernel(0), 10, sizeof(int), &olm);
-
-        size_t global_work_size[2];
-        global_work_size[0] = ow;
-        global_work_size[1] = oh;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(0),
-                                        2,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
-    }
-
-    unsigned convolution_double_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* wptr, double* optr)
-    {
-        iBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  id * iw * ih * sizeof(double),
-                                  iptr,
-                                  NULL);
-
-        wBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  id * od * ww * wh * sizeof(double),
-                                  wptr,
-                                  NULL);
-
-        oBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                  od * ow * oh * sizeof(double),
-                                  optr,
-                                  NULL);
-    }
-
-    double convolution_double_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            oBuffer,
-                                            0,
-                                            0,
-                                            od * ow * oh * sizeof(double),
-                                            optr,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[1] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        clReleaseMemObject(iBuffer);
-        clReleaseMemObject(wBuffer);
-        clReleaseMemObject(oBuffer);
-
-    }
-
-    unsigned input_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
-    {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(1), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(1), 1, sizeof(cl_mem), (void *)&icsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(1), 2, sizeof(int), &id);
-
-        size_t global_work_size[2];
-        global_work_size[0] = ow;
-        global_work_size[1] = oh;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(1),
-                                        2,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[2] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
-    }
-
-    unsigned input_sum_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
-    {
-        iBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  id * iw * ih * sizeof(double),
-                                  iptr,
-                                  NULL);
-
-
-        icsBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE,
-                                  od * ow * oh * sizeof(double),
-                                  NULL,
-                                  NULL);
-    }
-
-    double input_sum_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            icsBuffer,
-                                            0,
-                                            0,
-                                            od * ow * oh * sizeof(double),
-                                            optr,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[3] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        clReleaseMemObject(iBuffer);
-        clReleaseMemObject(icsBuffer);
-    }
-
-    unsigned setbufs_l01ocs() {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l1Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l1outsumBuffer);
-    }
-
-    unsigned setbufs_l23ocs() {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l3Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l3outsumBuffer);
-    }
-
-    unsigned setbufs_l45ocs() {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&l5Buffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
-    }
-
     unsigned output_sum_nb(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
@@ -813,99 +652,6 @@ public:
         kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
-    }
-
-    unsigned output_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
-    {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *)&oBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *)&ocsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(int), &id);
-
-        size_t global_work_size[2];
-        global_work_size[0] = ow;
-        global_work_size[1] = oh;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(2),
-                                        2,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
-    }
-
-    unsigned output_sum_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
-    {
-        oBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                  id * iw * ih * sizeof(double),
-                                  iptr,
-                                  NULL);
-
-
-        ocsBuffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE,
-                                  od * ow * oh * sizeof(double),
-                                  NULL,
-                                  NULL);
-    }
-
-    double output_sum_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            ocsBuffer,
-                                            0,
-                                            0,
-                                            od * ow * oh * sizeof(double),
-                                            optr,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        clReleaseMemObject(oBuffer);
-        clReleaseMemObject(ocsBuffer);
-    }
-
-    unsigned setbufs_l01csc() {
-        cl_int status;
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l1insumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l1outsumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
-    }
-
-    unsigned setbufs_l23csc() {
-        cl_int status;
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l3insumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l3outsumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
-    }
-
-    unsigned setbufs_l45csc() {
-        cl_int status;
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l5insumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
     }
 
     unsigned cs_compare_nb(int layer, int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -938,61 +684,6 @@ public:
         return (unsigned)status;
     }
 
-    unsigned cs_compare(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
-    {
-        cl_int status;
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&icsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&ocsBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
-
-        size_t global_work_size[2];
-        global_work_size[0] = ow;
-        global_work_size[1] = oh;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(3),
-                                        2,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
-    }
-
-    unsigned cs_compare_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* optr, double* csptr)
-    {
-        icsBuffer = clCreateBuffer(_ocl_base->context,
-                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                 iw * ih * sizeof(double),
-                                 iptr,
-                                 NULL);
-
-
-        ocsBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   ow * oh * sizeof(double),
-                                   optr,
-                                   NULL);
-
-        cscBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   5 * sizeof(double),
-                                   csptr,
-                                   NULL);
-    }
-
     double cs_compare_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
     {
         //Reading result from GPU memory to main memory
@@ -1022,160 +713,6 @@ public:
             printf("%f ", csc[i]);
         }
         printf("\n");*/
-
-        clReleaseMemObject(icsBuffer);
-        clReleaseMemObject(ocsBuffer);
-        clReleaseMemObject(cscBuffer);
-    }
-
-    unsigned relu(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
-    {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&oBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&biasBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 3, sizeof(int), &olm);
-
-        size_t global_work_size[2];
-        global_work_size[0] = ow;
-        global_work_size[1] = oh;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(4),
-                                        2,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
-    }
-
-    unsigned relu_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr, double* bptr)
-    {
-        iBuffer = clCreateBuffer(_ocl_base->context,
-                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                 id * iw * ih * sizeof(double),
-                                 iptr,
-                                 NULL);
-
-
-        oBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE,
-                                   od * ow * oh * sizeof(double),
-                                   NULL,
-                                   NULL);
-
-        biasBuffer = clCreateBuffer(_ocl_base->context,
-                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    od * sizeof(double),
-                                    bptr,
-                                    NULL);
-    }
-
-    double relu_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            oBuffer,
-                                            0,
-                                            0,
-                                            od * ow * oh * sizeof(double),
-                                            optr,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        clReleaseMemObject(iBuffer);
-        clReleaseMemObject(oBuffer);
-        clReleaseMemObject(biasBuffer);
-    }
-
-    unsigned maxpool(int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int od, int iln, int olm)
-    {
-        cl_int status;
-
-        //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&iBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&oBuffer);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 2, sizeof(int), &olm);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 3, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 4, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 5, sizeof(int), &kernel_size);
-        status = clSetKernelArg(_ocl_base->GetKernel(5), 6, sizeof(int), &stride);
-
-        size_t global_work_size[2];
-        global_work_size[0] = ow;
-        global_work_size[1] = oh;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(5),
-                                        2,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " << olm  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
-    }
-
-    unsigned maxpool_write(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* iptr)
-    {
-        iBuffer = clCreateBuffer(_ocl_base->context,
-                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                 id * iw * ih * sizeof(double),
-                                 iptr,
-                                 NULL);
-
-
-        oBuffer = clCreateBuffer(_ocl_base->context,
-                                 CL_MEM_READ_WRITE,
-                                 od * ow * oh * sizeof(double),
-                                 NULL,
-                                 NULL);
-    }
-
-    double maxpool_read(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm, double* optr)
-    {
-        //Reading result from GPU memory to main memory
-        cl_int status = clEnqueueReadBuffer(_ocl_base->commandQueue,
-                                            oBuffer,
-                                            0,
-                                            0,
-                                            od * ow * oh * sizeof(double),
-                                            optr,
-                                            0,
-                                            NULL,
-                                            &_event);
-
-        kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        clReleaseMemObject(iBuffer);
-        clReleaseMemObject(oBuffer);
     }
 
     unsigned flatmat(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -1258,9 +795,6 @@ public:
 
         kernel_execution_times[5] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
-        clReleaseMemObject(iBuffer);
-        clReleaseMemObject(oBuffer);
-        clReleaseMemObject(wBuffer);
     }
 
     void print_kernel_execution_times()
@@ -1644,18 +1178,15 @@ static void zero_vectors()
 
 }
 
-static void forward_ocl()
+static void forward_ocl(int abft)
 {
     int abftflag = 0;
     int counter = 0;
-    int abft = 2;
 
-    if (abft == 2) {
+    if (abft == 1) {
         ocl_phase2.setbufs_l01ics();
         ocl_phase2.convolution_nb(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0);
         counter++;
-        ocl_phase2.convolution_double_read(layer0w, layer0h, 1, w01w, w01h, layer1w, layer1h, 1, 0, 0,
-                                           matrixL1insum);
         //printf("conv layer 1 ics convolutions: %d \n", counter);
     }
 
@@ -1671,7 +1202,7 @@ static void forward_ocl()
     }
     //printf("conv layer 0-1 convolutions: %d \n", counter);
 
-    if (abft == 2) {
+    if (abft == 1) {
         ocl_phase2.setbufs_l01ocs();
         ocl_phase2.output_sum_nb(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
 
@@ -1698,7 +1229,7 @@ static void forward_ocl()
         ocl_phase2.maxpool_nb(layer1w, layer1h, layer1d, 2, 2, layer2w, layer2h, layer2d, 0, y);
     }
 
-    if (abft == 2) {
+    if (abft == 1) {
         //layer 3 matrix cs:
         counter=0;
         ocl_phase2.setbufs_l23ics();
@@ -1720,7 +1251,7 @@ static void forward_ocl()
     }
     //printf("conv layer 2-3 convolutions: %d \n",counter);
 
-    if (abft == 2) {
+    if (abft == 1) {
         ocl_phase2.setbufs_l23ocs();
         ocl_phase2.output_sum_nb(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0);
 
@@ -1741,7 +1272,7 @@ static void forward_ocl()
         ocl_phase2.maxpool_nb(layer3w, layer3h, layer3d, 2, 2, layer4w, layer4h, layer4d, 0, y);
     }
 
-    if (abft == 2) {
+    if (abft == 1) {
         //layer 5 matrix cs:
         ocl_phase2.setbufs_l45ics();
         counter =0;
@@ -1764,7 +1295,7 @@ static void forward_ocl()
     }
     //printf("conv layer 4-5 convolutions: %d \n",counter);
 
-    if (abft == 2) {
+    if (abft == 1) {
         //layer 5 output cs
         ocl_phase2.setbufs_l45ocs();
         ocl_phase2.output_sum_nb(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0);
@@ -1794,16 +1325,21 @@ static void forward_ocl()
     //abft results:
     ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
 
-    //printf("csc: \n");
-    for (int i = 0; i < 5; i++) {
-        //printf("%f ", csc[i]);
-        if (csc[i] != 0) {
-            abftflag = 1;
+    if (abft == 1) {
+        for (int i = 0; i < 5; i++) {
+            if (csc[i] != 0) {
+                abftflag = 1;
+            }
+        }
+
+        if (abftflag == 1) {
+            printf("csc: \n");
+            for (int i = 0; i < 5; i++) {
+                printf("%f ", csc[i]);
+            }
+            printf("\n");
         }
     }
-    //printf("\n");
-
-
 
     //output layer matrix multiplication
     for (int y = 0; y < (OUTPUT); ++y) {
@@ -1986,11 +1522,14 @@ uint8 Predict(LeNet5 *lenet, image input, uint8 count)
     forward(lenet, &features, relu);
 
     //print L6 floats here
-    printf("layer6 c++: ");
+    //printf("layer6 c++: ");
     for (uint8 i = 0; i < OUTPUT; ++i) {
-        printf("%f ", features.output[i]);
+        //printf("%f ", features.output[i]);
+        if (abs(matrixL6double[i] - features.output[i]) > 0.0000001) {
+            printf("output mismatch: ocl: %f c++: %f \n", matrixL6double[i], features.output[i]);
+        }
     }
-    printf("\n");
+    //printf("\n");
 
     //printf("c++ result: %d \n", get_result(&features, count));
 
@@ -2007,14 +1546,14 @@ uint8 Predict_ocl(image input, uint8 count)
     ocl_phase2.write_layer(matrixL1double, matrixL2double, matrixL3double, matrixL4double, matrixL5double);
     ocl_phase2.write_layersums(matrixL1insum, matrixL1outsum, csc);
 
-    forward_ocl();
+    forward_ocl(1);
 
     //print L6 floats here
-    printf("layer6 Ocl: ");
+    //printf("layer6 Ocl: ");
     for (uint8 i = 0; i < OUTPUT; ++i) {
-        printf("%f ", matrixL6double[i]);
+        //printf("%f ", matrixL6double[i]);
     }
-    printf("\n");
+    //printf("\n");
 
     //getting result from the output matrix/vector
     const int outlen = OUTPUT;
@@ -2204,6 +1743,8 @@ int main() {
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
 
     ocl_phase2.print_kernel_execution_times();
+
+    ocl_phase2.free_bufs();
 
     free(matrixL0double);
     free(matrixL1double);
