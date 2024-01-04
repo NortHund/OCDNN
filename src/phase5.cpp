@@ -173,6 +173,40 @@ public:
                                   NULL);
     }
 
+    unsigned write_layerdoubles(double* l1ptr, double* l2ptr, double* l3ptr, double* l4ptr, double* l5ptr) {
+
+        l1rbdBuffer = clCreateBuffer(_ocl_base->context,
+                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                     layer1d * layer1h * layer1w * sizeof(double),
+                                     l1ptr,
+                                     NULL);
+
+        l2dBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   layer2d * layer2h * layer2w * sizeof(double),
+                                   l2ptr,
+                                   NULL);
+
+        l3rbdBuffer = clCreateBuffer(_ocl_base->context,
+                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                     layer3d * layer3h * layer3w * sizeof(double),
+                                     l3ptr,
+                                     NULL);
+
+        l4dBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   layer4d * layer4h * layer4w * sizeof(double),
+                                   l4ptr,
+                                   NULL);
+
+        l5rbdBuffer = clCreateBuffer(_ocl_base->context,
+                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                     layer5d * layer5h * layer5w * sizeof(double),
+                                     l5ptr,
+                                     NULL);
+
+    }
+
     unsigned write_layersums(double* l1iptr, double* l1optr, double* l3iptr, double* l3optr, double* l5iptr, double* l5optr, double* l6iptr, double* csptr) {
         l1insumBuffer = clCreateBuffer(_ocl_base->context,
                                      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -218,7 +252,7 @@ public:
 
         cscBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   5 * sizeof(double),
+                                   10 * sizeof(double),
                                    csptr,
                                    NULL);
     }
@@ -357,11 +391,26 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b01Buffer);
     }
 
+    unsigned setbuf_l1rbd()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l1Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l1rbdBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b01Buffer);
+    }
+
     unsigned setbuf_l12()
     {
         cl_int status;
         status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l1rbBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l2Buffer);
+    }
+
+    unsigned setbuf_l12d()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l1rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l2dBuffer);
     }
 
     unsigned setbufs_l23() {
@@ -388,6 +437,21 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b23Buffer);
     }
 
+    unsigned setbuf_l3rbd()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l3Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l3rbdBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b23Buffer);
+    }
+
+    unsigned setbuf_l4d()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 0, sizeof(cl_mem), (void *)&l3rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(5), 1, sizeof(cl_mem), (void *)&l4dBuffer);
+    }
+
     unsigned setbufs_l45() {
         cl_int status;
 
@@ -402,6 +466,14 @@ public:
         cl_int status;
         status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l5Buffer);
         status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l5rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b45Buffer);
+    }
+
+    unsigned setbuf_l5rbd()
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *)&l5Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *)&l5rbdBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(cl_mem), (void *)&b45Buffer);
     }
 
@@ -465,6 +537,22 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
     }
 
+    unsigned setbufs_l1rbcsc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l1rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l1rbdBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l2csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l2Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l2dBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
     unsigned setbufs_l23csc() {
         cl_int status;
         //Setting buffers to kernel arguments
@@ -473,11 +561,35 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
     }
 
+    unsigned setbufs_l3rbcsc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l3rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l3rbdBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l4csc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l4Buffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l4dBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
     unsigned setbufs_l45csc() {
         cl_int status;
         //Setting buffers to kernel arguments
         status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l5insumBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l5outsumBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
+    }
+
+    unsigned setbufs_l5rbcsc() {
+        cl_int status;
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *)&l5rbBuffer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *)&l5rbdBuffer);
         status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *)&cscBuffer);
     }
 
@@ -990,10 +1102,15 @@ public:
 
     cl_mem l1insumBuffer = nullptr;
     cl_mem l1outsumBuffer = nullptr;
+    cl_mem l1rbdBuffer = nullptr;
+    cl_mem l2dBuffer = nullptr;
     cl_mem l3insumBuffer = nullptr;
     cl_mem l3outsumBuffer = nullptr;
+    cl_mem l3rbdBuffer = nullptr;
+    cl_mem l4dBuffer = nullptr;
     cl_mem l5insumBuffer = nullptr;
     cl_mem l5outsumBuffer = nullptr;
+    cl_mem l5rbdBuffer = nullptr;
     cl_mem l6insumBuffer = nullptr;
 
     cl_mem w01sumBuffer = nullptr;
@@ -1099,8 +1216,8 @@ static void createVectors()
 
     ics = (double*)malloc(sizeof(double));
     ocs = (double*)malloc(sizeof(double));
-    csc = (double*)malloc(5 * sizeof(double));
-    for (int i = 0; i < (5); i++) {
+    csc = (double*)malloc(10 * sizeof(double));
+    for (int i = 0; i < (10); i++) {
         csc[i] = 0;
     }
 }
@@ -1329,7 +1446,7 @@ static void zero_vectors()
     matrixL6insum[0] = 2;
     matrixL6outsum[0] = 0;
     
-    for (int i = 0; i < (5); i++) {
+    for (int i = 0; i < (10); i++) {
         csc[i] = 0;
     }
 
@@ -1363,7 +1480,7 @@ static void forward_ocl(int abft)
         ocl_phase2.setbufs_l01ocs();
         ocl_phase2.output_sum_nb(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, 1, 0, 0);
 
-        for (int i = 0; i < 5; i++) { csc[i] = 0; }
+        //for (int i = 0; i < 1; i++) { csc[i] = 0; }
         ocl_phase2.setbufs_l01csc();
         ocl_phase2.cs_compare_nb(0, layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
 
@@ -1379,6 +1496,19 @@ static void forward_ocl(int abft)
         ocl_phase2.relu_nb(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, y);
     }
 
+    if (abft == 1) {
+        //layer 1 relu + bias doubling and compare
+        ocl_phase2.setbuf_l1rbd();
+
+        for (int y = 0; y < layer1d; ++y) {
+            ocl_phase2.relu_nb(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, y);
+        }
+
+        ocl_phase2.setbufs_l1rbcsc();
+        ocl_phase2.cs_compare_nb(1, layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0);
+    }
+
+
     //layer 2 ocl max pooling
     ocl_phase2.setbuf_l12();
 
@@ -1387,7 +1517,19 @@ static void forward_ocl(int abft)
     }
 
     if (abft == 1) {
-        //layer 3 matrix cs:
+        //layer 2 doubling and compare
+        ocl_phase2.setbuf_l12d();
+
+        for (int y = 0; y < layer2d; ++y) {
+            ocl_phase2.maxpool_nb(layer1w, layer1h, layer1d, 2, 2, layer2w, layer2h, layer2d, 0, y);
+        }
+
+        ocl_phase2.setbufs_l2csc();
+        ocl_phase2.cs_compare_nb(2, layer2w, layer2h, layer2d, w01w, w01h, layer2w, layer2h, layer2d, 0, 0);
+    }
+
+    if (abft == 1) {
+        //layer 3 matrix ics:
         counter=0;
         ocl_phase2.setbufs_l23ics();
         for (int x = 0; x < (layer2d); ++x) {
@@ -1413,7 +1555,7 @@ static void forward_ocl(int abft)
         ocl_phase2.output_sum_nb(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, 1, 0, 0);
 
         ocl_phase2.setbufs_l23csc();
-        ocl_phase2.cs_compare_nb(1, layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
+        ocl_phase2.cs_compare_nb(3, layer3w, layer3h, 1, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
     }
 
     ocl_phase2.setbuf_l3rb();
@@ -1423,6 +1565,18 @@ static void forward_ocl(int abft)
         ocl_phase2.relu_nb(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, y);
     }
 
+    if (abft == 1) {
+        //layer 3 relu + bias doubling and compare
+        ocl_phase2.setbuf_l3rbd();
+
+        for (int y = 0; y < layer3d; ++y) {
+            ocl_phase2.relu_nb(layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, y);
+        }
+
+        ocl_phase2.setbufs_l3rbcsc();
+        ocl_phase2.cs_compare_nb(4, layer3w, layer3h, layer3d, w01w, w01h, layer3w, layer3h, layer3d, 0, 0);
+    }
+
     //layer4 ocl max pooling
     ocl_phase2.setbuf_l34();
     for (int y = 0; y < layer4d; ++y) {
@@ -1430,7 +1584,19 @@ static void forward_ocl(int abft)
     }
 
     if (abft == 1) {
-        //layer 5 matrix cs:
+        //layer 4 max pool doubling and compare
+        ocl_phase2.setbuf_l4d();
+
+        for (int y = 0; y < layer4d; ++y) {
+            ocl_phase2.maxpool_nb(layer3w, layer3h, layer3d, 2, 2, layer4w, layer4h, layer4d, 0, y);
+        }
+
+        ocl_phase2.setbufs_l2csc();
+        ocl_phase2.cs_compare_nb(5, layer4w, layer4h, layer4d, w01w, w01h, layer4w, layer4h, layer4d, 0, 0);
+    }
+
+    if (abft == 1) {
+        //layer 5 matrix ics:
         ocl_phase2.setbufs_l45ics();
         counter =0;
         for (int x = 0; x < (layer4d); ++x) {
@@ -1458,7 +1624,7 @@ static void forward_ocl(int abft)
         ocl_phase2.output_sum_nb(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, 1, 0, 0);
 
         ocl_phase2.setbufs_l45csc();
-        ocl_phase2.cs_compare_nb(2, layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0);
+        ocl_phase2.cs_compare_nb(6, layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0);
     }
 
 
@@ -1466,6 +1632,18 @@ static void forward_ocl(int abft)
     ocl_phase2.setbuf_l5rb();
     for (int y = 0; y < layer5d; ++y) {
         ocl_phase2.relu_nb(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, y);
+    }
+
+    if (abft == 1) {
+        //layer 5 relu + bias doubling and compare
+        ocl_phase2.setbuf_l5rbd();
+
+        for (int y = 0; y < layer5d; ++y) {
+            ocl_phase2.relu_nb(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, y);
+        }
+
+        ocl_phase2.setbufs_l5rbcsc();
+        ocl_phase2.cs_compare_nb(7, layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0);
     }
 
     //ocl_phase2.last_read(layer5w, layer5h, layer5d, w01w, w01h, layer5w, layer5h, layer5d, 0, 0, matrixL5double);
@@ -1479,11 +1657,11 @@ static void forward_ocl(int abft)
         }
     }*/
 
-    //abft results:
-    ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
-
+    //abft csc results:
     if (abft == 1) {
-        for (int i = 0; i < 5; i++) {
+        ocl_phase2.cs_compare_read(layer1w, layer1h, layer1d, w01w, w01h, layer1w, layer1h, layer1d, 0, 0, csc);
+
+        for (int i = 0; i < 10; i++) {
             if (csc[i] != 0) {
                 abftflag = 1;
             }
@@ -1491,7 +1669,7 @@ static void forward_ocl(int abft)
 
         if (abftflag == 1) {
             printf("csc: \n");
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 10; i++) {
                 printf("%f ", csc[i]);
             }
             printf("\n");
@@ -1700,16 +1878,9 @@ uint8 Predict(LeNet5 *lenet, image input, uint8 count)
 
 uint8 Predict_ocl(image input, int abft, uint8 count)
 {
-    zero_vectors();
 
     load_input_ocl(input);
     ocl_phase2.write_image(matrixL0double);
-    ocl_phase2.write_layer(matrixL1double, matrixL2double, matrixL3double, matrixL4double, matrixL5double, matrixL6double);
-
-    if (abft == 1) {
-        ocl_phase2.write_layersums(matrixL1insum, matrixL1outsum, matrixL3insum, matrixL3outsum, matrixL5insum, matrixL5outsum, matrixL6insum, csc);
-    }
-    
 
     forward_ocl(abft);
 
@@ -1770,6 +1941,17 @@ int read_data(unsigned char(*data)[28][28], unsigned char label[], const int cou
     return 0;
 }
 
+int init_mem(int abft) {
+    zero_vectors();
+    ocl_phase2.write_layer(matrixL1double, matrixL2double, matrixL3double, matrixL4double, matrixL5double, matrixL6double);
+
+    if (abft == 1) {
+        ocl_phase2.write_layersums(matrixL1insum, matrixL1outsum, matrixL3insum, matrixL3outsum, matrixL5insum, matrixL5outsum, matrixL6insum, csc);
+        ocl_phase2.write_layerdoubles(matrixL1double, matrixL2double, matrixL3double, matrixL4double, matrixL5double);
+    }
+
+}
+
 
 int testing(LeNet5 *lenet, image *test_data, uint8 *test_label,int total_size)
 {
@@ -1786,12 +1968,13 @@ int testing(LeNet5 *lenet, image *test_data, uint8 *test_label,int total_size)
     return right;
 }
 
-int testing_ocl(image *test_data, uint8 *test_label, int total_size)
+int testing_ocl(image *test_data, uint8 *test_label, int abft, int total_size)
 {
     int right = 0, percent = 0;
     int acctemp = 0;
     for (int i = 0; i < total_size; ++i)
     {
+        init_mem(abft);
         uint8 l = test_label[i];
         int p = Predict_ocl(test_data[i], 1, 10);
         //printf("prediction ocl: %d \n", p);
@@ -1814,6 +1997,7 @@ int testing_comb(LeNet5 *lenet, image *test_data, uint8 *test_label, int abft, i
     int acctemp = 0;
     for (int i = 0; i < total_size; ++i)
     {
+        init_mem(abft);
         uint8 l = test_label[i];
         int p = Predict_ocl(test_data[i], abft, 10);
         int pp = Predict(lenet, test_data[i], 10);
@@ -1854,6 +2038,67 @@ int load(LeNet5 *lenet, char filename[])
     return 0;
 }
 
+struct Predict_noabft : public IProgram {
+    int run() override {
+
+        forward_ocl(0);
+
+        //print L6 floats here
+        //printf("layer6 Ocl: ");
+        for (uint8 i = 0; i < OUTPUT; ++i) {
+            //printf("%f ", matrixL6double[i]);
+        }
+        //printf("\n");
+
+        //getting result from the output matrix/vector
+        const int outlen = OUTPUT;
+        uint8 result = 0;
+        double maxvalue = 0;
+        for (uint8 i = 0; i < OUTPUT; ++i) {
+            if (matrixL6double[i] > maxvalue) {
+                maxvalue = matrixL6double[i];
+                result = i;
+            }
+        }
+
+        //printf("ocl prediction: %d\n",result);
+        return result;
+    }
+};
+
+struct Predict_abft : public IProgram {
+    int run() override {
+
+        forward_ocl(1);
+
+        //print L6 floats here
+        //printf("layer6 Ocl: ");
+        for (uint8 i = 0; i < OUTPUT; ++i) {
+            //printf("%f ", matrixL6double[i]);
+        }
+        //printf("\n");
+
+        //getting result from the output matrix/vector
+        const int outlen = OUTPUT;
+        uint8 result = 0;
+        double maxvalue = 0;
+        for (uint8 i = 0; i < OUTPUT; ++i) {
+            if (matrixL6double[i] > maxvalue) {
+                maxvalue = matrixL6double[i];
+                result = i;
+            }
+        }
+
+        if (abft_err != 0) {
+            printf("abft flag raised\n");
+            abft_err = 0;
+        }
+
+        //printf("ocl prediction: %d\n",result);
+        return result;
+    }
+};
+
 int main() {
     // Measure total time
     ChronoClock clock;
@@ -1863,6 +2108,12 @@ int main() {
 
     //Start clock
     ProgramStopwatch Program_sw(clock);
+
+    //Program
+    Predict_noabft predictNoabft;
+    Predict_abft predictAbft;
+
+    int result = 0;
 
     image *test_data = (image *) calloc(COUNT_TEST, sizeof(image));
     uint8 *test_label = (uint8 *) calloc(COUNT_TEST, sizeof(uint8));
@@ -1886,10 +2137,23 @@ int main() {
     ocl_phase2.write_weights(matrixW01double, matrixW23double, matrixW45double, matrixW56double);
     ocl_phase2.write_bias(matrixB01double, matrixB23double, matrixB45double, matrixB56double);
 
-
     if (abft_enable == 1) {
         ocl_phase2.write_weightsums(matrixW01sum, matrixW23sum, matrixW45sum, matrixW56sum);
     }
+
+    load_input_ocl(test_data[1]);
+    ocl_phase2.write_image(matrixL0double);
+    init_mem(0);
+    result = Program_sw.runProgram(predictNoabft);
+    std::cout << "single prediction without abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
+
+    load_input_ocl(test_data[1]);
+    ocl_phase2.write_image(matrixL0double);
+    init_mem(1);
+    result = Program_sw.runProgram(predictAbft);
+    std::cout << "single prediction with abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
     
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
@@ -1899,9 +2163,9 @@ int main() {
     //int right_ocl = testing_ocl(test_data, test_label, 100);
     //printf("ocl accuracy: %d / %d \n", right_ocl, 100);
 
-    for (int i = 0; i < 10; i++) {
-        int right_comb = testing_comb(lenet, test_data, test_label, abft_enable,  100);
-        printf("accuracy: %d / %d \n", right_comb, 100);
+    for (int i = 0; i < 1; i++) {
+        int right_comb = testing_comb(lenet, test_data, test_label, abft_enable,  10);
+        printf("accuracy: %d / %d \n", right_comb, 10);
     }
     // p = Predict(lenet, test_data[120], 10);
     //int oclp = Predict_ocl(test_data[120], 10);
