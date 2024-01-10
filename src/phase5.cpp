@@ -851,7 +851,7 @@ public:
                                      cscBuffer,
                                      0,
                                      0,
-                                     5 * sizeof(double),
+                                     10 * sizeof(double),
                                      csc,
                                      0,
                                      NULL,
@@ -1625,6 +1625,7 @@ static void forward_ocl(int abft)
 
         ocl_phase2.setbufs_l45csc();
         ocl_phase2.cs_compare_nb(6, layer5w, layer5h, 1, w01w, w01h, layer5w, layer5h, 1, 0, 0);
+        //there is a problem with reading and writing beyond index 4/5? to the csc or ocs csc buf
     }
 
 
@@ -2140,20 +2141,31 @@ int main() {
     if (abft_enable == 1) {
         ocl_phase2.write_weightsums(matrixW01sum, matrixW23sum, matrixW45sum, matrixW56sum);
     }
+    double time1 = 0;
+    double time2 = 0;
 
     load_input_ocl(test_data[1]);
     ocl_phase2.write_image(matrixL0double);
-    init_mem(0);
-    result = Program_sw.runProgram(predictNoabft);
+
+    for (int i= 0; i < 1; i++) {
+        init_mem(0);
+        result = Program_sw.runProgram(predictNoabft);
+        time1 += Program_sw.getElapsedTime();
+    }
     std::cout << "single prediction without abft: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
-
+    std::cout << "Elapsed time: " << time1 << " us" << std::endl;
     load_input_ocl(test_data[1]);
     ocl_phase2.write_image(matrixL0double);
-    init_mem(1);
-    result = Program_sw.runProgram(predictAbft);
+
+    for (int i= 0; i < 1; i++) {
+        init_mem(1);
+        result = Program_sw.runProgram(predictAbft);
+        time2 += Program_sw.getElapsedTime();
+    }
     std::cout << "single prediction with abft: " << result << std::endl;
-    std::cout << "Elapsed time: " << Program_sw.getElapsedTime() << " us" << std::endl;
+    std::cout << "Elapsed time: " << time2 << " us" << std::endl;
+    std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
+    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
     
 
     //int right = testing(lenet, test_data, test_label, COUNT_TEST);
