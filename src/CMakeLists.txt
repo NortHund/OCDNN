@@ -81,6 +81,41 @@ target_link_libraries(phase5
   compiler_flags
   )
 
+add_executable(vgg vgg.cpp)
+target_link_libraries(vgg
+        PRIVATE
+        lodepng_wrapper
+        utilities
+        stopwatches
+        occlusion_fill
+        opencl_base
+        compiler_flags
+)
+
+add_executable(phase6_main phase6_main.cpp
+        phase6_model.cpp
+        phase6_ref.cpp)
+target_link_libraries(phase6_main
+        PRIVATE
+        lodepng_wrapper
+        utilities
+        stopwatches
+        occlusion_fill
+        opencl_base
+        compiler_flags
+)
+
+add_executable(phase6_ref phase6_ref.cpp)
+target_link_libraries(phase6_ref
+        PRIVATE
+        lodepng_wrapper
+        utilities
+        stopwatches
+        occlusion_fill
+        opencl_base
+        compiler_flags
+)
+
 # Copy all opencl kernels to the build directory
 add_custom_target(copy_kernels ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -94,4 +129,6 @@ add_dependencies(phase3 copy_kernels)
 add_dependencies(phase3_conv_f16 copy_kernels)
 add_dependencies(phase4 copy_kernels)
 add_dependencies(phase5 copy_kernels)
+add_dependencies(phase6_main copy_kernels)
+add_dependencies(vgg copy_kernels)
 
