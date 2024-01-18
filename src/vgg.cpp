@@ -4,68 +4,67 @@ int layer0w = 224;
 int layer0h = 224;
 int layer0d = 3;
 
-int layer1w = 222;
-int layer1h = 222;
-int layer1d = 32;
+int c1w = 224;
+int c1h = 224;
+int c1d = 64;
 
-int layer2w = 220;
-int layer2h = 220;
-int layer2d = 32;
+int c2w = 112;
+int c2h = 112;
+int c2d = 128;
 
-int k01 = 3;
-int k12 = 3;
+int k1 = 3;
+int k2 = 3;
+
+int c1pad = 1;
+int c2pad = 1;
 
 double* matrixL0double;
-double* matrixL1double;
-double* matrixL2double;
 
-double* matrixW01double;
+double* matrixW11double;
 double* matrixW12double;
 
-double* matrixB01double;
+double* matrixB11double;
 double* matrixB12double;
+
+double* matrixR;
 
 int abft_err = 0;
 
 int freememory() {
     free(matrixL0double);
-    free(matrixL1double);
-    free(matrixL2double);
 
-    free(matrixW01double);
+    free(matrixW11double);
     free(matrixW12double);
 
-    free(matrixB01double);
+    free(matrixB11double);
     free(matrixB12double);
 }
 
 static void createVectors()
 {
     matrixL0double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
-    matrixL1double = (double*)malloc((layer1d) * (layer1w * layer1h) * sizeof(double));
-    matrixL2double = (double*)malloc((layer2d) * (layer2w * layer2h) * sizeof(double));
 
-    matrixW01double = (double*)malloc((layer0d) * (layer1d) * (k01 * k01) * sizeof(double));
-    matrixW12double = (double*)malloc((layer1d) * (layer2d) * (k12 * k12) * sizeof(double));
+    matrixW11double = (double*)malloc((layer0d) * (c1d) * (k1 * k1) * sizeof(double));
+    matrixW12double = (double*)malloc((c1d) * (c1d) * (k1 * k1) * sizeof(double));
 
-    matrixB01double = (double*)malloc((layer1d) * sizeof(double));
-    matrixB12double = (double*)malloc((layer2d) * sizeof(double));
+    matrixB11double = (double*)malloc((c1d) * sizeof(double));
+    matrixB12double = (double*)malloc((c1d) * sizeof(double));
+
+    matrixR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL0double[i] = 0;
     }
 
-    for (int i = 0; i < (layer0d * layer1d * k01 * k01); i++) {
-        matrixW01double[i] = 0.7;
+    for (int i = 0; i < (layer0d * c1d * k1 * k1); i++) {
+        matrixW11double[i] = 0.7;
     }
-    for (int i = 0; i < (layer1d * layer2d * k12 * k12); i++) {
+    for (int i = 0; i < (c1d * c1d * k1 * k1); i++) {
         matrixW12double[i] = 0.007;
     }
 
-    for (int i = 0; i < (layer1d); i++) {
-        matrixB01double[i] = 0.2;
-    }
-    for (int i = 0; i < (layer2d); i++) {
+    for (int i = 0; i < (c1d); i++) {
+        matrixB11double[i] = 0.2;
         matrixB12double[i] = 0.2;
     }
 
@@ -121,48 +120,39 @@ public:
     }
 
     cl_mem l0Buffer = nullptr;
-    cl_mem l1Buffer = nullptr;
-    cl_mem l1rBuffer = nullptr;
-    cl_mem l2Buffer = nullptr;
 
-    cl_mem b01Buffer = nullptr;
+    cl_mem b11Buffer = nullptr;
     cl_mem b12Buffer = nullptr;
 
-    cl_mem w01Buffer = nullptr;
+    cl_mem w11Buffer = nullptr;
     cl_mem w12Buffer = nullptr;
 
-    cl_mem c1Buffer = nullptr;
-    cl_mem c2Buffer = nullptr;
+    cl_mem c11Buf = nullptr;
+    cl_mem c12Buf = nullptr;
+
+    cl_mem c21Buf = nullptr;
+    cl_mem c22Buf = nullptr;
+
+    cl_mem c31Buf = nullptr;
+    cl_mem c32Buf = nullptr;
+
+    cl_mem c41Buf = nullptr;
+    cl_mem c42Buf = nullptr;
+
+    cl_mem c51Buf = nullptr;
+    cl_mem c52Buf = nullptr;
 
     unsigned create_layers()
     {
-        l1Buffer = clCreateBuffer(_ocl_base->context,
+        c11Buf = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE,
-                                  layer1d * layer1h * layer1w * sizeof(double),
+                                  c1d * c1h * c1w * sizeof(double),
                                   nullptr,
                                   NULL);
 
-        l1rBuffer = clCreateBuffer(_ocl_base->context,
-                                   CL_MEM_READ_WRITE,
-                                   layer1d * layer1h * layer1w * sizeof(double),
-                                   nullptr,
-                                   NULL);
-
-        l2Buffer = clCreateBuffer(_ocl_base->context,
+        c12Buf = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE,
-                                  layer2d * layer2h * layer2w * sizeof(double),
-                                  nullptr,
-                                  NULL);
-
-        c1Buffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE,
-                                  layer1d * layer1h * layer1w * sizeof(double),
-                                  nullptr,
-                                  NULL);
-
-        c2Buffer = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE,
-                                  layer1d * layer1h * layer1w * sizeof(double),
+                                  c1d * c1h * c1w * sizeof(double),
                                   nullptr,
                                   NULL);
 
@@ -171,18 +161,24 @@ public:
     unsigned free_bufs()
     {
         clReleaseMemObject(l0Buffer);
-        clReleaseMemObject(l1Buffer);
-        clReleaseMemObject(l1rBuffer);
-        clReleaseMemObject(l2Buffer);
 
-        clReleaseMemObject(b01Buffer);
+        clReleaseMemObject(b11Buffer);
         clReleaseMemObject(b12Buffer);
 
-        clReleaseMemObject(w01Buffer);
+        clReleaseMemObject(w11Buffer);
         clReleaseMemObject(w12Buffer);
 
-        clReleaseMemObject(c1Buffer);
-        clReleaseMemObject(c2Buffer);
+        clReleaseMemObject(c21Buf);
+        clReleaseMemObject(c22Buf);
+
+        clReleaseMemObject(c31Buf);
+        clReleaseMemObject(c32Buf);
+
+        clReleaseMemObject(c41Buf);
+        clReleaseMemObject(c42Buf);
+
+        clReleaseMemObject(c51Buf);
+        clReleaseMemObject(c52Buf);
     }
 
     unsigned write_image(double* l0ptr) {
@@ -195,15 +191,15 @@ public:
 
     unsigned write_weights(double* w01ptr, double* w12ptr)
     {
-        w01Buffer = clCreateBuffer(_ocl_base->context,
+        w11Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   layer0d * layer1d * k01 * k01 * sizeof(double),
+                                   layer0d * c1d * k1 * k1 * sizeof(double),
                                    w01ptr,
                                    NULL);
 
         w12Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   layer1d * layer2d * k12 * k12 * sizeof(double),
+                                   c1d * c1d * k1 * k1 * sizeof(double),
                                    w12ptr,
                                    NULL);
 
@@ -211,15 +207,15 @@ public:
 
     unsigned write_bias(double* b01ptr, double* b12ptr)
     {
-        b01Buffer = clCreateBuffer(_ocl_base->context,
+        b11Buffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    layer1d * sizeof(double),
+                                    c1d * sizeof(double),
                                     b01ptr,
                                     NULL);
 
         b12Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   layer2d * sizeof(double),
+                                   c1d * sizeof(double),
                                    b12ptr,
                                    NULL);
 
@@ -242,7 +238,7 @@ public:
 
     }
 
-    unsigned convolution3(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, int iw, int ih, int id, int k, int ow, int oh, int od)
+    unsigned convolution3(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, int iw, int ih, int id, int k, int ow, int oh, int od, int pad)
     {
         cl_int status;
         //Setting kernel arguments
@@ -254,6 +250,7 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(0), 5, sizeof(int), &ih);
         status = clSetKernelArg(_ocl_base->GetKernel(0), 6, sizeof(int), &iw);
         status = clSetKernelArg(_ocl_base->GetKernel(0), 7, sizeof(int), &k);
+        status = clSetKernelArg(_ocl_base->GetKernel(0), 8, sizeof(int), &pad);
 
         size_t global_work_size[3];
         global_work_size[0] = ow;
@@ -511,29 +508,28 @@ static void forward_ocl(int abft)
     int abftflag = 0;
 
     //convolution 1-1
-    ocl.convolution3(ocl.l0Buffer, ocl.w01Buffer, ocl.b01Buffer, ocl.l1Buffer,
-                     layer0w, layer0h, layer0d, k01, layer1w, layer1h, layer1d);
+    ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
+                     c1w, c1h, c1d, k1, c1w, c1d, c1d, c1pad);
 
-    ocl.buf_read(layer1w, layer1h, layer1d, matrixL1double, ocl.l1Buffer);
+    ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c11Buf);
 
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", matrixL1double[i]);
+    for (int i=100; i <110 ; i++) {
+        printf("%f ", matrixR[i]);
     }
 
     //convolution 1-2
-    ocl.convolution3(ocl.l1Buffer, ocl.w12Buffer, ocl.b12Buffer, ocl.l2Buffer,
-                     layer1w, layer1h, layer1d, k01, layer2w, layer2h, layer2d);
+    ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
+                     c1w, c1h, c1d, k1, c1w, c1h, c1d, c1pad);
 
-
-
+    
     //with 0 bias
     /*ocl.convolution3(ocl.l0Buffer, ocl.w01Buffer, nullptr, ocl.l1Buffer,
                      layer0w, layer0h, layer0d, k01, layer1w, layer1h, layer1d);*/
 
-    ocl.buf_read(layer2w, layer2h, layer2d, matrixL2double, ocl.l2Buffer);
+    ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c12Buf);
 
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", matrixL2double[i]);
+    for (int i=100; i <110 ; i++) {
+        printf("%f ", matrixR[i]);
     }
 
 
@@ -587,8 +583,8 @@ int main() {
     ocl.write_image(matrixL0double);
 
     ocl.create_layers();
-    ocl.write_weights(matrixW01double, matrixW12double);
-    ocl.write_bias(matrixB01double, matrixB12double);
+    ocl.write_weights(matrixW11double, matrixW12double);
+    ocl.write_bias(matrixB11double, matrixB12double);
 
     forward_ocl(1);
 
