@@ -635,6 +635,12 @@ public:
         clReleaseMemObject(l5insumBuffer);
         clReleaseMemObject(l6insumBuffer);
 
+        clReleaseMemObject(l1rbdBuffer);
+        clReleaseMemObject(l2dBuffer);
+        clReleaseMemObject(l3rbdBuffer);
+        clReleaseMemObject(l4dBuffer);
+        clReleaseMemObject(l5rbdBuffer);
+
         clReleaseMemObject(l1outsumBuffer);
         clReleaseMemObject(l3outsumBuffer);
         clReleaseMemObject(l5outsumBuffer);
@@ -2144,21 +2150,22 @@ int main() {
     double time1 = 0;
     double time2 = 0;
 
-    load_input_ocl(test_data[1]);
-    ocl_phase2.write_image(matrixL0double);
-
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 1000; i++) {
+        //ocl_phase2.free_bufs();
         init_mem(0);
+        load_input_ocl(test_data[i]);
+        ocl_phase2.write_image(matrixL0double);
         result = Program_sw.runProgram(predictNoabft);
         time1 += Program_sw.getElapsedTime();
     }
     std::cout << "single prediction without abft: " << result << std::endl;
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
-    load_input_ocl(test_data[1]);
-    ocl_phase2.write_image(matrixL0double);
 
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 1000; i++) {
+        //ocl_phase2.free_bufs();
         init_mem(1);
+        load_input_ocl(test_data[i]);
+        ocl_phase2.write_image(matrixL0double);
         result = Program_sw.runProgram(predictAbft);
         time2 += Program_sw.getElapsedTime();
     }
