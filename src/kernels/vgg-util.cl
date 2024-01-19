@@ -15,24 +15,26 @@ __kernel void relu(__global double* input, __global double* output, __global dou
 
 }
 
-__kernel void maxpool(__global double* input, __global double* output, int depth, int ih, int iw, int k_s, int st) {
+__kernel void maxpool(__global double* input, __global double* output, int ih, int iw, int k_s, int st) {
     int col = get_global_id(0);
     int row = get_global_id(1);
+    int layer = get_global_id(2);
     int width = get_global_size(0);
     int height = get_global_size(1);
+    int depth = get_global_size(2);
 
     double max = 0;
     double val = 0;
 
     for (int i = 0; i < k_s; ++i) {
         for (int j = 0; j < k_s; ++j) {
-            val = input[(depth * ih * iw) + (((row * st) + i) * iw) + ((col * st) + j)];
+            val = input[(layer * ih * iw) + (((row * st) + i) * iw) + ((col * st) + j)];
             if (val > max) {
                 max = val;
             }
         }
     }
-    output[(depth * height * width) + (row * width) + col] = max;
+    output[(layer * height * width) + (row * width) + col] = max;
 
 }
 

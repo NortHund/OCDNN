@@ -1,4 +1,5 @@
-__kernel void convolution_double(__global double* input, __global double* weight, __global double* bias, __global double* output, int id, int ih, int iw, int kwh, int pad) {
+__kernel void convolution_double(__global double* input, __global double* weight, __global double* bias, __global double* output,
+                                int id, int ih, int iw, int kwh, int pad) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int layer = get_global_id(2);
