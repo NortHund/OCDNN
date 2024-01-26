@@ -1,20 +1,20 @@
 #include "vgg.h"
 
-int layer0w = 224;
-int layer0h = 224;
+int layer0w = 24;
+int layer0h = 24;
 int layer0d = 3;
 
-int c1w = 224;
-int c1h = 224;
-int c1d = 64;
+int c1w = 24;
+int c1h = 24;
+int c1d = 3;
 
-int c2w = 112;
-int c2h = 112;
-int c2d = 128;
+int c2w = 12;
+int c2h = 12;
+int c2d = 3;
 
-int c3w = 56;
-int c3h = 56;
-int c3d = 256;
+int c3w = 6;
+int c3h = 6;
+int c3d = 3;
 
 int k1 = 3;
 int k2 = 3;
@@ -36,6 +36,21 @@ double* matrixB12double;
 double* matrixB21double;
 double* matrixB22double;
 
+
+double* matrixW11sum;
+double* matrixW12sum;
+double* matrixW21sum;
+double* matrixW22sum;
+
+double* matrixB11sum;
+double* matrixB12sum;
+double* matrixB21sum;
+double* matrixB22sum;
+
+double* ics;
+double* ocs;
+double* csc;
+
 double* matrixR;
 double* matrixR2;
 
@@ -46,12 +61,30 @@ int freememory() {
 
     free(matrixW11double);
     free(matrixW12double);
+    free(matrixW21double);
+    free(matrixW22double);
 
     free(matrixB11double);
     free(matrixB12double);
+    free(matrixB21double);
+    free(matrixB22double);
 
     free(matrixR);
     free(matrixR2);
+
+    free(matrixW11sum);
+    free(matrixW12sum);
+    free(matrixW21sum);
+    free(matrixW22sum);
+
+    free(matrixB11sum);
+    free(matrixB12sum);
+    free(matrixB21sum);
+    free(matrixB22sum);
+
+    free(ics);
+    free(ocs);
+    free(csc);
 }
 
 static void createVectors()
@@ -68,9 +101,22 @@ static void createVectors()
     matrixB21double = (double*)malloc((c2d) * sizeof(double));
     matrixB22double = (double*)malloc((c2d) * sizeof(double));
 
+    matrixW11sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
+    matrixW12sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
+    matrixW21sum = (double*)malloc((c2d) * (k2 * k2) * sizeof(double));
+    matrixW22sum = (double*)malloc((c2d) * (k2 * k2) * sizeof(double));
+
+    matrixB11sum = (double*)malloc(sizeof(double));
+    matrixB12sum = (double*)malloc(sizeof(double));
+    matrixB21sum = (double*)malloc(sizeof(double));
+    matrixB22sum = (double*)malloc(sizeof(double));
+
+    ics = (double*)malloc((c2w * c2h) * sizeof(double));
+    ocs = (double*)malloc((c2w * c2h) * sizeof(double));
+    csc = (double*)malloc((32) * sizeof(double));
+
     matrixR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
     matrixR2 = (double*)malloc((c2d) * (c2w * c2h) * sizeof(double));
-
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL0double[i] = 0;
@@ -88,13 +134,72 @@ static void createVectors()
     }
 
     for (int i = 0; i < (c1d); i++) {
-        matrixB11double[i] = 0.2;
+        matrixB11double[i] = 0.1;
         matrixB12double[i] = 0.2;
     }
     for (int i = 0; i < (c2d); i++) {
-        matrixB21double[i] = 0.2;
-        matrixB22double[i] = 0.2;
+        matrixB21double[i] = 0.3;
+        matrixB22double[i] = 0.4;
     }
+
+}
+
+static void create_weight_sums() {
+    for (int i = 0; i < (c1d * k1 * k1); i++) {
+        matrixW11sum[i] = 0;
+        matrixW12sum[i] = 0;
+    }
+    for (int i = 0; i < (c2d * k2 * k2); i++) {
+        matrixW21sum[i] = 0;
+        matrixW22sum[i] = 0;
+    }
+
+    matrixB11sum[0] = 0;
+    matrixB12sum[0] = 0;
+    matrixB21sum[0] = 0;
+    matrixB22sum[0] = 0;
+
+
+    for (int h = 0; h < c1d; h++) {
+        for (int i = 0; i < c1d; i++) {
+            for (int j = 0; j < k1; j++) {
+                for (int k = 0; k < k1; k++) {
+                    matrixW11sum[(i * k1 * k1) + (j * k1) + k] += matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
+                    matrixW12sum[(i * k1 * k1) + (j * k1) + k] += matrixW12double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
+                }
+            }
+        }
+    }
+
+    for (int h = 0; h < c2d; h++) {
+        for (int i = 0; i < c2d; i++) {
+            for (int j = 0; j < k2; j++) {
+                for (int k = 0; k < k2; k++) {
+                    matrixW21sum[(i * k2 * k2) + (j * k2) + k] += matrixW21double[(h * c2d * k2 * k2) + (i * k2 * k2) + (j * k2) + k];
+                    matrixW22sum[(i * k2 * k2) + (j * k2) + k] += matrixW22double[(h * c2d * k2 * k2) + (i * k2 * k2) + (j * k2) + k];
+                }
+            }
+        }
+    }
+
+    for (int h = 0; h < c1d; h++) {
+        matrixB11sum[0] += matrixB11double[h];
+        matrixB12sum[0] += matrixB12double[h];
+    }
+    for (int h = 0; h < c2d; h++) {
+        matrixB21sum[0] += matrixB21double[h];
+        matrixB22sum[0] += matrixB22double[h];
+    }
+
+    /*for (int i = 0; i < c2d; i++) {
+        for (int j = 0; j < k2; j++) {
+            for (int k = 0; k < k2; k++) {
+                printf("%f ", matrixW22sum[(i * k2 * k2) + (j * k2) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
 
 }
 
@@ -122,6 +227,7 @@ public:
         init_programs();
         init_kernels();
         create_layers();
+        create_bufs_abft();
     }
 
     ~OCL()
@@ -174,6 +280,18 @@ public:
     cl_mem c51Buf = nullptr;
     cl_mem c52Buf = nullptr;
 
+    cl_mem w21sBuffer = nullptr;
+    cl_mem w22sBuffer = nullptr;
+
+    cl_mem b11sBuffer = nullptr;
+    cl_mem b12sBuffer = nullptr;
+    cl_mem b21sBuffer = nullptr;
+    cl_mem b22sBuffer = nullptr;
+
+    cl_mem icsBuf = nullptr;
+    cl_mem ocsBuf = nullptr;
+    cl_mem cscBuf = nullptr;
+
     unsigned create_layers()
     {
         c11Buf = clCreateBuffer(_ocl_base->context,
@@ -214,15 +332,40 @@ public:
 
     }
 
+    unsigned create_bufs_abft()
+    {
+        icsBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c2h * c2w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        ocsBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c2h * c2w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        cscBuf = clCreateBuffer(_ocl_base->context,
+                                  CL_MEM_READ_WRITE,
+                                  32 * sizeof(double),
+                                  nullptr,
+                                  NULL);
+    }
+
     unsigned free_bufs()
     {
         clReleaseMemObject(l0Buffer);
 
         clReleaseMemObject(b11Buffer);
         clReleaseMemObject(b12Buffer);
+        clReleaseMemObject(b21Buffer);
+        clReleaseMemObject(b22Buffer);
 
         clReleaseMemObject(w11Buffer);
         clReleaseMemObject(w12Buffer);
+        clReleaseMemObject(w21Buffer);
+        clReleaseMemObject(w22Buffer);
 
         clReleaseMemObject(c21Buf);
         clReleaseMemObject(c22Buf);
@@ -235,6 +378,18 @@ public:
 
         clReleaseMemObject(c51Buf);
         clReleaseMemObject(c52Buf);
+
+        clReleaseMemObject(w21sBuffer);
+        clReleaseMemObject(w22sBuffer);
+
+        clReleaseMemObject(b11sBuffer);
+        clReleaseMemObject(b12sBuffer);
+        clReleaseMemObject(b21sBuffer);
+        clReleaseMemObject(b22sBuffer);
+
+        clReleaseMemObject(icsBuf);
+        clReleaseMemObject(ocsBuf);
+        clReleaseMemObject(cscBuf);
     }
 
     unsigned write_image(double* l0ptr) {
@@ -301,6 +456,45 @@ public:
 
     }
 
+    unsigned write_weight_sums(double* w21sptr, double* w22sptr, double* b11sptr, double* b12sptr, double* b21sptr, double* b22sptr)
+    {
+        w21sBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c2d * k1 * k1 * sizeof(double),
+                                   w21sptr,
+                                   NULL);
+
+        w22sBuffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c2d * k1 * k1 * sizeof(double),
+                                   w22sptr,
+                                   NULL);
+
+        b11sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b11sptr,
+                                    NULL);
+
+        b12sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b12sptr,
+                                    NULL);
+
+        b21sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b21sptr,
+                                    NULL);
+
+        b22sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b22sptr,
+                                    NULL);
+    }
+
     double buf_read(int ow, int oh, int od, double* optr, cl_mem bptr)
     {
         //Reading result from GPU memory to main memory
@@ -318,7 +512,7 @@ public:
 
     }
 
-    unsigned convolution3(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, int iw, int ih, int id, int k, int ow, int oh, int od, int pad)
+    unsigned convolution3(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, int iw, int ih, int id, int k, int pad, int ow, int oh, int od)
     {
         cl_int status;
         //Setting kernel arguments
@@ -357,16 +551,37 @@ public:
         return (unsigned)status;
     }
 
-    unsigned relu(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned convolution3_abft(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icsbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
+                               int iw, int ih, int id, int k, int pad, int ow, int oh, int od, int cscInd)
+    {
+        //ics
+        convolution3(ibuf, wsbuffer, bsbuf, icsbuffer, iw, ih, id, k, pad, ow, oh, 1);
+
+        //convolution layer
+        convolution3(ibuf, wbuf, bbuf, obuf, iw, ih, id, k, pad, ow, oh, od);
+
+        //ocs
+        output_sum(obuf, ocsbuffer, od, ow, oh);
+
+        //csc
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, od, cscInd);
+
+        return 1;
+    }
+
+    unsigned relu(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
     {
         cl_int status;
 
         //Setting buffers to kernel arguments
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 3, sizeof(int), &olm);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(int), &olm);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
         global_work_size[1] = oh;
+        global_work_size[2] = od;
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
@@ -426,9 +641,11 @@ public:
         return (unsigned)status;
     }
 
-    unsigned output_sum(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned output_sum(cl_mem ibuf, cl_mem obuf, int id, int ow, int oh)
     {
         cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(2), 1, sizeof(cl_mem), (void *) &obuf);
         status = clSetKernelArg(_ocl_base->GetKernel(2), 2, sizeof(int), &id);
 
         size_t global_work_size[2];
@@ -447,7 +664,6 @@ public:
                                         &_event);
         if (status != CL_SUCCESS) {
             std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -456,10 +672,13 @@ public:
         return (unsigned)status;
     }
 
-    unsigned cs_compare(int layer, int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned cs_compare(cl_mem ibuf, cl_mem obuf, cl_mem csbuf, int ow, int oh, int od, int csInd)
     {
         cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(3), 3, sizeof(int), &layer);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *) &csbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(3), 3, sizeof(int), &csInd);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -477,7 +696,6 @@ public:
                                         &_event);
         if (status != CL_SUCCESS) {
             std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -608,35 +826,88 @@ int load_image(const char* filename)
     return 1;
 }
 
-static void forward_ocl(int abft)
-{
+static void forward_ocl(int abft) {
     int abftflag = 0;
+
+    /*printf("l0 \n");
+    for (int i = 0; i < (c1d); i++) {
+        for (int j = 0; j < (c1h); j++) {
+            for (int k = 0; k < (c1w); k++) {
+                printf("%f ", matrixL0double[(i * c1h * c1w) + (j * c1w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
+
+    /*for (int h = 0; h < (layer0d); h++) {
+        for (int i = 0; i < (c1d); i++) {
+            for (int j = 0; j < (k1); j++) {
+                for (int k = 0; k < (k1); k++) {
+                    printf("%f ", matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+    }*/
 
     //conv block 1
     //convolution 1-1
     ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
-                     c1w, c1h, c1d, k1, c1w, c1d, c1d, c1pad);
-
+                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
     //convolution 1-2
     ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
-                     c1w, c1h, c1d, k1, c1w, c1h, c1d, c1pad);
-
+                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
     //max pool 1
     ocl.maxpool(ocl.c12Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
 
     //conv block 2
     //convolution 2-1
     ocl.convolution3(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
-                     c2w, c2h, c2d, k2, c2w, c2d, c2d, c2pad);
-
+                     c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
     //convolution 2-2
-    ocl.convolution3(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                     c2w, c2h, c2d, k2, c2w, c2h, c2d, c2pad);
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 0);
+
+    
+    ocl.buf_read(c2w, c2h, 1, ics, ocl.icsBuf);
+    ocl.buf_read(c2w, c2h, 1, ocs, ocl.ocsBuf);
+
+    printf("ics: \n ");
+    for (int i=0; i <10 ; i++) {
+        printf("%f ", ics[i]);
+    }
+    printf("\n");
+
+    printf("ocs: \n ");
+    for (int i=0; i <10 ; i++) {
+        printf("%f ", ocs[i]);
+    }
+    printf("\n");
+
+    ocl.buf_read(1, 1, 32, csc, ocl.cscBuf);
+    printf("csc: \n ");
+    for (int i=0; i <10 ; i++) {
+        printf("%f ", csc[i]);
+    }
+    printf("\n");
+
+    ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c12Buf);
+    printf("matrixR \n");
+    for (int i=0; i < (c1d); i++) {
+        for (int j=0; j < (c1h); j++) {
+            for (int k=0; k< (c1w); k++) {
+                printf("%f ", matrixR[(i * c1h * c1w) + (j * c1w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
 
     //max pool 2
     ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
-
-
 
 
 
@@ -644,9 +915,20 @@ static void forward_ocl(int abft)
     /*ocl.convolution3(ocl.l0Buffer, ocl.w01Buffer, nullptr, ocl.l1Buffer,
                      layer0w, layer0h, layer0d, k01, layer1w, layer1h, layer1d);*/
 
-    ocl.buf_read(c2w, c2h, c2d, matrixR2, ocl.c21Buf);
+    ocl.buf_read(c2w, c2h, c2d, matrixR2, ocl.c22Buf);
+    printf("matrixR2 \n");
+    for (int i=0; i < (c2d); i++) {
+        for (int j=0; j < (c2h); j++) {
+            for (int k=0; k< (c2w); k++) {
+                printf("%f ", matrixR2[(i * c2h * c2w) + (j * c2w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
 
-    for (int i=100; i <110 ; i++) {
+
+    for (int i=0; i <10 ; i++) {
         printf("%f ", matrixR2[i]);
     }
 
@@ -669,6 +951,7 @@ int main() {
     int result = 0;
 
     createVectors();
+    create_weight_sums();
 
     load_image("../../source-img/in0.png");
 
@@ -681,6 +964,9 @@ int main() {
     ocl.create_layers();
     ocl.write_weights(matrixW11double, matrixW12double, matrixW21double, matrixW22double);
     ocl.write_bias(matrixB11double, matrixB12double, matrixB21double, matrixB22double);
+
+    ocl.create_bufs_abft();
+    ocl.write_weight_sums( matrixW21sum, matrixW22sum, matrixB11sum, matrixB12sum, matrixB21sum, matrixB22sum);
 
     forward_ocl(1);
 

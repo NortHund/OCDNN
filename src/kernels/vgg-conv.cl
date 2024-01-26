@@ -7,6 +7,8 @@ __kernel void convolution_double(__global double* input, __global double* weight
     int height = get_global_size(1);
     int depth = get_global_size(2);
 
+    //padding done for left/up side, but not for right/down side?
+
     double sum = 0;
     for (int h = 0; h < id; h++) {
         for (int j = 0; j < kwh; j++) {
@@ -21,7 +23,8 @@ __kernel void convolution_double(__global double* input, __global double* weight
     }
 
   output[(layer * width * height) + (row * width) + col] = sum + bias[layer];
-  //output[(layer * width * height) + (row * width) + col] = 12;
+  //output[(layer * width * height) + (row * width) + col] = depth;
+  //output[(layer * width * height) + (row * width) + col] = weight[0];
 }
 
 __kernel void input_sum(__global double* input, __global double* output, int depth) {
@@ -54,7 +57,7 @@ __kernel void output_sum(__global double* input, __global double* output, int de
   output[(row * width) + col] = sum;
 }
 
-__kernel void cs_compare(__global double* inputCs, __global double* outputCs, __global double* result, int layer) {
+__kernel void cs_compare(__global double* inputCs, __global double* outputCs, __global double* result, int csInd) {
     int col = get_global_id(0);
     int row = get_global_id(1);
     int width = get_global_size(0);
@@ -66,11 +69,11 @@ __kernel void cs_compare(__global double* inputCs, __global double* outputCs, __
 
     diff = fabs(inputCs[(row * width) + col] - outputCs[(row * width) + col]);
 
-    //change this to a very low value and some results will start failing
+    //change this to a very low value below 14 decimals and some results will start failing
     if (diff > 0.0000000000001) {
-        result[layer] = diff + 1;
+        result[csInd] = diff + 1;
     }
-    //result[layer] = diff + 1;
+    //result[csInd] = diff + 1;
 
 
 
