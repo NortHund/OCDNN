@@ -5,6 +5,8 @@ output-img/*.txt
 .idea
 .cache
 
+source-data/vggbin/
+
 cmake-build-debug/
 
 # Prerequisites

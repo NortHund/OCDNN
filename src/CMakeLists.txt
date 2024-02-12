@@ -92,6 +92,17 @@ target_link_libraries(vgg
         compiler_flags
 )
 
+add_executable(imageConvert image_convert.cpp)
+target_link_libraries(imageConvert
+        PRIVATE
+        lodepng_wrapper
+        utilities
+        stopwatches
+        occlusion_fill
+        opencl_base
+        compiler_flags
+)
+
 add_executable(phase6_main phase6_main.cpp
         phase6_model.cpp
         phase6_ref.cpp)
@@ -131,4 +142,5 @@ add_dependencies(phase4 copy_kernels)
 add_dependencies(phase5 copy_kernels)
 add_dependencies(phase6_main copy_kernels)
 add_dependencies(vgg copy_kernels)
+add_dependencies(imageConvert copy_kernels)
 

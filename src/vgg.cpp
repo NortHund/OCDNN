@@ -144,6 +144,47 @@ static void createVectors()
 
 }
 
+static void copyModel() {
+    //1-1
+    FILE *fp = fopen("../../source-data/vggbin/0.bin", "rb");
+    fread(matrixW11double, 1728 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/1.bin", "rb");
+    fread(matrixB11double, 64 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //1-2
+    fp = fopen("../../source-data/vggbin/2.bin", "rb");
+    fread(matrixW12double, 1728 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/3.bin", "rb");
+    fread(matrixB12double, 64 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //2-1 -sizes?
+    fp = fopen("../../source-data/vggbin/4.bin", "rb");
+    fread(matrixW12double, 1728 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/5.bin", "rb");
+    fread(matrixB12double, 64 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //2-2 -sizes?
+    fp = fopen("../../source-data/vggbin/6.bin", "rb");
+    fread(matrixW12double, 1728 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/7.bin", "rb");
+    fread(matrixB12double, 64 * sizeof(double), 1, fp);
+    fclose(fp);
+
+
+
+}
+
 static void create_weight_sums() {
     for (int i = 0; i < (c1d * k1 * k1); i++) {
         matrixW11sum[i] = 0;
@@ -826,8 +867,7 @@ int load_image(const char* filename)
     return 1;
 }
 
-static void forward_ocl(int abft) {
-    int abftflag = 0;
+static void forward() {
 
     /*printf("l0 \n");
     for (int i = 0; i < (c1d); i++) {
@@ -867,11 +907,82 @@ static void forward_ocl(int abft) {
     ocl.convolution3(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
                      c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
     //convolution 2-2
+    ocl.convolution3(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                     c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
+
+
+    //max pool 2
+
+    //convolution 3-1
+
+    //convolution 3-2
+
+    //max pool 3
+
+    ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c12Buf);
+    printf("matrixR \n");
+    for (int i=0; i < (c1d); i++) {
+        for (int j=0; j < (c1h); j++) {
+            for (int k=0; k< (c1w); k++) {
+                printf("%f ", matrixR[(i * c1h * c1w) + (j * c1w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+
+    //max pool 2
+    ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
+
+
+
+    //with 0 bias
+    /*ocl.convolution3(ocl.l0Buffer, ocl.w01Buffer, nullptr, ocl.l1Buffer,
+                     layer0w, layer0h, layer0d, k01, layer1w, layer1h, layer1d);*/
+
+    ocl.buf_read(c2w, c2h, c2d, matrixR2, ocl.c22Buf);
+    printf("matrixR2 \n");
+    for (int i=0; i < (c2d); i++) {
+        for (int j=0; j < (c2h); j++) {
+            for (int k=0; k< (c2w); k++) {
+                printf("%f ", matrixR2[(i * c2h * c2w) + (j * c2w) + k]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+
+
+    for (int i=0; i <10 ; i++) {
+        printf("%f ", matrixR2[i]);
+    }
+
+}
+
+int forward_abft() {
+    int abftflag = 0;
+
+    //conv block 1
+    //convolution 1-1
+    ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
+                     ocl.icsBuf, ocl.w11Buffer, ocl.b11sBuffer, ocl.ocsBuf,
+                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 0);
+    //convolution 1-2
+    ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
+                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+    //max pool 1
+    ocl.maxpool(ocl.c12Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
+
+    //conv block 2
+    //convolution 2-1
+    ocl.convolution3(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
+                     c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
+    //convolution 2-2
     ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
                           ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 0);
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 4);
 
-    
+
     ocl.buf_read(c2w, c2h, 1, ics, ocl.icsBuf);
     ocl.buf_read(c2w, c2h, 1, ocs, ocl.ocsBuf);
 
@@ -933,9 +1044,8 @@ static void forward_ocl(int abft) {
     }
 
 
-    abft_err = abftflag;
+    return abftflag;
 }
-
 
 
 int main() {
@@ -968,7 +1078,7 @@ int main() {
     ocl.create_bufs_abft();
     ocl.write_weight_sums( matrixW21sum, matrixW22sum, matrixB11sum, matrixB12sum, matrixB21sum, matrixB22sum);
 
-    forward_ocl(1);
+    forward();
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
