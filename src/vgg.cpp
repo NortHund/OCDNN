@@ -16,13 +16,30 @@ int c3w = 6;
 int c3h = 6;
 int c3d = 3;
 
+int c4w = 6;
+int c4h = 6;
+int c4d = 3;
+
+int c5w = 6;
+int c5h = 6;
+int c5d = 3;
+
+int c6w = 6;
+int c6h = 6;
+int c6d = 3;
+
 int k1 = 3;
 int k2 = 3;
 int k3 = 3;
+int k4 = 3;
+int k5 = 3;
+
 
 int c1pad = 1;
 int c2pad = 1;
 int c3pad = 1;
+int c4pad = 1;
+int c5pad = 1;
 
 double* matrixL0double;
 
@@ -30,22 +47,69 @@ double* matrixW11double;
 double* matrixW12double;
 double* matrixW21double;
 double* matrixW22double;
+double* matrixW31double;
+double* matrixW32double;
+double* matrixW33double;
+double* matrixW41double;
+double* matrixW42double;
+double* matrixW43double;
+double* matrixW51double;
+double* matrixW52double;
+double* matrixW53double;
+double* matrixW61double;
+double* matrixW62double;
+double* matrixW63double;
 
 double* matrixB11double;
 double* matrixB12double;
 double* matrixB21double;
 double* matrixB22double;
-
+double* matrixB31double;
+double* matrixB32double;
+double* matrixB33double;
+double* matrixB41double;
+double* matrixB42double;
+double* matrixB43double;
+double* matrixB51double;
+double* matrixB52double;
+double* matrixB53double;
+double* matrixB61double;
+double* matrixB62double;
+double* matrixB63double;
 
 double* matrixW11sum;
 double* matrixW12sum;
 double* matrixW21sum;
 double* matrixW22sum;
+double* matrixW31sum;
+double* matrixW32sum;
+double* matrixW33sum;
+double* matrixW41sum;
+double* matrixW42sum;
+double* matrixW43sum;
+double* matrixW51sum;
+double* matrixW52sum;
+double* matrixW53sum;
+double* matrixW61sum;
+double* matrixW62sum;
+double* matrixW63sum;
 
 double* matrixB11sum;
 double* matrixB12sum;
 double* matrixB21sum;
 double* matrixB22sum;
+double* matrixB31sum;
+double* matrixB32sum;
+double* matrixB33sum;
+double* matrixB41sum;
+double* matrixB42sum;
+double* matrixB43sum;
+double* matrixB51sum;
+double* matrixB52sum;
+double* matrixB53sum;
+double* matrixB61sum;
+double* matrixB62sum;
+double* matrixB63sum;
 
 double* ics;
 double* ocs;
@@ -53,6 +117,10 @@ double* csc;
 
 double* matrixR;
 double* matrixR2;
+double* matrixR3;
+double* matrixR4;
+double* matrixR5;
+double* matrixR6;
 
 int abft_err = 0;
 
@@ -63,24 +131,76 @@ int freememory() {
     free(matrixW12double);
     free(matrixW21double);
     free(matrixW22double);
+    free(matrixW31double);
+    free(matrixW32double);
+    free(matrixW33double);
+    free(matrixW41double);
+    free(matrixW42double);
+    free(matrixW43double);
+    free(matrixW51double);
+    free(matrixW52double);
+    free(matrixW53double);
+    free(matrixW61double);
+    free(matrixW62double);
+    free(matrixW63double);
 
     free(matrixB11double);
     free(matrixB12double);
     free(matrixB21double);
     free(matrixB22double);
+    free(matrixB31double);
+    free(matrixB32double);
+    free(matrixB33double);
+    free(matrixB41double);
+    free(matrixB42double);
+    free(matrixB43double);
+    free(matrixB51double);
+    free(matrixB52double);
+    free(matrixB53double);
+    free(matrixB61double);
+    free(matrixB62double);
+    free(matrixB63double);
 
     free(matrixR);
     free(matrixR2);
+    free(matrixR3);
+    free(matrixR4);
+    free(matrixR5);
+    free(matrixR6);
 
     free(matrixW11sum);
     free(matrixW12sum);
     free(matrixW21sum);
     free(matrixW22sum);
+    free(matrixW31sum);
+    free(matrixW32sum);
+    free(matrixW33sum);
+    free(matrixW41sum);
+    free(matrixW42sum);
+    free(matrixW43sum);
+    free(matrixW51sum);
+    free(matrixW52sum);
+    free(matrixW53sum);
+    free(matrixW61sum);
+    free(matrixW62sum);
+    free(matrixW63sum);
 
     free(matrixB11sum);
     free(matrixB12sum);
     free(matrixB21sum);
     free(matrixB22sum);
+    free(matrixB31sum);
+    free(matrixB32sum);
+    free(matrixB33sum);
+    free(matrixB41sum);
+    free(matrixB42sum);
+    free(matrixB43sum);
+    free(matrixB51sum);
+    free(matrixB52sum);
+    free(matrixB53sum);
+    free(matrixB61sum);
+    free(matrixB62sum);
+    free(matrixB63sum);
 
     free(ics);
     free(ocs);
@@ -95,11 +215,35 @@ static void createVectors()
     matrixW12double = (double*)malloc((c1d) * (c1d) * (k1 * k1) * sizeof(double));
     matrixW21double = (double*)malloc((c2d) * (c2d) * (k2 * k2) * sizeof(double));
     matrixW22double = (double*)malloc((c2d) * (c2d) * (k2 * k2) * sizeof(double));
+    matrixW31double = (double*)malloc((c3d) * (c3d) * (k3 * k3) * sizeof(double));
+    matrixW32double = (double*)malloc((c3d) * (c3d) * (k3 * k3) * sizeof(double));
+    matrixW33double = (double*)malloc((c3d) * (c3d) * (k3 * k3) * sizeof(double));
+    matrixW41double = (double*)malloc((c4d) * (c4d) * (k4 * k4) * sizeof(double));
+    matrixW42double = (double*)malloc((c4d) * (c4d) * (k4 * k4) * sizeof(double));
+    matrixW43double = (double*)malloc((c4d) * (c4d) * (k4 * k4) * sizeof(double));
+    matrixW51double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
+    matrixW52double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
+    matrixW53double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
+    matrixW61double = (double*)malloc((c6d) * (c6d) * sizeof(double));
+    matrixW62double = (double*)malloc((c6d) * (c6d) * sizeof(double));
+    matrixW63double = (double*)malloc((c6d) * (c6d) * sizeof(double));
 
     matrixB11double = (double*)malloc((c1d) * sizeof(double));
     matrixB12double = (double*)malloc((c1d) * sizeof(double));
     matrixB21double = (double*)malloc((c2d) * sizeof(double));
     matrixB22double = (double*)malloc((c2d) * sizeof(double));
+    matrixB31double = (double*)malloc((c3d) * sizeof(double));
+    matrixB32double = (double*)malloc((c3d) * sizeof(double));
+    matrixB33double = (double*)malloc((c3d) * sizeof(double));
+    matrixB41double = (double*)malloc((c4d) * sizeof(double));
+    matrixB42double = (double*)malloc((c4d) * sizeof(double));
+    matrixB43double = (double*)malloc((c4d) * sizeof(double));
+    matrixB51double = (double*)malloc((c5d) * sizeof(double));
+    matrixB52double = (double*)malloc((c5d) * sizeof(double));
+    matrixB53double = (double*)malloc((c5d) * sizeof(double));
+    matrixB61double = (double*)malloc((c6d) * sizeof(double));
+    matrixB62double = (double*)malloc((c6d) * sizeof(double));
+    matrixB63double = (double*)malloc((c6d) * sizeof(double));
 
     matrixW11sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
     matrixW12sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
@@ -122,26 +266,6 @@ static void createVectors()
         matrixL0double[i] = 0;
     }
 
-    for (int i = 0; i < (layer0d * c1d * k1 * k1); i++) {
-        matrixW11double[i] = 0.7;
-    }
-    for (int i = 0; i < (c1d * c1d * k1 * k1); i++) {
-        matrixW12double[i] = 0.007;
-    }
-    for (int i = 0; i < (c2d * c2d * k2 * k2); i++) {
-        matrixW21double[i] = 0.007;
-        matrixW22double[i] = 0.007;
-    }
-
-    for (int i = 0; i < (c1d); i++) {
-        matrixB11double[i] = 0.1;
-        matrixB12double[i] = 0.2;
-    }
-    for (int i = 0; i < (c2d); i++) {
-        matrixB21double[i] = 0.3;
-        matrixB22double[i] = 0.4;
-    }
-
 }
 
 static void copyModel() {
@@ -156,32 +280,138 @@ static void copyModel() {
 
     //1-2
     fp = fopen("../../source-data/vggbin/2.bin", "rb");
-    fread(matrixW12double, 1728 * sizeof(double), 1, fp);
+    fread(matrixW12double, 36864 * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/3.bin", "rb");
     fread(matrixB12double, 64 * sizeof(double), 1, fp);
     fclose(fp);
 
-    //2-1 -sizes?
+    //2-1
     fp = fopen("../../source-data/vggbin/4.bin", "rb");
-    fread(matrixW12double, 1728 * sizeof(double), 1, fp);
+    fread(matrixW21double, 73728 * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/5.bin", "rb");
-    fread(matrixB12double, 64 * sizeof(double), 1, fp);
+    fread(matrixB21double, 128 * sizeof(double), 1, fp);
     fclose(fp);
 
-    //2-2 -sizes?
+    //2-2
     fp = fopen("../../source-data/vggbin/6.bin", "rb");
-    fread(matrixW12double, 1728 * sizeof(double), 1, fp);
+    fread(matrixW22double, 147456 * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/7.bin", "rb");
-    fread(matrixB12double, 64 * sizeof(double), 1, fp);
+    fread(matrixB22double, 128 * sizeof(double), 1, fp);
     fclose(fp);
 
+    //3-1
+    fp = fopen("../../source-data/vggbin/8.bin", "rb");
+    fread(matrixW31double, 294912 * sizeof(double), 1, fp);
+    fclose(fp);
 
+    fp = fopen("../../source-data/vggbin/9.bin", "rb");
+    fread(matrixB31double, 256 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //3-2
+    fp = fopen("../../source-data/vggbin/10.bin", "rb");
+    fread(matrixW32double, 589824 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/11.bin", "rb");
+    fread(matrixB32double, 256 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //3-3
+    fp = fopen("../../source-data/vggbin/12.bin", "rb");
+    fread(matrixW33double, 589824 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/13.bin", "rb");
+    fread(matrixB33double, 256 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //4-1
+    fp = fopen("../../source-data/vggbin/14.bin", "rb");
+    fread(matrixW41double, 1179648 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/15.bin", "rb");
+    fread(matrixB41double, 512 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //4-2
+    fp = fopen("../../source-data/vggbin/16.bin", "rb");
+    fread(matrixW42double, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/17.bin", "rb");
+    fread(matrixB42double, 512 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //4-3
+    fp = fopen("../../source-data/vggbin/18.bin", "rb");
+    fread(matrixW43double, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/19.bin", "rb");
+    fread(matrixB43double, 512 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //5-1
+    fp = fopen("../../source-data/vggbin/20.bin", "rb");
+    fread(matrixW51double, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/21.bin", "rb");
+    fread(matrixB51double, 512 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //5-2
+    fp = fopen("../../source-data/vggbin/22.bin", "rb");
+    fread(matrixW52double, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/23.bin", "rb");
+    fread(matrixB52double, 512 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //5-3
+    fp = fopen("../../source-data/vggbin/24.bin", "rb");
+    fread(matrixW53double, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/25.bin", "rb");
+    fread(matrixB53double, 512 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //6-1
+    fp = fopen("../../source-data/vggbin/26.bin", "rb");
+    fread(matrixW61double, 102760448 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/27.bin", "rb");
+    fread(matrixB61double, 4096 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //6-2
+    fp = fopen("../../source-data/vggbin/28.bin", "rb");
+    fread(matrixW62double, 16777216 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/29.bin", "rb");
+    fread(matrixB62double, 4096 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //6-3
+    fp = fopen("../../source-data/vggbin/30.bin", "rb");
+    fread(matrixW63double, 4096000 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/31.bin", "rb");
+    fread(matrixB63double, 1000 * sizeof(double), 1, fp);
+    fclose(fp);
 
 }
 
@@ -300,34 +530,83 @@ public:
     cl_mem b12Buffer = nullptr;
     cl_mem b21Buffer = nullptr;
     cl_mem b22Buffer = nullptr;
+    cl_mem b31Buffer = nullptr;
+    cl_mem b32Buffer = nullptr;
+    cl_mem b33Buffer = nullptr;
+    cl_mem b41Buffer = nullptr;
+    cl_mem b42Buffer = nullptr;
+    cl_mem b43Buffer = nullptr;
+    cl_mem b51Buffer = nullptr;
+    cl_mem b52Buffer = nullptr;
+    cl_mem b53Buffer = nullptr;
+    cl_mem b61Buffer = nullptr;
+    cl_mem b62Buffer = nullptr;
+    cl_mem b63Buffer = nullptr;
+
 
     cl_mem w11Buffer = nullptr;
     cl_mem w12Buffer = nullptr;
     cl_mem w21Buffer = nullptr;
     cl_mem w22Buffer = nullptr;
+    cl_mem w31Buffer = nullptr;
+    cl_mem w32Buffer = nullptr;
+    cl_mem w33Buffer = nullptr;
+    cl_mem w41Buffer = nullptr;
+    cl_mem w42Buffer = nullptr;
+    cl_mem w43Buffer = nullptr;
+    cl_mem w51Buffer = nullptr;
+    cl_mem w52Buffer = nullptr;
+    cl_mem w53Buffer = nullptr;
+    cl_mem w61Buffer = nullptr;
+    cl_mem w62Buffer = nullptr;
+    cl_mem w63Buffer = nullptr;
 
     cl_mem c11Buf = nullptr;
     cl_mem c12Buf = nullptr;
-
     cl_mem c21Buf = nullptr;
     cl_mem c22Buf = nullptr;
-
     cl_mem c31Buf = nullptr;
     cl_mem c32Buf = nullptr;
-
     cl_mem c41Buf = nullptr;
     cl_mem c42Buf = nullptr;
-
     cl_mem c51Buf = nullptr;
     cl_mem c52Buf = nullptr;
+    cl_mem c61Buf = nullptr;
+    cl_mem c62Buf = nullptr;
 
+    cl_mem w11sBuffer = nullptr;
+    cl_mem w12sBuffer = nullptr;
     cl_mem w21sBuffer = nullptr;
     cl_mem w22sBuffer = nullptr;
+    cl_mem w31sBuffer = nullptr;
+    cl_mem w32sBuffer = nullptr;
+    cl_mem w33sBuffer = nullptr;
+    cl_mem w41sBuffer = nullptr;
+    cl_mem w42sBuffer = nullptr;
+    cl_mem w43sBuffer = nullptr;
+    cl_mem w51sBuffer = nullptr;
+    cl_mem w52sBuffer = nullptr;
+    cl_mem w53sBuffer = nullptr;
+    cl_mem w61sBuffer = nullptr;
+    cl_mem w62sBuffer = nullptr;
+    cl_mem w63sBuffer = nullptr;
 
     cl_mem b11sBuffer = nullptr;
     cl_mem b12sBuffer = nullptr;
     cl_mem b21sBuffer = nullptr;
     cl_mem b22sBuffer = nullptr;
+    cl_mem b31sBuffer = nullptr;
+    cl_mem b32sBuffer = nullptr;
+    cl_mem b33sBuffer = nullptr;
+    cl_mem b41sBuffer = nullptr;
+    cl_mem b42sBuffer = nullptr;
+    cl_mem b43sBuffer = nullptr;
+    cl_mem b51sBuffer = nullptr;
+    cl_mem b52sBuffer = nullptr;
+    cl_mem b53sBuffer = nullptr;
+    cl_mem b61sBuffer = nullptr;
+    cl_mem b62sBuffer = nullptr;
+    cl_mem b63sBuffer = nullptr;
 
     cl_mem icsBuf = nullptr;
     cl_mem ocsBuf = nullptr;
@@ -371,6 +650,42 @@ public:
                                 nullptr,
                                 NULL);
 
+        c41Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c4d * c4h * c4w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c42Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c4d * c4h * c4w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c51Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c5d * c5h * c5w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c52Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c5d * c5h * c5w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c61Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c6d * c6h * c6w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c62Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c6d * c6h * c6w * sizeof(double),
+                                nullptr,
+                                NULL);
+
     }
 
     unsigned create_bufs_abft()
@@ -402,31 +717,82 @@ public:
         clReleaseMemObject(b12Buffer);
         clReleaseMemObject(b21Buffer);
         clReleaseMemObject(b22Buffer);
+        clReleaseMemObject(b31Buffer);
+        clReleaseMemObject(b32Buffer);
+        clReleaseMemObject(b33Buffer);
+        clReleaseMemObject(b41Buffer);
+        clReleaseMemObject(b42Buffer);
+        clReleaseMemObject(b43Buffer);
+        clReleaseMemObject(b51Buffer);
+        clReleaseMemObject(b52Buffer);
+        clReleaseMemObject(b53Buffer);
+        clReleaseMemObject(b61Buffer);
+        clReleaseMemObject(b62Buffer);
+        clReleaseMemObject(b63Buffer);
 
         clReleaseMemObject(w11Buffer);
         clReleaseMemObject(w12Buffer);
         clReleaseMemObject(w21Buffer);
         clReleaseMemObject(w22Buffer);
+        clReleaseMemObject(w31Buffer);
+        clReleaseMemObject(w32Buffer);
+        clReleaseMemObject(w33Buffer);
+        clReleaseMemObject(w41Buffer);
+        clReleaseMemObject(w42Buffer);
+        clReleaseMemObject(w43Buffer);
+        clReleaseMemObject(w51Buffer);
+        clReleaseMemObject(w52Buffer);
+        clReleaseMemObject(w53Buffer);
+        clReleaseMemObject(w61Buffer);
+        clReleaseMemObject(w62Buffer);
+        clReleaseMemObject(w63Buffer);
 
+        clReleaseMemObject(c11Buf);
+        clReleaseMemObject(c12Buf);
         clReleaseMemObject(c21Buf);
         clReleaseMemObject(c22Buf);
-
         clReleaseMemObject(c31Buf);
         clReleaseMemObject(c32Buf);
-
         clReleaseMemObject(c41Buf);
         clReleaseMemObject(c42Buf);
-
         clReleaseMemObject(c51Buf);
         clReleaseMemObject(c52Buf);
+        clReleaseMemObject(c61Buf);
+        clReleaseMemObject(c62Buf);
 
+        clReleaseMemObject(w11sBuffer);
+        clReleaseMemObject(w12sBuffer);
         clReleaseMemObject(w21sBuffer);
         clReleaseMemObject(w22sBuffer);
+        clReleaseMemObject(w31sBuffer);
+        clReleaseMemObject(w32sBuffer);
+        clReleaseMemObject(w33sBuffer);
+        clReleaseMemObject(w41sBuffer);
+        clReleaseMemObject(w42sBuffer);
+        clReleaseMemObject(w43sBuffer);
+        clReleaseMemObject(w51sBuffer);
+        clReleaseMemObject(w52sBuffer);
+        clReleaseMemObject(w53sBuffer);
+        clReleaseMemObject(w61sBuffer);
+        clReleaseMemObject(w62sBuffer);
+        clReleaseMemObject(w63sBuffer);
 
         clReleaseMemObject(b11sBuffer);
         clReleaseMemObject(b12sBuffer);
         clReleaseMemObject(b21sBuffer);
         clReleaseMemObject(b22sBuffer);
+        clReleaseMemObject(b31sBuffer);
+        clReleaseMemObject(b32sBuffer);
+        clReleaseMemObject(b33sBuffer);
+        clReleaseMemObject(b41sBuffer);
+        clReleaseMemObject(b42sBuffer);
+        clReleaseMemObject(b43sBuffer);
+        clReleaseMemObject(b51sBuffer);
+        clReleaseMemObject(b52sBuffer);
+        clReleaseMemObject(b53sBuffer);
+        clReleaseMemObject(b61sBuffer);
+        clReleaseMemObject(b62sBuffer);
+        clReleaseMemObject(b63sBuffer);
 
         clReleaseMemObject(icsBuf);
         clReleaseMemObject(ocsBuf);
@@ -441,7 +807,12 @@ public:
                                   NULL);
     }
 
-    unsigned write_weights(double* w11ptr, double* w12ptr, double* w21ptr, double* w22ptr)
+    unsigned write_weights(double* w11ptr, double* w12ptr,
+                           double* w21ptr, double* w22ptr,
+                           double* w31ptr, double* w32ptr, double* w33ptr,
+                           double* w41ptr, double* w42ptr, double* w43ptr,
+                           double* w51ptr, double* w52ptr, double* w53ptr,
+                           double* w61ptr, double* w62ptr, double* w63ptr)
     {
         w11Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -467,9 +838,86 @@ public:
                                    w22ptr,
                                    NULL);
 
+        w31Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c3d * c3d * k3 * k3 * sizeof(double),
+                                   w31ptr,
+                                   NULL);
+
+        w32Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c3d * c3d * k3 * k3 * sizeof(double),
+                                   w32ptr,
+                                   NULL);
+
+        w33Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c3d * c3d * k3 * k3 * sizeof(double),
+                                   w33ptr,
+                                   NULL);
+
+        w41Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c4d * c4d * k4 * k4 * sizeof(double),
+                                   w41ptr,
+                                   NULL);
+
+        w42Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c4d * c4d * k4 * k4 * sizeof(double),
+                                   w42ptr,
+                                   NULL);
+
+        w43Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c4d * c4d * k4 * k4 * sizeof(double),
+                                   w43ptr,
+                                   NULL);
+
+        w51Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c5d * c5d * k5 * k5 * sizeof(double),
+                                   w51ptr,
+                                   NULL);
+
+        w52Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c5d * c5d * k5 * k5 * sizeof(double),
+                                   w52ptr,
+                                   NULL);
+
+        w53Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c5d * c5d * k5 * k5 * sizeof(double),
+                                   w53ptr,
+                                   NULL);
+
+        w61Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c6d * c6d * sizeof(double),
+                                   w61ptr,
+                                   NULL);
+
+        w62Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c6d * c6d * sizeof(double),
+                                   w62ptr,
+                                   NULL);
+
+        w63Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c6d * c6d * sizeof(double),
+                                   w63ptr,
+                                   NULL);
+
     }
 
-    unsigned write_bias(double* b11ptr, double* b12ptr, double* b21ptr, double* b22ptr)
+    unsigned write_bias(double* b11ptr, double* b12ptr,
+                        double* b21ptr, double* b22ptr,
+                        double* b31ptr, double* b32ptr, double* b33ptr,
+                        double* b41ptr, double* b42ptr, double* b43ptr,
+                        double* b51ptr, double* b52ptr, double* b53ptr,
+                        double* b61ptr, double* b62ptr, double* b63ptr)
     {
         b11Buffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -495,10 +943,105 @@ public:
                                    b22ptr,
                                    NULL);
 
+
+        b31Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c3d * sizeof(double),
+                                   b31ptr,
+                                   NULL);
+
+        b32Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c3d * sizeof(double),
+                                   b32ptr,
+                                   NULL);
+
+        b33Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c3d * sizeof(double),
+                                   b33ptr,
+                                   NULL);
+
+        b41Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c4d * sizeof(double),
+                                   b41ptr,
+                                   NULL);
+
+        b42Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c4d * sizeof(double),
+                                   b42ptr,
+                                   NULL);
+
+        b43Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c4d * sizeof(double),
+                                   b43ptr,
+                                   NULL);
+
+        b51Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c5d * sizeof(double),
+                                   b51ptr,
+                                   NULL);
+
+        b52Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c5d * sizeof(double),
+                                   b52ptr,
+                                   NULL);
+
+        b53Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c5d * sizeof(double),
+                                   b53ptr,
+                                   NULL);
+
+        b61Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c6d * sizeof(double),
+                                   b61ptr,
+                                   NULL);
+
+        b62Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c6d * sizeof(double),
+                                   b62ptr,
+                                   NULL);
+
+        b63Buffer = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   c6d * sizeof(double),
+                                   b63ptr,
+                                   NULL);
     }
 
-    unsigned write_weight_sums(double* w21sptr, double* w22sptr, double* b11sptr, double* b12sptr, double* b21sptr, double* b22sptr)
+    unsigned write_weight_sums(double* w11sptr, double* w12sptr,
+                               double* w21sptr, double* w22sptr,
+                               double* w31sptr, double* w32sptr, double* w33sptr,
+                               double* w41sptr, double* w42sptr, double* w43sptr,
+                               double* w51sptr, double* w52sptr, double* w53sptr,
+                               double* w61sptr, double* w62sptr, double* w63sptr,
+                               double* b11sptr, double* b12sptr,
+                               double* b21sptr, double* b22sptr,
+                               double* b31sptr, double* b32sptr, double* b33sptr,
+                               double* b41sptr, double* b42sptr, double* b43sptr,
+                               double* b51sptr, double* b52sptr, double* b53sptr,
+                               double* b61sptr, double* b62sptr, double* b63sptr)
     {
+        w11sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c1d * k1 * k1 * sizeof(double),
+                                    w11sptr,
+                                    NULL);
+
+        w12sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c1d * k1 * k1 * sizeof(double),
+                                    w12sptr,
+                                    NULL);
+
         w21sBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                    c2d * k1 * k1 * sizeof(double),
@@ -511,6 +1054,80 @@ public:
                                    w22sptr,
                                    NULL);
 
+        w31sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c3d * k3 * k3 * sizeof(double),
+                                    w31sptr,
+                                    NULL);
+
+        w32sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c3d * k3 * k3 * sizeof(double),
+                                    w32sptr,
+                                    NULL);
+
+        w33sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c3d * k3 * k3 * sizeof(double),
+                                    w33sptr,
+                                    NULL);
+
+        w41sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c4d * k3 * k3 * sizeof(double),
+                                    w41sptr,
+                                    NULL);
+
+        w42sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c4d * k3 * k3 * sizeof(double),
+                                    w42sptr,
+                                    NULL);
+
+        w43sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c4d * k3 * k3 * sizeof(double),
+                                    w43sptr,
+                                    NULL);
+
+        w51sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c5d * k3 * k3 * sizeof(double),
+                                    w51sptr,
+                                    NULL);
+
+        w52sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c5d * k3 * k3 * sizeof(double),
+                                    w52sptr,
+                                    NULL);
+
+        w53sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c5d * k3 * k3 * sizeof(double),
+                                    w53sptr,
+                                    NULL);
+
+        w61sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c6d * k3 * k3 * sizeof(double),
+                                    w61sptr,
+                                    NULL);
+
+        w62sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c6d * k3 * k3 * sizeof(double),
+                                    w62sptr,
+                                    NULL);
+
+        w63sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    c6d * k3 * k3 * sizeof(double),
+                                    w63sptr,
+                                    NULL);
+
+
+        //biases
         b11sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                     sizeof(double),
@@ -533,6 +1150,81 @@ public:
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                     sizeof(double),
                                     b22sptr,
+                                    NULL);
+
+        b31sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b31sptr,
+                                    NULL);
+
+        b32sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b32sptr,
+                                    NULL);
+
+        b33sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b33sptr,
+                                    NULL);
+
+
+        b41sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b41sptr,
+                                    NULL);
+
+        b42sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b42sptr,
+                                    NULL);
+
+        b43sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b43sptr,
+                                    NULL);
+
+
+        b51sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b51sptr,
+                                    NULL);
+
+        b52sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b52sptr,
+                                    NULL);
+
+        b53sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b53sptr,
+                                    NULL);
+
+
+        b61sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b61sptr,
+                                    NULL);
+
+        b62sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b62sptr,
+                                    NULL);
+
+        b63sBuffer = clCreateBuffer(_ocl_base->context,
+                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                    sizeof(double),
+                                    b63sptr,
                                     NULL);
     }
 
@@ -1072,7 +1764,12 @@ int main() {
     ocl.write_image(matrixL0double);
 
     ocl.create_layers();
-    ocl.write_weights(matrixW11double, matrixW12double, matrixW21double, matrixW22double);
+    ocl.write_weights(matrixW11double, matrixW12double,
+                      matrixW21double, matrixW22double,
+                      matrixW31double, matrixW32double, matrixW33double,
+                      matrixW41double, matrixW42double, matrixW43double,
+                      matrixW51double, matrixW52double, matrixW53double,
+                      matrixW61double, matrixW62double, matrixW63double);
     ocl.write_bias(matrixB11double, matrixB12double, matrixB21double, matrixB22double);
 
     ocl.create_bufs_abft();
