@@ -1644,13 +1644,13 @@ public:
                           int iw, int ih, int id, int ow, int oh, int od, int cscInd)
     {
         //ics
-        flatmat(ibuf, wsbuffer, bsbuf, icsbuffer, iw, 1);
+        flatmat_ics(ibuf, wsbuffer, bsbuf, icsbuffer, iw, ow);
 
         //matmul
         flatmat(ibuf, wbuf, bbuf, obuf, iw, ow);
 
         //ocs
-        output_sum(obuf, ocsbuffer, 1, 1, 1);
+        output_sum(obuf, ocsbuffer, ow, 1, 1);
 
         //csc
         cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
@@ -1658,13 +1658,16 @@ public:
         return 1;
     }
 
-    unsigned flatmat_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned flatmat_ics(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf,
+                         int iw, int ow)
     {
         cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 4, sizeof(int), &id);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 5, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 6, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 7, sizeof(int), &ow);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 2, sizeof(cl_mem), (void *) &wbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 3, sizeof(cl_mem), (void *) &bbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 4, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 5, sizeof(int), &ow);
 
         size_t global_work_size[1];
         global_work_size[0] = 1;
@@ -1681,7 +1684,6 @@ public:
                                         &_event);
         if (status != CL_SUCCESS) {
             std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
             exit(EXIT_FAILURE);
         }
 
