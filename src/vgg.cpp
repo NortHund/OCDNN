@@ -423,7 +423,7 @@ static void copyModel() {
 static void copyWeights() {
     //1-1
     FILE *fp = fopen("../../source-data/vggbin/0s.bin", "rb");
-    fread(matrixW11sum, 1728 * sizeof(double), 1, fp);
+    fread(matrixW11sum, (3*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/1s.bin", "rb");
@@ -432,7 +432,7 @@ static void copyWeights() {
 
     //1-2
     fp = fopen("../../source-data/vggbin/2s.bin", "rb");
-    fread(matrixW12sum, 36864 * sizeof(double), 1, fp);
+    fread(matrixW12sum, (64*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/3s.bin", "rb");
@@ -441,7 +441,7 @@ static void copyWeights() {
 
     //2-1
     fp = fopen("../../source-data/vggbin/4s.bin", "rb");
-    fread(matrixW21sum, 73728 * sizeof(double), 1, fp);
+    fread(matrixW21sum, (64*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/5s.bin", "rb");
@@ -450,7 +450,7 @@ static void copyWeights() {
 
     //2-2
     fp = fopen("../../source-data/vggbin/6s.bin", "rb");
-    fread(matrixW22sum, 147456 * sizeof(double), 1, fp);
+    fread(matrixW22sum, (128*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/7s.bin", "rb");
@@ -459,7 +459,7 @@ static void copyWeights() {
 
     //3-1
     fp = fopen("../../source-data/vggbin/8s.bin", "rb");
-    fread(matrixW31sum, 294912 * sizeof(double), 1, fp);
+    fread(matrixW31sum, (128*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/9s.bin", "rb");
@@ -468,7 +468,7 @@ static void copyWeights() {
 
     //3-2
     fp = fopen("../../source-data/vggbin/10s.bin", "rb");
-    fread(matrixW32sum, 589824 * sizeof(double), 1, fp);
+    fread(matrixW32sum, (256*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/11s.bin", "rb");
@@ -477,7 +477,7 @@ static void copyWeights() {
 
     //3-3
     fp = fopen("../../source-data/vggbin/12s.bin", "rb");
-    fread(matrixW33sum, 589824 * sizeof(double), 1, fp);
+    fread(matrixW33sum, (256*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/13s.bin", "rb");
@@ -486,7 +486,7 @@ static void copyWeights() {
 
     //4-1
     fp = fopen("../../source-data/vggbin/14s.bin", "rb");
-    fread(matrixW41sum, 1179648 * sizeof(double), 1, fp);
+    fread(matrixW41sum, (256*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/15s.bin", "rb");
@@ -495,7 +495,7 @@ static void copyWeights() {
 
     //4-2
     fp = fopen("../../source-data/vggbin/16s.bin", "rb");
-    fread(matrixW42sum, 2359296 * sizeof(double), 1, fp);
+    fread(matrixW42sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/17s.bin", "rb");
@@ -504,7 +504,7 @@ static void copyWeights() {
 
     //4-3
     fp = fopen("../../source-data/vggbin/18s.bin", "rb");
-    fread(matrixW43sum, 2359296 * sizeof(double), 1, fp);
+    fread(matrixW43sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/19s.bin", "rb");
@@ -513,7 +513,7 @@ static void copyWeights() {
 
     //5-1
     fp = fopen("../../source-data/vggbin/20s.bin", "rb");
-    fread(matrixW51sum, 2359296 * sizeof(double), 1, fp);
+    fread(matrixW51sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/21s.bin", "rb");
@@ -522,7 +522,7 @@ static void copyWeights() {
 
     //5-2
     fp = fopen("../../source-data/vggbin/22s.bin", "rb");
-    fread(matrixW52sum, 2359296 * sizeof(double), 1, fp);
+    fread(matrixW52sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/23s.bin", "rb");
@@ -531,7 +531,7 @@ static void copyWeights() {
 
     //5-3
     fp = fopen("../../source-data/vggbin/24s.bin", "rb");
-    fread(matrixW53sum, 2359296 * sizeof(double), 1, fp);
+    fread(matrixW53sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/25s.bin", "rb");
@@ -540,7 +540,7 @@ static void copyWeights() {
 
     //6-1
     fp = fopen("../../source-data/vggbin/26s.bin", "rb");
-    fread(matrixW61sum, 102760448 * sizeof(double), 1, fp);
+    fread(matrixW61sum, 25088 * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/27s.bin", "rb");
@@ -549,7 +549,7 @@ static void copyWeights() {
 
     //6-2
     fp = fopen("../../source-data/vggbin/28s.bin", "rb");
-    fread(matrixW62sum, 16777216 * sizeof(double), 1, fp);
+    fread(matrixW62sum, 4096 * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/29s.bin", "rb");
@@ -558,7 +558,7 @@ static void copyWeights() {
 
     //6-3
     fp = fopen("../../source-data/vggbin/30s.bin", "rb");
-    fread(matrixW63sum, 4096000 * sizeof(double), 1, fp);
+    fread(matrixW63sum, 4096 * sizeof(double), 1, fp);
     fclose(fp);
 
     fp = fopen("../../source-data/vggbin/31s.bin", "rb");
@@ -1608,12 +1608,14 @@ public:
     }
 
     unsigned flatmat(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf,
-                     int iw, int ih, int id, int ow, int oh, int od)
+                     int iw, int ow)
     {
         cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(6), 4, sizeof(int), &id);
-        status = clSetKernelArg(_ocl_base->GetKernel(6), 5, sizeof(int), &ih);
-        status = clSetKernelArg(_ocl_base->GetKernel(6), 6, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 2, sizeof(cl_mem), (void *) &wbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 3, sizeof(cl_mem), (void *) &bbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(6), 4, sizeof(int), &iw);
 
         size_t global_work_size[1];
         global_work_size[0] = ow;
@@ -1642,16 +1644,16 @@ public:
                           int iw, int ih, int id, int ow, int oh, int od, int cscInd)
     {
         //ics
-        flatmat(ibuf, wsbuffer, bsbuf, icsbuffer, iw, ih, id, ow, oh, od);
+        flatmat(ibuf, wsbuffer, bsbuf, icsbuffer, iw, 1);
 
         //matmul
-        flatmat(ibuf, wbuf, bbuf, obuf, iw, ih, id, ow, oh, od);
+        flatmat(ibuf, wbuf, bbuf, obuf, iw, ow);
 
         //ocs
-        output_sum(obuf, ocsbuffer, od, ow, oh);
+        output_sum(obuf, ocsbuffer, 1, 1, 1);
 
         //csc
-        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, od, cscInd);
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
 
         return 1;
     }
@@ -1914,7 +1916,7 @@ int forward_abft() {
     //convolution 4-1
     ocl.convolution3_abft(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
                           ocl.icsBuf, ocl.w41sBuffer, ocl.b41sBuffer, ocl. ocsBuf,
-                          c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 17);
+                          c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d, 17);
     ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 18);
 
     //convolution 4-2
@@ -1955,7 +1957,7 @@ int forward_abft() {
     //max pool 5
     ocl.maxpool_dmr(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c3w, c3h, 30);
 
-    
+
     //mat block
     //matmul 6-1
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
