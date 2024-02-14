@@ -1855,120 +1855,125 @@ int forward_abft() {
 
     //conv block 1
     //convolution 1-1
-    ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
+    ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
                      ocl.icsBuf, ocl.w11Buffer, ocl.b11sBuffer, ocl.ocsBuf,
-                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 0);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 1);
+                     c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d, 0);
+    ocl.relu_dmr(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d, 1);
 
     //convolution 1-2
-    ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
-                          ocl.icsBuf, ocl.w11Buffer, ocl.b11sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
+                          ocl.icsBuf, ocl.w12Buffer, ocl.b12sBuffer, ocl.ocsBuf,
                           c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 2);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 3);
+    ocl.relu_dmr(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d, 3);
 
     //max pool 1
-    ocl.maxpool_dmr(ocl.c12Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h, 4);
+    ocl.maxpool_dmr(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h, 4);
 
 
     //conv block 2
     //convolution 2-1
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 5);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 6);
+    ocl.convolution3_abft(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w21sBuffer, ocl.b21sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c20d, k2, c2pad, c2w, c2h, c2d, 5);
+    ocl.relu_dmr(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d, 6);
 
-    //convolution 2-2
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+    //convolution 2-2 / 22 -> 21
+    ocl.convolution3_abft(ocl.c21Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c22Buf,
                           ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
                           c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 7);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 8);
+    ocl.relu_dmr(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d, 8);
 
     //max pool 2
     ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 9);
 
+
     //conv block 3
     //convolution 3-1
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 10);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 11);
+    ocl.convolution3_abft(ocl.c31Buf, ocl.w31Buffer, ocl.b31Buffer, ocl.c32Buf,
+                          ocl.icsBuf, ocl.w31sBuffer, ocl.b31sBuffer, ocl. ocsBuf,
+                          c3w, c3h, c30d, k3, c3pad, c3w, c3h, c3d, 10);
+    ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 11);
 
     //convolution 3-2
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 12);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 13);
+    ocl.convolution3_abft(ocl.c31Buf, ocl.w32Buffer, ocl.b32Buffer, ocl.c32Buf,
+                          ocl.icsBuf, ocl.w32sBuffer, ocl.b32sBuffer, ocl. ocsBuf,
+                          c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d, 12);
+    ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 13);
 
     //convolution 3-3
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 14);
+    ocl.convolution3_abft(ocl.c31Buf, ocl.w33Buffer, ocl.b33Buffer, ocl.c32Buf,
+                          ocl.icsBuf, ocl.w33sBuffer, ocl.b33sBuffer, ocl. ocsBuf,
+                          c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d, 14);
+    ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 15);
 
     //max pool 3
-    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 15);
+    ocl.maxpool_dmr(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c3w, c3h, 16);
+
 
     //conv block 4
     //convolution 4-1
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 16);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 17);
+    ocl.convolution3_abft(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
+                          ocl.icsBuf, ocl.w41sBuffer, ocl.b41sBuffer, ocl. ocsBuf,
+                          c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 17);
+    ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 18);
 
     //convolution 4-2
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 18);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 19);
+    ocl.convolution3_abft(ocl.c41Buf, ocl.w42Buffer, ocl.b42Buffer, ocl.c42Buf,
+                          ocl.icsBuf, ocl.w42sBuffer, ocl.b42sBuffer, ocl. ocsBuf,
+                          c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 19);
+    ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 20);
 
     //convolution 4-3
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 20);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 21);
+    ocl.convolution3_abft(ocl.c41Buf, ocl.w43Buffer, ocl.b43Buffer, ocl.c42Buf,
+                          ocl.icsBuf, ocl.w43sBuffer, ocl.b43sBuffer, ocl. ocsBuf,
+                          c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 21);
+    ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 22);
 
     //max pool 4
-    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 22);
+    ocl.maxpool_dmr(ocl.c41Buf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c3w, c3h, 23);
 
 
     //conv block 5
     //convolution 5-1
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 23);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 24);
+    ocl.convolution3_abft(ocl.c51Buf, ocl.w51Buffer, ocl.b51Buffer, ocl.c52Buf,
+                          ocl.icsBuf, ocl.w51sBuffer, ocl.b51sBuffer, ocl. ocsBuf,
+                          c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 24);
+    ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 25);
 
     //convolution 5-2
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 25);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 26);
+    ocl.convolution3_abft(ocl.c51Buf, ocl.w52Buffer, ocl.b52Buffer, ocl.c52Buf,
+                          ocl.icsBuf, ocl.w52sBuffer, ocl.b52sBuffer, ocl. ocsBuf,
+                          c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 26);
+    ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 27);
 
     //convolution 5-3
-    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 27);
+    ocl.convolution3_abft(ocl.c51Buf, ocl.w53Buffer, ocl.b53Buffer, ocl.c52Buf,
+                          ocl.icsBuf, ocl.w53sBuffer, ocl.b53sBuffer, ocl. ocsBuf,
+                          c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 28);
+    ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
     //max pool 5
-    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 28);
+    ocl.maxpool_dmr(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c3w, c3h, 30);
 
+    
     //mat block
     //matmul 6-1
-    ocl.flatmat_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, c2w, c2h, c2d, 29);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 30);
+    ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
+                          ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
+                          c5w, c5h, c5d, c5w, c5h, c5d, 31);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 32);
 
     //matmul 6-2
-    ocl.flatmat_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, c2w, c2h, c2d, 31);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 32);
+    ocl.flatmat_abft(ocl.c61Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
+                          ocl.icsBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
+                          c5w, c5h, c5d, c5w, c5h, c5d, 33);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 34);
 
     //matmul 6-3
-    ocl.flatmat_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, c2w, c2h, c2d, 33);
-    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 34);
+    ocl.flatmat_abft(ocl.c61Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
+                          ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
+                          c5w, c5h, c5d, c5w, c5h, c5d, 35);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 36);
 
     //select max output value
 
