@@ -1,28 +1,33 @@
 #include "vgg.h"
 
-int layer0w = 24;
-int layer0h = 24;
+int layer0w = 224;
+int layer0h = 224;
 int layer0d = 3;
 
-int c1w = 24;
-int c1h = 24;
-int c1d = 3;
+int c1w = 224;
+int c1h = 224;
+int c1d = 64;
+int c10d = 3;
 
-int c2w = 12;
-int c2h = 12;
-int c2d = 3;
+int c2w = 112;
+int c2h = 112;
+int c2d = 128;
+int c20d = 64;
 
-int c3w = 6;
-int c3h = 6;
-int c3d = 3;
+int c3w = 56;
+int c3h = 56;
+int c3d = 256;
+int c30d = 128;
 
-int c4w = 6;
-int c4h = 6;
-int c4d = 3;
+int c4w = 28;
+int c4h = 38;
+int c4d = 512;
+int c40d = 256;
 
-int c5w = 6;
-int c5h = 6;
-int c5d = 3;
+int c5w = 14;
+int c5h = 14;
+int c5d = 512;
+int c50d = 512;
 
 int c6w = 6;
 int c6h = 6;
@@ -213,20 +218,20 @@ static void createVectors()
 
     matrixW11double = (double*)malloc((layer0d) * (c1d) * (k1 * k1) * sizeof(double));
     matrixW12double = (double*)malloc((c1d) * (c1d) * (k1 * k1) * sizeof(double));
-    matrixW21double = (double*)malloc((c2d) * (c2d) * (k2 * k2) * sizeof(double));
+    matrixW21double = (double*)malloc((c20d) * (c2d) * (k2 * k2) * sizeof(double));
     matrixW22double = (double*)malloc((c2d) * (c2d) * (k2 * k2) * sizeof(double));
-    matrixW31double = (double*)malloc((c3d) * (c3d) * (k3 * k3) * sizeof(double));
+    matrixW31double = (double*)malloc((c30d) * (c3d) * (k3 * k3) * sizeof(double));
     matrixW32double = (double*)malloc((c3d) * (c3d) * (k3 * k3) * sizeof(double));
     matrixW33double = (double*)malloc((c3d) * (c3d) * (k3 * k3) * sizeof(double));
-    matrixW41double = (double*)malloc((c4d) * (c4d) * (k4 * k4) * sizeof(double));
+    matrixW41double = (double*)malloc((c40d) * (c4d) * (k4 * k4) * sizeof(double));
     matrixW42double = (double*)malloc((c4d) * (c4d) * (k4 * k4) * sizeof(double));
     matrixW43double = (double*)malloc((c4d) * (c4d) * (k4 * k4) * sizeof(double));
-    matrixW51double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
+    matrixW51double = (double*)malloc((c50d) * (c5d) * (k5 * k5) * sizeof(double));
     matrixW52double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
     matrixW53double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
-    matrixW61double = (double*)malloc((c6d) * (c6d) * sizeof(double));
-    matrixW62double = (double*)malloc((c6d) * (c6d) * sizeof(double));
-    matrixW63double = (double*)malloc((c6d) * (c6d) * sizeof(double));
+    matrixW61double = (double*)malloc((4096) * sizeof(double));
+    matrixW62double = (double*)malloc((4096) * sizeof(double));
+    matrixW63double = (double*)malloc((1000) * sizeof(double));
 
     matrixB11double = (double*)malloc((c1d) * sizeof(double));
     matrixB12double = (double*)malloc((c1d) * sizeof(double));
@@ -257,7 +262,7 @@ static void createVectors()
 
     ics = (double*)malloc((c2w * c2h) * sizeof(double));
     ocs = (double*)malloc((c2w * c2h) * sizeof(double));
-    csc = (double*)malloc((32) * sizeof(double));
+    csc = (double*)malloc((36) * sizeof(double));
 
     matrixR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
     matrixR2 = (double*)malloc((c2d) * (c2w * c2h) * sizeof(double));
@@ -413,6 +418,152 @@ static void copyModel() {
     fread(matrixB63double, 1000 * sizeof(double), 1, fp);
     fclose(fp);
 
+}
+
+static void copyWeights() {
+    //1-1
+    FILE *fp = fopen("../../source-data/vggbin/0s.bin", "rb");
+    fread(matrixW11sum, 1728 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/1s.bin", "rb");
+    fread(matrixB11sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //1-2
+    fp = fopen("../../source-data/vggbin/2s.bin", "rb");
+    fread(matrixW12sum, 36864 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/3s.bin", "rb");
+    fread(matrixB12sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //2-1
+    fp = fopen("../../source-data/vggbin/4s.bin", "rb");
+    fread(matrixW21sum, 73728 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/5s.bin", "rb");
+    fread(matrixB21sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //2-2
+    fp = fopen("../../source-data/vggbin/6s.bin", "rb");
+    fread(matrixW22sum, 147456 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/7s.bin", "rb");
+    fread(matrixB22sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //3-1
+    fp = fopen("../../source-data/vggbin/8s.bin", "rb");
+    fread(matrixW31sum, 294912 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/9s.bin", "rb");
+    fread(matrixB31sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //3-2
+    fp = fopen("../../source-data/vggbin/10s.bin", "rb");
+    fread(matrixW32sum, 589824 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/11s.bin", "rb");
+    fread(matrixB32sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //3-3
+    fp = fopen("../../source-data/vggbin/12s.bin", "rb");
+    fread(matrixW33sum, 589824 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/13s.bin", "rb");
+    fread(matrixB33sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //4-1
+    fp = fopen("../../source-data/vggbin/14s.bin", "rb");
+    fread(matrixW41sum, 1179648 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/15s.bin", "rb");
+    fread(matrixB41sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //4-2
+    fp = fopen("../../source-data/vggbin/16s.bin", "rb");
+    fread(matrixW42sum, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/17s.bin", "rb");
+    fread(matrixB42sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //4-3
+    fp = fopen("../../source-data/vggbin/18s.bin", "rb");
+    fread(matrixW43sum, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/19s.bin", "rb");
+    fread(matrixB43sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //5-1
+    fp = fopen("../../source-data/vggbin/20s.bin", "rb");
+    fread(matrixW51sum, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/21s.bin", "rb");
+    fread(matrixB51sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //5-2
+    fp = fopen("../../source-data/vggbin/22s.bin", "rb");
+    fread(matrixW52sum, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/23s.bin", "rb");
+    fread(matrixB52sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //5-3
+    fp = fopen("../../source-data/vggbin/24s.bin", "rb");
+    fread(matrixW53sum, 2359296 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/25s.bin", "rb");
+    fread(matrixB53sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //6-1
+    fp = fopen("../../source-data/vggbin/26s.bin", "rb");
+    fread(matrixW61sum, 102760448 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/27s.bin", "rb");
+    fread(matrixB61sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //6-2
+    fp = fopen("../../source-data/vggbin/28s.bin", "rb");
+    fread(matrixW62sum, 16777216 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/29s.bin", "rb");
+    fread(matrixB62sum, sizeof(double), 1, fp);
+    fclose(fp);
+
+    //6-3
+    fp = fopen("../../source-data/vggbin/30s.bin", "rb");
+    fread(matrixW63sum, 4096000 * sizeof(double), 1, fp);
+    fclose(fp);
+
+    fp = fopen("../../source-data/vggbin/31s.bin", "rb");
+    fread(matrixB63sum, sizeof(double), 1, fp);
+    fclose(fp);
 }
 
 static void create_weight_sums() {
@@ -676,13 +827,13 @@ public:
 
         c61Buf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
-                                c6d * c6h * c6w * sizeof(double),
+                                4096 * sizeof(double),
                                 nullptr,
                                 NULL);
 
         c62Buf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
-                                c6d * c6h * c6w * sizeof(double),
+                                4096 * sizeof(double),
                                 nullptr,
                                 NULL);
 
@@ -704,7 +855,7 @@ public:
 
         cscBuf = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE,
-                                  32 * sizeof(double),
+                                  36 * sizeof(double),
                                   nullptr,
                                   NULL);
     }
@@ -1302,14 +1453,13 @@ public:
         return 1;
     }
 
-    unsigned relu(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned relu(cl_mem ibuf, cl_mem obuf, int ow, int oh, int od)
     {
         cl_int status;
 
         //Setting buffers to kernel arguments
         status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *) &ibuf);
         status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *) &obuf);
-        status = clSetKernelArg(_ocl_base->GetKernel(4), 2, sizeof(int), &olm);
 
         size_t global_work_size[2];
         global_work_size[0] = ow;
@@ -1328,7 +1478,6 @@ public:
                                         &_event);
         if (status != CL_SUCCESS) {
             std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -1336,6 +1485,17 @@ public:
 
         return (unsigned)status;
     }
+
+    unsigned relu_dmr(cl_mem ibuf, cl_mem obuf, int ow, int oh, int od, int cscInd)
+    {
+        relu(ibuf, obuf, ow, oh, od);
+        relu(ibuf, ocsBuf, ow, oh, od);
+
+        cs_compare(obuf, ocsBuf, cscBuf, ow, oh, od, cscInd);
+
+        return 1;
+    }
+
 
     unsigned maxpool(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh)
     {
@@ -1372,6 +1532,16 @@ public:
         kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
+    }
+
+    unsigned maxpool_dmr(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int cscInd)
+    {
+        maxpool(ibuf, obuf, iw, ih, id, stride, kernel_size, ow, oh);
+        maxpool(ibuf, ocsBuf, iw, ih, id, stride, kernel_size, ow, oh);
+
+        cs_compare(obuf, ocsBuf, cscBuf, ow, oh, id, cscInd);
+
+        return 1;
     }
 
     unsigned output_sum(cl_mem ibuf, cl_mem obuf, int id, int ow, int oh)
@@ -1437,7 +1607,8 @@ public:
         return (unsigned)status;
     }
 
-    unsigned flatmat(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
+    unsigned flatmat(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf,
+                     int iw, int ih, int id, int ow, int oh, int od)
     {
         cl_int status;
         status = clSetKernelArg(_ocl_base->GetKernel(6), 4, sizeof(int), &id);
@@ -1459,13 +1630,30 @@ public:
                                         &_event);
         if (status != CL_SUCCESS) {
             std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            std::cerr << "At d: " <<  iln << " d2: " << olm  << std::endl;
             exit(EXIT_FAILURE);
         }
 
         kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
+    }
+
+    unsigned flatmat_abft(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icsbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
+                          int iw, int ih, int id, int ow, int oh, int od, int cscInd)
+    {
+        //ics
+        flatmat(ibuf, wsbuffer, bsbuf, icsbuffer, iw, ih, id, ow, oh, od);
+
+        //matmul
+        flatmat(ibuf, wbuf, bbuf, obuf, iw, ih, id, ow, oh, od);
+
+        //ocs
+        output_sum(obuf, ocsbuffer, od, ow, oh);
+
+        //csc
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, od, cscInd);
+
+        return 1;
     }
 
     unsigned flatmat_ics(int iw, int ih, int id, int ww, int wh, int ow, int oh, int od, int iln, int olm)
@@ -1555,6 +1743,17 @@ int load_image(const char* filename)
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL0double[i] = L0char[i];
     }
+
+    //converting image to format used by the model
+    for (int j = 0; j < (layer0h); j++) {
+        for (int k = 0; k < (layer0w); k++) {
+            for (int i = 0; i < (layer0d); i++) {
+                matrixL0double[(i * c1h * c1w) + (j * c1w) + k] = L0char[(j * layer0d * c1w) + k + i];
+            }
+        }
+    }
+
+
 
     return 1;
 }
@@ -1659,81 +1858,119 @@ int forward_abft() {
     ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
                      ocl.icsBuf, ocl.w11Buffer, ocl.b11sBuffer, ocl.ocsBuf,
                      c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 0);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 1);
+
     //convolution 1-2
-    ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
-                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+    ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
+                          ocl.icsBuf, ocl.w11Buffer, ocl.b11sBuffer, ocl.ocsBuf,
+                          c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 2);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 3);
+
     //max pool 1
-    ocl.maxpool(ocl.c12Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
+    ocl.maxpool_dmr(ocl.c12Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h, 4);
+
 
     //conv block 2
     //convolution 2-1
-    ocl.convolution3(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
-                     c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 5);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 6);
+
     //convolution 2-2
     ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
                           ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
-                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 4);
-
-
-    ocl.buf_read(c2w, c2h, 1, ics, ocl.icsBuf);
-    ocl.buf_read(c2w, c2h, 1, ocs, ocl.ocsBuf);
-
-    printf("ics: \n ");
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", ics[i]);
-    }
-    printf("\n");
-
-    printf("ocs: \n ");
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", ocs[i]);
-    }
-    printf("\n");
-
-    ocl.buf_read(1, 1, 32, csc, ocl.cscBuf);
-    printf("csc: \n ");
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", csc[i]);
-    }
-    printf("\n");
-
-    ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c12Buf);
-    printf("matrixR \n");
-    for (int i=0; i < (c1d); i++) {
-        for (int j=0; j < (c1h); j++) {
-            for (int k=0; k< (c1w); k++) {
-                printf("%f ", matrixR[(i * c1h * c1w) + (j * c1w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 7);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 8);
 
     //max pool 2
-    ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
+    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 9);
+
+    //conv block 3
+    //convolution 3-1
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 10);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 11);
+
+    //convolution 3-2
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 12);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 13);
+
+    //convolution 3-3
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 14);
+
+    //max pool 3
+    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 15);
+
+    //conv block 4
+    //convolution 4-1
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 16);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 17);
+
+    //convolution 4-2
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 18);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 19);
+
+    //convolution 4-3
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 20);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 21);
+
+    //max pool 4
+    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 22);
 
 
+    //conv block 5
+    //convolution 5-1
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 23);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 24);
 
-    //with 0 bias
-    /*ocl.convolution3(ocl.l0Buffer, ocl.w01Buffer, nullptr, ocl.l1Buffer,
-                     layer0w, layer0h, layer0d, k01, layer1w, layer1h, layer1d);*/
+    //convolution 5-2
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 25);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 26);
 
-    ocl.buf_read(c2w, c2h, c2d, matrixR2, ocl.c22Buf);
-    printf("matrixR2 \n");
-    for (int i=0; i < (c2d); i++) {
-        for (int j=0; j < (c2h); j++) {
-            for (int k=0; k< (c2w); k++) {
-                printf("%f ", matrixR2[(i * c2h * c2w) + (j * c2w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
+    //convolution 5-3
+    ocl.convolution3_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 27);
 
+    //max pool 5
+    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 28);
 
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", matrixR2[i]);
-    }
+    //mat block
+    //matmul 6-1
+    ocl.flatmat_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, c2w, c2h, c2d, 29);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 30);
+
+    //matmul 6-2
+    ocl.flatmat_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, c2w, c2h, c2d, 31);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 32);
+
+    //matmul 6-3
+    ocl.flatmat_abft(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          c2w, c2h, c2d, c2w, c2h, c2d, 33);
+    ocl.relu_dmr(ocl.c11Buf, ocl.c12Buf, c1w, c1h, c1d, 34);
+
+    //select max output value
 
 
     return abftflag;
