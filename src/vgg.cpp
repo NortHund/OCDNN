@@ -29,9 +29,9 @@ int c5h = 14;
 int c5d = 512;
 int c50d = 512;
 
-int c6w = 6;
-int c6h = 6;
-int c6d = 3;
+int c6w = 7;
+int c6h = 7;
+int c6d = 512;
 
 int k1 = 3;
 int k2 = 3;
@@ -229,9 +229,9 @@ static void createVectors()
     matrixW51double = (double*)malloc((c50d) * (c5d) * (k5 * k5) * sizeof(double));
     matrixW52double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
     matrixW53double = (double*)malloc((c5d) * (c5d) * (k5 * k5) * sizeof(double));
-    matrixW61double = (double*)malloc((4096) * sizeof(double));
-    matrixW62double = (double*)malloc((4096) * sizeof(double));
-    matrixW63double = (double*)malloc((1000) * sizeof(double));
+    matrixW61double = (double*)malloc((4096*25088) * sizeof(double));
+    matrixW62double = (double*)malloc((4096*4096) * sizeof(double));
+    matrixW63double = (double*)malloc((1000*4096) * sizeof(double));
 
     matrixB11double = (double*)malloc((c1d) * sizeof(double));
     matrixB12double = (double*)malloc((c1d) * sizeof(double));
@@ -246,26 +246,26 @@ static void createVectors()
     matrixB51double = (double*)malloc((c5d) * sizeof(double));
     matrixB52double = (double*)malloc((c5d) * sizeof(double));
     matrixB53double = (double*)malloc((c5d) * sizeof(double));
-    matrixB61double = (double*)malloc((c6d) * sizeof(double));
-    matrixB62double = (double*)malloc((c6d) * sizeof(double));
-    matrixB63double = (double*)malloc((c6d) * sizeof(double));
+    matrixB61double = (double*)malloc((4096) * sizeof(double));
+    matrixB62double = (double*)malloc((4096) * sizeof(double));
+    matrixB63double = (double*)malloc((1000) * sizeof(double));
 
-    matrixW11sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
+    matrixW11sum = (double*)malloc((layer0d) * (k1 * k1) * sizeof(double));
     matrixW12sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
-    matrixW21sum = (double*)malloc((c2d) * (k2 * k2) * sizeof(double));
+    matrixW21sum = (double*)malloc((c1d) * (k2 * k2) * sizeof(double));
     matrixW22sum = (double*)malloc((c2d) * (k2 * k2) * sizeof(double));
-    matrixW31sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
+    matrixW31sum = (double*)malloc((c2d) * (k3 * k3) * sizeof(double));
     matrixW32sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
     matrixW33sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
-    matrixW41sum = (double*)malloc((c4d) * (k3 * k3) * sizeof(double));
+    matrixW41sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
     matrixW42sum = (double*)malloc((c4d) * (k3 * k3) * sizeof(double));
     matrixW43sum = (double*)malloc((c4d) * (k3 * k3) * sizeof(double));
     matrixW51sum = (double*)malloc((c5d) * (k3 * k3) * sizeof(double));
     matrixW52sum = (double*)malloc((c5d) * (k3 * k3) * sizeof(double));
     matrixW53sum = (double*)malloc((c5d) * (k3 * k3) * sizeof(double));
-    matrixW61sum = (double*)malloc((c6d) * (k3 * k3) * sizeof(double));
-    matrixW62sum = (double*)malloc((c6d) * (k3 * k3) * sizeof(double));
-    matrixW63sum = (double*)malloc((c6d) * (k3 * k3) * sizeof(double));
+    matrixW61sum = (double*)malloc((25088) * sizeof(double));
+    matrixW62sum = (double*)malloc((4096) * sizeof(double));
+    matrixW63sum = (double*)malloc((4096) * sizeof(double));
 
     matrixB11sum = (double*)malloc(sizeof(double));
     matrixB12sum = (double*)malloc(sizeof(double));
@@ -284,8 +284,8 @@ static void createVectors()
     matrixB62sum = (double*)malloc(sizeof(double));
     matrixB63sum = (double*)malloc(sizeof(double));
 
-    ics = (double*)malloc((c2w * c2h) * sizeof(double));
-    ocs = (double*)malloc((c2w * c2h) * sizeof(double));
+    ics = (double*)malloc((c1w * c1h) * sizeof(double));
+    ocs = (double*)malloc((c1w * c1h) * sizeof(double));
     csc = (double*)malloc((36) * sizeof(double));
 
     matrixR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
@@ -448,7 +448,7 @@ static void copyModel() {
 
 }
 
-static void copyWeights() {
+static void copyWeightSums() {
     //1-1
     FILE *fp = fopen("../../source-data/vggbin/0s.bin", "rb");
     fread(matrixW11sum, (3*3*3) * sizeof(double), 1, fp);
@@ -884,13 +884,13 @@ public:
     {
         icsBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
-                                c2h * c2w * sizeof(double),
+                                c1h * c1w * sizeof(double),
                                 nullptr,
                                 NULL);
 
         ocsBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
-                                c2h * c2w * sizeof(double),
+                                c1h * c1w * sizeof(double),
                                 nullptr,
                                 NULL);
 
@@ -1020,7 +1020,7 @@ public:
 
         w21Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c2d * c2d * k1 * k1 * sizeof(double),
+                                   c2d * c1d * k1 * k1 * sizeof(double),
                                    w21ptr,
                                    NULL);
 
@@ -1032,7 +1032,7 @@ public:
 
         w31Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c3d * c3d * k3 * k3 * sizeof(double),
+                                   c3d * c2d * k3 * k3 * sizeof(double),
                                    w31ptr,
                                    NULL);
 
@@ -1050,7 +1050,7 @@ public:
 
         w41Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c4d * c4d * k4 * k4 * sizeof(double),
+                                   c4d * c3d * k4 * k4 * sizeof(double),
                                    w41ptr,
                                    NULL);
 
@@ -1068,7 +1068,7 @@ public:
 
         w51Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c5d * c5d * k5 * k5 * sizeof(double),
+                                   c5d * c4d * k5 * k5 * sizeof(double),
                                    w51ptr,
                                    NULL);
 
@@ -1086,19 +1086,19 @@ public:
 
         w61Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c6d * c6d * sizeof(double),
+                                   4096 * 25088 * sizeof(double),
                                    w61ptr,
                                    NULL);
 
         w62Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c6d * c6d * sizeof(double),
+                                   4096 * 4096 * sizeof(double),
                                    w62ptr,
                                    NULL);
 
         w63Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c6d * c6d * sizeof(double),
+                                   1000 * 4096 * sizeof(double),
                                    w63ptr,
                                    NULL);
 
@@ -1192,19 +1192,19 @@ public:
 
         b61Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c6d * sizeof(double),
+                                   4096 * sizeof(double),
                                    b61ptr,
                                    NULL);
 
         b62Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c6d * sizeof(double),
+                                   4096 * sizeof(double),
                                    b62ptr,
                                    NULL);
 
         b63Buffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c6d * sizeof(double),
+                                   1000 * sizeof(double),
                                    b63ptr,
                                    NULL);
     }
@@ -1530,9 +1530,9 @@ public:
     unsigned relu_dmr(cl_mem ibuf, cl_mem obuf, int ow, int oh, int od, int cscInd)
     {
         relu(ibuf, obuf, ow, oh, od);
-        relu(ibuf, ocsBuf, ow, oh, od);
+        //relu(ibuf, ocsBuf, ow, oh, od);
 
-        cs_compare(obuf, ocsBuf, cscBuf, ow, oh, od, cscInd);
+        //cs_compare(obuf, ocsBuf, cscBuf, ow, oh, od, cscInd);
 
         return 1;
     }
@@ -1578,9 +1578,9 @@ public:
     unsigned maxpool_dmr(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int cscInd)
     {
         maxpool(ibuf, obuf, iw, ih, id, stride, kernel_size, ow, oh);
-        maxpool(ibuf, ocsBuf, iw, ih, id, stride, kernel_size, ow, oh);
+        //maxpool(ibuf, ocsBuf, iw, ih, id, stride, kernel_size, ow, oh);
 
-        cs_compare(obuf, ocsBuf, cscBuf, ow, oh, id, cscInd);
+        //cs_compare(obuf, ocsBuf, cscBuf, ow, oh, id, cscInd);
 
         return 1;
     }
@@ -1932,13 +1932,13 @@ int forward_abft() {
     //conv block 1
     //convolution 1-1
     ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
-                     ocl.icsBuf, ocl.w11Buffer, ocl.b11sBuffer, ocl.ocsBuf,
+                     ocl.icsBuf, ocl.w11sBuffer, ocl.b11sBuffer, ocl.ocsBuf,
                      c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d, 0);
     ocl.relu_dmr(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d, 1);
 
     //convolution 1-2
     ocl.convolution3_abft(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
-                          ocl.icsBuf, ocl.w12Buffer, ocl.b12sBuffer, ocl.ocsBuf,
+                          ocl.icsBuf, ocl.w12sBuffer, ocl.b12sBuffer, ocl.ocsBuf,
                           c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 2);
     ocl.relu_dmr(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d, 3);
 
@@ -1983,7 +1983,7 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 15);
 
     //max pool 3
-    ocl.maxpool_dmr(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c3w, c3h, 16);
+    ocl.maxpool_dmr(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c4w, c4h, 16);
 
 
     //conv block 4
@@ -2006,7 +2006,7 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 22);
 
     //max pool 4
-    ocl.maxpool_dmr(ocl.c41Buf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c3w, c3h, 23);
+    ocl.maxpool_dmr(ocl.c41Buf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c5w, c5h, 23);
 
 
     //conv block 5
@@ -2029,7 +2029,7 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
     //max pool 5
-    ocl.maxpool_dmr(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c3w, c3h, 30);
+    ocl.maxpool_dmr(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h, 30);
 
 
     //mat block
@@ -2051,7 +2051,7 @@ int forward_abft() {
                           c5w, c5h, c5d, c5w, c5h, c5d, 35);
     ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 36);
 
-    //select max output value
+
 
 
     return abftflag;
@@ -2074,7 +2074,7 @@ int main() {
 
     createVectors();
     copyModel();
-    create_weight_sums();
+    copyWeightSums();
     write_layers();
 
     load_image("../../source-img/in0.png");
@@ -2085,7 +2085,31 @@ int main() {
 
     ocl.write_image(matrixL0double);
 
-    forward();
+    for (int i=0;i<1;i++) {
+        forward_abft();
+    }
+
+    ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+    //select max output value
+    printf("csc: \n ");
+    for (int i=0; i<36;i++) {
+        printf("%f ", csc[i]);
+    }
+    printf("\n");
+
+    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c61Buf);
+    //select max output value
+    double max = 0;
+    int maxind = 0;
+    for (int i=0; i<1000;i++) {
+            //printf("%f ", matrixR6[(i * 10) + j]);
+            if (matrixR6[i] > max) {
+                max = matrixR6[i];
+                maxind = i;
+            }
+    }
+    printf("prediction: %d", maxind);
+    printf("\n");
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
