@@ -249,11 +249,35 @@ static void createVectors()
     matrixW12sum = (double*)malloc((c1d) * (k1 * k1) * sizeof(double));
     matrixW21sum = (double*)malloc((c2d) * (k2 * k2) * sizeof(double));
     matrixW22sum = (double*)malloc((c2d) * (k2 * k2) * sizeof(double));
+    matrixW31sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
+    matrixW32sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
+    matrixW33sum = (double*)malloc((c3d) * (k3 * k3) * sizeof(double));
+    matrixW41sum = (double*)malloc((c4d) * (k3 * k3) * sizeof(double));
+    matrixW42sum = (double*)malloc((c4d) * (k3 * k3) * sizeof(double));
+    matrixW43sum = (double*)malloc((c4d) * (k3 * k3) * sizeof(double));
+    matrixW51sum = (double*)malloc((c5d) * (k3 * k3) * sizeof(double));
+    matrixW52sum = (double*)malloc((c5d) * (k3 * k3) * sizeof(double));
+    matrixW53sum = (double*)malloc((c5d) * (k3 * k3) * sizeof(double));
+    matrixW61sum = (double*)malloc((c6d) * (k3 * k3) * sizeof(double));
+    matrixW62sum = (double*)malloc((c6d) * (k3 * k3) * sizeof(double));
+    matrixW63sum = (double*)malloc((c6d) * (k3 * k3) * sizeof(double));
 
     matrixB11sum = (double*)malloc(sizeof(double));
     matrixB12sum = (double*)malloc(sizeof(double));
     matrixB21sum = (double*)malloc(sizeof(double));
     matrixB22sum = (double*)malloc(sizeof(double));
+    matrixB31sum = (double*)malloc(sizeof(double));
+    matrixB32sum = (double*)malloc(sizeof(double));
+    matrixB33sum = (double*)malloc(sizeof(double));
+    matrixB41sum = (double*)malloc(sizeof(double));
+    matrixB42sum = (double*)malloc(sizeof(double));
+    matrixB43sum = (double*)malloc(sizeof(double));
+    matrixB51sum = (double*)malloc(sizeof(double));
+    matrixB52sum = (double*)malloc(sizeof(double));
+    matrixB53sum = (double*)malloc(sizeof(double));
+    matrixB61sum = (double*)malloc(sizeof(double));
+    matrixB62sum = (double*)malloc(sizeof(double));
+    matrixB63sum = (double*)malloc(sizeof(double));
 
     ics = (double*)malloc((c2w * c2h) * sizeof(double));
     ocs = (double*)malloc((c2w * c2h) * sizeof(double));
@@ -261,6 +285,10 @@ static void createVectors()
 
     matrixR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
     matrixR2 = (double*)malloc((c2d) * (c2w * c2h) * sizeof(double));
+    matrixR3 = (double*)malloc((c3d) * (c3w * c3h) * sizeof(double));
+    matrixR4 = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
+    matrixR5 = (double*)malloc((c5d) * (c5w * c5h) * sizeof(double));
+    matrixR6 = (double*)malloc((c6d) * (c6w * c6h) * sizeof(double));
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL0double[i] = 0;
@@ -453,6 +481,18 @@ static void create_weight_sums() {
         }
     }
 
+    for (int h = 0; h < c3d; h++) {
+        for (int i = 0; i < c3d; i++) {
+            for (int j = 0; j < k3; j++) {
+                for (int k = 0; k < k3; k++) {
+                    matrixW31sum[(i * k3 * k3) + (j * k3) + k] += matrixW31double[(h * c3d * k3 * k3) + (i * k3 * k3) + (j * k3) + k];
+                    matrixW32sum[(i * k3 * k3) + (j * k3) + k] += matrixW32double[(h * c3d * k3 * k3) + (i * k3 * k3) + (j * k3) + k];
+                    matrixW33sum[(i * k3 * k3) + (j * k3) + k] += matrixW33double[(h * c3d * k3 * k3) + (i * k3 * k3) + (j * k3) + k];
+                }
+            }
+        }
+    }
+
     for (int h = 0; h < c1d; h++) {
         matrixB11sum[0] += matrixB11double[h];
         matrixB12sum[0] += matrixB12double[h];
@@ -473,6 +513,8 @@ static void create_weight_sums() {
     }*/
 
 }
+
+
 
 // Get kernel execution time in microseconds
 unsigned long get_kernel_execution_time(cl_event &event, cl_command_queue &command_queue)
@@ -526,23 +568,18 @@ public:
 
     cl_mem l0Buffer = nullptr;
 
-    cl_mem b11Buffer = nullptr;
-    cl_mem b12Buffer = nullptr;
-    cl_mem b21Buffer = nullptr;
-    cl_mem b22Buffer = nullptr;
-    cl_mem b31Buffer = nullptr;
-    cl_mem b32Buffer = nullptr;
-    cl_mem b33Buffer = nullptr;
-    cl_mem b41Buffer = nullptr;
-    cl_mem b42Buffer = nullptr;
-    cl_mem b43Buffer = nullptr;
-    cl_mem b51Buffer = nullptr;
-    cl_mem b52Buffer = nullptr;
-    cl_mem b53Buffer = nullptr;
-    cl_mem b61Buffer = nullptr;
-    cl_mem b62Buffer = nullptr;
-    cl_mem b63Buffer = nullptr;
-
+    cl_mem c11Buf = nullptr;
+    cl_mem c12Buf = nullptr;
+    cl_mem c21Buf = nullptr;
+    cl_mem c22Buf = nullptr;
+    cl_mem c31Buf = nullptr;
+    cl_mem c32Buf = nullptr;
+    cl_mem c41Buf = nullptr;
+    cl_mem c42Buf = nullptr;
+    cl_mem c51Buf = nullptr;
+    cl_mem c52Buf = nullptr;
+    cl_mem c61Buf = nullptr;
+    cl_mem c62Buf = nullptr;
 
     cl_mem w11Buffer = nullptr;
     cl_mem w12Buffer = nullptr;
@@ -561,18 +598,22 @@ public:
     cl_mem w62Buffer = nullptr;
     cl_mem w63Buffer = nullptr;
 
-    cl_mem c11Buf = nullptr;
-    cl_mem c12Buf = nullptr;
-    cl_mem c21Buf = nullptr;
-    cl_mem c22Buf = nullptr;
-    cl_mem c31Buf = nullptr;
-    cl_mem c32Buf = nullptr;
-    cl_mem c41Buf = nullptr;
-    cl_mem c42Buf = nullptr;
-    cl_mem c51Buf = nullptr;
-    cl_mem c52Buf = nullptr;
-    cl_mem c61Buf = nullptr;
-    cl_mem c62Buf = nullptr;
+    cl_mem b11Buffer = nullptr;
+    cl_mem b12Buffer = nullptr;
+    cl_mem b21Buffer = nullptr;
+    cl_mem b22Buffer = nullptr;
+    cl_mem b31Buffer = nullptr;
+    cl_mem b32Buffer = nullptr;
+    cl_mem b33Buffer = nullptr;
+    cl_mem b41Buffer = nullptr;
+    cl_mem b42Buffer = nullptr;
+    cl_mem b43Buffer = nullptr;
+    cl_mem b51Buffer = nullptr;
+    cl_mem b52Buffer = nullptr;
+    cl_mem b53Buffer = nullptr;
+    cl_mem b61Buffer = nullptr;
+    cl_mem b62Buffer = nullptr;
+    cl_mem b63Buffer = nullptr;
 
     cl_mem w11sBuffer = nullptr;
     cl_mem w12sBuffer = nullptr;
@@ -713,22 +754,18 @@ public:
     {
         clReleaseMemObject(l0Buffer);
 
-        clReleaseMemObject(b11Buffer);
-        clReleaseMemObject(b12Buffer);
-        clReleaseMemObject(b21Buffer);
-        clReleaseMemObject(b22Buffer);
-        clReleaseMemObject(b31Buffer);
-        clReleaseMemObject(b32Buffer);
-        clReleaseMemObject(b33Buffer);
-        clReleaseMemObject(b41Buffer);
-        clReleaseMemObject(b42Buffer);
-        clReleaseMemObject(b43Buffer);
-        clReleaseMemObject(b51Buffer);
-        clReleaseMemObject(b52Buffer);
-        clReleaseMemObject(b53Buffer);
-        clReleaseMemObject(b61Buffer);
-        clReleaseMemObject(b62Buffer);
-        clReleaseMemObject(b63Buffer);
+        clReleaseMemObject(c11Buf);
+        clReleaseMemObject(c12Buf);
+        clReleaseMemObject(c21Buf);
+        clReleaseMemObject(c22Buf);
+        clReleaseMemObject(c31Buf);
+        clReleaseMemObject(c32Buf);
+        clReleaseMemObject(c41Buf);
+        clReleaseMemObject(c42Buf);
+        clReleaseMemObject(c51Buf);
+        clReleaseMemObject(c52Buf);
+        clReleaseMemObject(c61Buf);
+        clReleaseMemObject(c62Buf);
 
         clReleaseMemObject(w11Buffer);
         clReleaseMemObject(w12Buffer);
@@ -747,18 +784,22 @@ public:
         clReleaseMemObject(w62Buffer);
         clReleaseMemObject(w63Buffer);
 
-        clReleaseMemObject(c11Buf);
-        clReleaseMemObject(c12Buf);
-        clReleaseMemObject(c21Buf);
-        clReleaseMemObject(c22Buf);
-        clReleaseMemObject(c31Buf);
-        clReleaseMemObject(c32Buf);
-        clReleaseMemObject(c41Buf);
-        clReleaseMemObject(c42Buf);
-        clReleaseMemObject(c51Buf);
-        clReleaseMemObject(c52Buf);
-        clReleaseMemObject(c61Buf);
-        clReleaseMemObject(c62Buf);
+        clReleaseMemObject(b11Buffer);
+        clReleaseMemObject(b12Buffer);
+        clReleaseMemObject(b21Buffer);
+        clReleaseMemObject(b22Buffer);
+        clReleaseMemObject(b31Buffer);
+        clReleaseMemObject(b32Buffer);
+        clReleaseMemObject(b33Buffer);
+        clReleaseMemObject(b41Buffer);
+        clReleaseMemObject(b42Buffer);
+        clReleaseMemObject(b43Buffer);
+        clReleaseMemObject(b51Buffer);
+        clReleaseMemObject(b52Buffer);
+        clReleaseMemObject(b53Buffer);
+        clReleaseMemObject(b61Buffer);
+        clReleaseMemObject(b62Buffer);
+        clReleaseMemObject(b63Buffer);
 
         clReleaseMemObject(w11sBuffer);
         clReleaseMemObject(w12sBuffer);
@@ -1559,6 +1600,37 @@ int load_image(const char* filename)
     return 1;
 }
 
+static void write_layers() {
+
+    ocl.create_layers();
+    ocl.write_weights(matrixW11double, matrixW12double,
+                      matrixW21double, matrixW22double,
+                      matrixW31double, matrixW32double, matrixW33double,
+                      matrixW41double, matrixW42double, matrixW43double,
+                      matrixW51double, matrixW52double, matrixW53double,
+                      matrixW61double, matrixW62double, matrixW63double);
+    ocl.write_bias(matrixB11double, matrixB12double,
+                   matrixB21double, matrixB22double,
+                   matrixB31double, matrixB32double, matrixB33double,
+                   matrixB41double, matrixB42double, matrixB43double,
+                   matrixB51double, matrixB52double, matrixB53double,
+                   matrixB61double, matrixB62double, matrixB63double);
+
+    ocl.create_bufs_abft();
+    ocl.write_weight_sums( matrixW11sum, matrixW12sum,
+                           matrixW21sum, matrixW22sum,
+                           matrixW31sum, matrixW32sum, matrixW33sum,
+                           matrixW41sum, matrixW42sum, matrixW43sum,
+                           matrixW51sum, matrixW52sum, matrixW53sum,
+                           matrixW61sum, matrixW62sum, matrixW63sum,
+                           matrixB11sum, matrixB12sum,
+                           matrixB21sum, matrixB22sum,
+                           matrixB31sum, matrixB32sum, matrixB33sum,
+                           matrixB41sum, matrixB42sum, matrixB43sum,
+                           matrixB51sum, matrixB52sum, matrixB53sum,
+                           matrixB61sum, matrixB62sum, matrixB63sum);
+}
+
 static void forward() {
 
     /*printf("l0 \n");
@@ -1740,6 +1812,8 @@ int forward_abft() {
 }
 
 
+
+
 int main() {
     // Measure total time
     ChronoClock clock;
@@ -1753,27 +1827,17 @@ int main() {
     int result = 0;
 
     createVectors();
+    copyModel();
     create_weight_sums();
+    write_layers();
 
     load_image("../../source-img/in0.png");
 
-    for (int i=0; i <(layer0d * layer0h * layer0w) ; i++) {
+    /*for (int i=0; i <(layer0d * layer0h * layer0w) ; i++) {
         matrixL0double[i] = 1;
-    }
+    }*/
 
     ocl.write_image(matrixL0double);
-
-    ocl.create_layers();
-    ocl.write_weights(matrixW11double, matrixW12double,
-                      matrixW21double, matrixW22double,
-                      matrixW31double, matrixW32double, matrixW33double,
-                      matrixW41double, matrixW42double, matrixW43double,
-                      matrixW51double, matrixW52double, matrixW53double,
-                      matrixW61double, matrixW62double, matrixW63double);
-    ocl.write_bias(matrixB11double, matrixB12double, matrixB21double, matrixB22double);
-
-    ocl.create_bufs_abft();
-    ocl.write_weight_sums( matrixW21sum, matrixW22sum, matrixB11sum, matrixB12sum, matrixB21sum, matrixB22sum);
 
     forward();
 
