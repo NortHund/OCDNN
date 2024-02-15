@@ -1530,7 +1530,7 @@ public:
     unsigned relu_dmr(cl_mem ibuf, cl_mem obuf, int ow, int oh, int od, int cscInd)
     {
         relu(ibuf, obuf, ow, oh, od);
-        //relu(ibuf, ocsBuf, ow, oh, od);
+        //relu(ibuf, ocsBuf, ow, oh, od); //needs a bigger double buf
 
         //cs_compare(obuf, ocsBuf, cscBuf, ow, oh, od, cscInd);
 
@@ -1682,7 +1682,7 @@ public:
     }
 
     unsigned flatmat_abft(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icsbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
-                          int iw, int ih, int id, int ow, int oh, int od, int cscInd)
+                          int iw, int ow, int cscInd)
     {
         //ics
         flatmat_ics(ibuf, wsbuffer, bsbuf, icsbuffer, iw, ow);
@@ -1861,30 +1861,108 @@ static void forward() {
 
     //conv block 1
     //convolution 1-1
-    ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c11Buf,
-                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+    ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
+                     c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d);
+    ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
+
     //convolution 1-2
     ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
                      c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+    ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
+
     //max pool 1
-    ocl.maxpool(ocl.c12Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
+    ocl.maxpool(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
 
     //conv block 2
     //convolution 2-1
     ocl.convolution3(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
                      c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
+    ocl.relu(ocl.c21Buf, ocl.c22Buf, c1w, c1h, c1d);
+
     //convolution 2-2
     ocl.convolution3(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
                      c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
-
+    ocl.relu(ocl.c21Buf, ocl.c22Buf, c1w, c1h, c1d);
 
     //max pool 2
+    ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
 
+
+    //conv block 3
     //convolution 3-1
+    ocl.convolution3(ocl.c31Buf, ocl.w31Buffer, ocl.b31Buffer, ocl.c32Buf,
+                          c3w, c3h, c30d, k3, c3pad, c3w, c3h, c3d);
+    ocl.relu(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d);
 
     //convolution 3-2
+    ocl.convolution3(ocl.c31Buf, ocl.w32Buffer, ocl.b32Buffer, ocl.c32Buf,
+                          c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d);
+    ocl.relu(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d);
+
+    //convolution 3-3
+    ocl.convolution3(ocl.c31Buf, ocl.w33Buffer, ocl.b33Buffer, ocl.c32Buf,
+                          c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d);
+    ocl.relu(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d);
 
     //max pool 3
+    ocl.maxpool(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c4w, c4h);
+
+
+    //conv block 4
+    //convolution 4-1
+    ocl.convolution3(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
+                          c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d);
+    ocl.relu(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d);
+
+    //convolution 4-2
+    ocl.convolution3(ocl.c41Buf, ocl.w42Buffer, ocl.b42Buffer, ocl.c42Buf,
+                          c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d);
+    ocl.relu(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d);
+
+    //convolution 4-3
+    ocl.convolution3(ocl.c41Buf, ocl.w43Buffer, ocl.b43Buffer, ocl.c42Buf,
+                          c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d);
+    ocl.relu(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d);
+
+    //max pool 4
+    ocl.maxpool(ocl.c41Buf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c5w, c5h);
+
+
+    //conv block 5
+    //convolution 5-1
+    ocl.convolution3(ocl.c51Buf, ocl.w51Buffer, ocl.b51Buffer, ocl.c52Buf,
+                          c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d);
+    ocl.relu(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d);
+
+    //convolution 5-2
+    ocl.convolution3(ocl.c51Buf, ocl.w52Buffer, ocl.b52Buffer, ocl.c52Buf,
+                          c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d);
+    ocl.relu(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d);
+
+    //convolution 5-3
+    ocl.convolution3(ocl.c51Buf, ocl.w53Buffer, ocl.b53Buffer, ocl.c52Buf,
+                          c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d);
+    ocl.relu(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d);
+
+    //max pool 5
+    ocl.maxpool(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h);
+
+
+    //mat block
+    //matmul 6-1
+    ocl.flatmat(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
+                     25088, 4096);
+    ocl.relu(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d);
+
+    //matmul 6-2
+    ocl.flatmat(ocl.c61Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
+                     4096, 4096);
+    ocl.relu(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d);
+
+    //matmul 6-3
+    ocl.flatmat(ocl.c61Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
+                     4096, 1000);
+    ocl.relu(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d);
 
     ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c12Buf);
     printf("matrixR \n");
@@ -2036,23 +2114,31 @@ int forward_abft() {
     //matmul 6-1
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
-                          c5w, c5h, c5d, c5w, c5h, c5d, 31);
+                          25088, 4096, 31);
     ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 32);
 
     //matmul 6-2
     ocl.flatmat_abft(ocl.c61Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
-                          c5w, c5h, c5d, c5w, c5h, c5d, 33);
+                          4096, 4096, 33);
     ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 34);
 
     //matmul 6-3
     ocl.flatmat_abft(ocl.c61Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
-                          c5w, c5h, c5d, c5w, c5h, c5d, 35);
+                          4096, 1000,  35);
     ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 36);
 
-
-
+    ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+    //select max output value
+    printf("csc: \n ");
+    for (int i=0; i<36;i++) {
+        printf("%f ", csc[i]);
+        if (csc[i] > 0.0000000000001) {
+            abftflag = 1;
+        }
+    }
+    printf("\n");
 
     return abftflag;
 }
@@ -2088,14 +2174,6 @@ int main() {
     for (int i=0;i<1;i++) {
         forward_abft();
     }
-
-    ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
-    //select max output value
-    printf("csc: \n ");
-    for (int i=0; i<36;i++) {
-        printf("%f ", csc[i]);
-    }
-    printf("\n");
 
     ocl.buf_read(1, 1, 1000, matrixR6, ocl.c61Buf);
     //select max output value
