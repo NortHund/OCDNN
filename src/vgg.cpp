@@ -595,50 +595,19 @@ static void copyWeightSums() {
 }
 
 static void create_weight_sums() {
-    for (int i = 0; i < (c1d * k1 * k1); i++) {
+    for (int i = 0; i < (k1 * k1 * k1); i++) {
         matrixW11sum[i] = 0;
-        matrixW12sum[i] = 0;
     }
-    for (int i = 0; i < (c2d * k2 * k2); i++) {
-        matrixW21sum[i] = 0;
-        matrixW22sum[i] = 0;
-    }
+
 
     matrixB11sum[0] = 0;
-    matrixB12sum[0] = 0;
-    matrixB21sum[0] = 0;
-    matrixB22sum[0] = 0;
 
 
-    for (int h = 0; h < c1d; h++) {
+    for (int h = 0; h < k1; h++) {
         for (int i = 0; i < c1d; i++) {
             for (int j = 0; j < k1; j++) {
                 for (int k = 0; k < k1; k++) {
-                    matrixW11sum[(i * k1 * k1) + (j * k1) + k] += matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
-                    matrixW12sum[(i * k1 * k1) + (j * k1) + k] += matrixW12double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
-                }
-            }
-        }
-    }
-
-    for (int h = 0; h < c2d; h++) {
-        for (int i = 0; i < c2d; i++) {
-            for (int j = 0; j < k2; j++) {
-                for (int k = 0; k < k2; k++) {
-                    matrixW21sum[(i * k2 * k2) + (j * k2) + k] += matrixW21double[(h * c2d * k2 * k2) + (i * k2 * k2) + (j * k2) + k];
-                    matrixW22sum[(i * k2 * k2) + (j * k2) + k] += matrixW22double[(h * c2d * k2 * k2) + (i * k2 * k2) + (j * k2) + k];
-                }
-            }
-        }
-    }
-
-    for (int h = 0; h < c3d; h++) {
-        for (int i = 0; i < c3d; i++) {
-            for (int j = 0; j < k3; j++) {
-                for (int k = 0; k < k3; k++) {
-                    matrixW31sum[(i * k3 * k3) + (j * k3) + k] += matrixW31double[(h * c3d * k3 * k3) + (i * k3 * k3) + (j * k3) + k];
-                    matrixW32sum[(i * k3 * k3) + (j * k3) + k] += matrixW32double[(h * c3d * k3 * k3) + (i * k3 * k3) + (j * k3) + k];
-                    matrixW33sum[(i * k3 * k3) + (j * k3) + k] += matrixW33double[(h * c3d * k3 * k3) + (i * k3 * k3) + (j * k3) + k];
+                    matrixW11sum[(h * k1 * k1) + (j * k1) + k] += matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
                 }
             }
         }
@@ -646,11 +615,6 @@ static void create_weight_sums() {
 
     for (int h = 0; h < c1d; h++) {
         matrixB11sum[0] += matrixB11double[h];
-        matrixB12sum[0] += matrixB12double[h];
-    }
-    for (int h = 0; h < c2d; h++) {
-        matrixB21sum[0] += matrixB21double[h];
-        matrixB22sum[0] += matrixB22double[h];
     }
 
     /*for (int i = 0; i < c2d; i++) {
@@ -2161,6 +2125,7 @@ int main() {
     createVectors();
     copyModel();
     copyWeightSums();
+    create_weight_sums();
     write_layers();
 
     load_image("../../source-img/in0.png");

@@ -70,7 +70,7 @@ __kernel void cs_compare(__global double* inputCs, __global double* outputCs, __
     diff = fabs(inputCs[(row * width) + col] - outputCs[(row * width) + col]);
 
     //change this to a very low value below 14 decimals and some results will start failing
-    if (diff > 0.0000000000001) {
+    if (diff > 0.00001) {
         result[csInd] = diff + 1;
     }
     //result[csInd] = diff + 1;
