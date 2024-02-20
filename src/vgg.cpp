@@ -1791,6 +1791,33 @@ int load_image(const char* filename)
     return 1;
 }
 
+int normalize_image()
+{
+    const long sz = 3*224*224;
+    double mean = 0, std = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 224; j++) {
+            for (int k = 0; k < 224; k++) {
+                mean += matrixL0double[(i * c1h * c1w) + (j * c1w) + k];
+                std += matrixL0double[(i * c1h * c1w) + (j * c1w) + k] * matrixL0double[(i * c1h * c1w) + (j * c1w) + k];
+            }
+        }
+    }
+
+    mean /= sz;
+    std = sqrt(std / sz - mean * mean);
+    double testIn = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 224; j++) {
+            for (int k = 0; k < 224; k++) {
+                testIn = (matrixL0double[(i * c1h * c1w) + (j * c1w) + k] - mean) / std;
+                matrixL0double[(i * c1h * c1w) + (j * c1w) + k] = testIn;
+            }
+        }
+    }
+
+}
+
 static void write_layers() {
 
     ocl.create_layers();
@@ -2108,6 +2135,7 @@ int main() {
     write_layers();
 
     load_image("../../source-img/in0.png");
+    normalize_image();
 
     /*for (int i=0; i <(layer0d * layer0h * layer0w) ; i++) {
         matrixL0double[i] = 1;
