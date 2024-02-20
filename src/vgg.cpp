@@ -650,7 +650,7 @@ public:
         init_programs();
         init_kernels();
         create_layers();
-        create_bufs_abft();
+        create_bufs_abft(csc);
     }
 
     ~OCL()
@@ -852,7 +852,7 @@ public:
 
     }
 
-    unsigned create_bufs_abft()
+    unsigned create_bufs_abft(double* cscptr)
     {
         c1dBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
@@ -902,11 +902,17 @@ public:
                                 nullptr,
                                 NULL);
 
-        cscBuf = clCreateBuffer(_ocl_base->context,
+        /*cscBuf = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                   36 * sizeof(double),
                                   csc,
-                                  NULL);
+                                  NULL);*/
+
+        cscBuf = clCreateBuffer(_ocl_base->context,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   36 * sizeof(double),
+                                   cscptr,
+                                   NULL);
     }
 
     unsigned free_bufs()
@@ -1801,7 +1807,7 @@ static void write_layers() {
                    matrixB51double, matrixB52double, matrixB53double,
                    matrixB61double, matrixB62double, matrixB63double);
 
-    ocl.create_bufs_abft();
+    ocl.create_bufs_abft(csc);
     ocl.write_weight_sums( matrixW11sum, matrixW12sum,
                            matrixW21sum, matrixW22sum,
                            matrixW31sum, matrixW32sum, matrixW33sum,
@@ -2055,32 +2061,25 @@ int forward_abft() {
 
     ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
     //select max output value
-    printf("csc: \n ");
     for (int i=0; i<36;i++) {
-        printf("%f ", csc[i]);
         if (csc[i] > 0.0000000000001) {
             abftflag = 1;
         }
     }
-    printf("\n");
 
     return abftflag;
 }
 
 struct Predict : public IProgram {
     int run() override {
-
-
-
+        forward();
         return 1;
     }
 };
 
 struct Predict_abft : public IProgram {
     int run() override {
-
-
-
+        forward_abft();
         return 1;
     }
 };
@@ -2119,14 +2118,16 @@ int main() {
     double time1 = 0;
     double time2 = 0;
 
-    for (int i= 0; i < 1000; i++) {
+    //checking non-abft runtime
+    for (int i= 0; i < 100; i++) {
         result = Program_sw.runProgram(predict);
         time1 += Program_sw.getElapsedTime();
     }
     std::cout << "single prediction without abft: " << result << std::endl;
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
-    for (int i= 0; i < 1000; i++) {
+    //checking abft overhead
+    for (int i= 0; i < 100; i++) {
         result = Program_sw.runProgram(predictAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2135,6 +2136,7 @@ int main() {
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
 
+    //running the model and examining results
     for (int i=0;i<1;i++) {
         forward();
     }
@@ -2164,6 +2166,12 @@ int main() {
     for (int i=0;i<1;i++) {
         forward_abft();
     }
+
+    printf("csc: \n ");
+    for (int i=0; i<36;i++) {
+        printf("%f ", csc[i]);
+    }
+    printf("\n");
 
     ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
     for (int i=0; i<10;i++) {
