@@ -2038,6 +2038,23 @@ int forward_abft() {
     //max pool 5
     ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h, 30);
 
+    //mat block without abgty
+    //matmul 6-1
+    /*
+    ocl.flatmat(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
+                25088, 4096);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
+
+    //matmul 6-2
+    ocl.flatmat(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
+                4096, 4096);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
+
+    //matmul 6-3
+    ocl.flatmat(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
+                4096, 1000);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
+     */
 
     //mat block
     //matmul 6-1
