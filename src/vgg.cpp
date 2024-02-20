@@ -2125,7 +2125,7 @@ int main() {
     createVectors();
     copyModel();
     copyWeightSums();
-    create_weight_sums();
+    //create_weight_sums();
     write_layers();
 
     load_image("../../source-img/in0.png");

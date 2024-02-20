@@ -3,3 +3,6 @@ Phase 5:
 -accelerate everything with opencl
 -maybe move each layer to its own function to clean up forward_ocl()
 -come up with a good way to create or write to buffers in ocl to increase performance - current performance is horrible
+
+export import is bugged, order of layers for output should be input, output, height, width
+in exim create weight sums, the dimensions are wrong for matrixW13double jne
