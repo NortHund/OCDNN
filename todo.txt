@@ -4,5 +4,8 @@ Phase 5:
 -maybe move each layer to its own function to clean up forward_ocl()
 -come up with a good way to create or write to buffers in ocl to increase performance - current performance is horrible
 
-export import is bugged, order of layers for output should be input, output, height, width
-in exim create weight sums, the dimensions are wrong for matrixW13double jne
+export import is bugged, order of layers for output should be input, output, height, width --fixed
+in exim create weight sums, the dimensions are wrong for matrixW13double jne --fixed
+weight sum problem mostly fixed, 2-1, 3-1 and 4-1 are still bugged --fixed
+matmul and matmul ics --fixed
+csc has some random values on the first run after waiting a while. Probably related to csc ocl buffer not being zeroed properly

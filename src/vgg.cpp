@@ -287,6 +287,9 @@ static void createVectors()
     ics = (double*)malloc((c1w * c1h) * sizeof(double));
     ocs = (double*)malloc((c1w * c1h) * sizeof(double));
     csc = (double*)malloc((36) * sizeof(double));
+    for (int i = 0; i < (36); i++) {
+        csc[i] = 0;
+    }
 
     matrixR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
     matrixR2 = (double*)malloc((c2d) * (c2w * c2h) * sizeof(double));
@@ -303,146 +306,146 @@ static void createVectors()
 
 static void copyModel() {
     //1-1
-    FILE *fp = fopen("../../source-data/vggbin/0.bin", "rb");
+    FILE *fp = fopen("../../source-data/vgg_weights/0.bin", "rb");
     fread(matrixW11double, 1728 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/1.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/1.bin", "rb");
     fread(matrixB11double, 64 * sizeof(double), 1, fp);
     fclose(fp);
 
     //1-2
-    fp = fopen("../../source-data/vggbin/2.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/2.bin", "rb");
     fread(matrixW12double, 36864 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/3.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/3.bin", "rb");
     fread(matrixB12double, 64 * sizeof(double), 1, fp);
     fclose(fp);
 
     //2-1
-    fp = fopen("../../source-data/vggbin/4.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/4.bin", "rb");
     fread(matrixW21double, 73728 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/5.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/5.bin", "rb");
     fread(matrixB21double, 128 * sizeof(double), 1, fp);
     fclose(fp);
 
     //2-2
-    fp = fopen("../../source-data/vggbin/6.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/6.bin", "rb");
     fread(matrixW22double, 147456 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/7.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/7.bin", "rb");
     fread(matrixB22double, 128 * sizeof(double), 1, fp);
     fclose(fp);
 
     //3-1
-    fp = fopen("../../source-data/vggbin/8.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/8.bin", "rb");
     fread(matrixW31double, 294912 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/9.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/9.bin", "rb");
     fread(matrixB31double, 256 * sizeof(double), 1, fp);
     fclose(fp);
 
     //3-2
-    fp = fopen("../../source-data/vggbin/10.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/10.bin", "rb");
     fread(matrixW32double, 589824 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/11.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/11.bin", "rb");
     fread(matrixB32double, 256 * sizeof(double), 1, fp);
     fclose(fp);
 
     //3-3
-    fp = fopen("../../source-data/vggbin/12.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/12.bin", "rb");
     fread(matrixW33double, 589824 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/13.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/13.bin", "rb");
     fread(matrixB33double, 256 * sizeof(double), 1, fp);
     fclose(fp);
 
     //4-1
-    fp = fopen("../../source-data/vggbin/14.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/14.bin", "rb");
     fread(matrixW41double, 1179648 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/15.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/15.bin", "rb");
     fread(matrixB41double, 512 * sizeof(double), 1, fp);
     fclose(fp);
 
     //4-2
-    fp = fopen("../../source-data/vggbin/16.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/16.bin", "rb");
     fread(matrixW42double, 2359296 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/17.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/17.bin", "rb");
     fread(matrixB42double, 512 * sizeof(double), 1, fp);
     fclose(fp);
 
     //4-3
-    fp = fopen("../../source-data/vggbin/18.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/18.bin", "rb");
     fread(matrixW43double, 2359296 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/19.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/19.bin", "rb");
     fread(matrixB43double, 512 * sizeof(double), 1, fp);
     fclose(fp);
 
     //5-1
-    fp = fopen("../../source-data/vggbin/20.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/20.bin", "rb");
     fread(matrixW51double, 2359296 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/21.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/21.bin", "rb");
     fread(matrixB51double, 512 * sizeof(double), 1, fp);
     fclose(fp);
 
     //5-2
-    fp = fopen("../../source-data/vggbin/22.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/22.bin", "rb");
     fread(matrixW52double, 2359296 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/23.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/23.bin", "rb");
     fread(matrixB52double, 512 * sizeof(double), 1, fp);
     fclose(fp);
 
     //5-3
-    fp = fopen("../../source-data/vggbin/24.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/24.bin", "rb");
     fread(matrixW53double, 2359296 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/25.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/25.bin", "rb");
     fread(matrixB53double, 512 * sizeof(double), 1, fp);
     fclose(fp);
 
     //6-1
-    fp = fopen("../../source-data/vggbin/26.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/26.bin", "rb");
     fread(matrixW61double, 102760448 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/27.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/27.bin", "rb");
     fread(matrixB61double, 4096 * sizeof(double), 1, fp);
     fclose(fp);
 
     //6-2
-    fp = fopen("../../source-data/vggbin/28.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/28.bin", "rb");
     fread(matrixW62double, 16777216 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/29.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/29.bin", "rb");
     fread(matrixB62double, 4096 * sizeof(double), 1, fp);
     fclose(fp);
 
     //6-3
-    fp = fopen("../../source-data/vggbin/30.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/30.bin", "rb");
     fread(matrixW63double, 4096000 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/31.bin", "rb");
+    fp = fopen("../../source-data/vgg_weights/31.bin", "rb");
     fread(matrixB63double, 1000 * sizeof(double), 1, fp);
     fclose(fp);
 
@@ -450,182 +453,174 @@ static void copyModel() {
 
 static void copyWeightSums() {
     //1-1
-    FILE *fp = fopen("../../source-data/vggbin/0s.bin", "rb");
+    FILE *fp = fopen("../../source-data/vgg_sums/0s.bin", "rb");
     fread(matrixW11sum, (3*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/1s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/1s.bin", "rb");
     fread(matrixB11sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //1-2
-    fp = fopen("../../source-data/vggbin/2s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/2s.bin", "rb");
     fread(matrixW12sum, (64*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/3s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/3s.bin", "rb");
     fread(matrixB12sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //2-1
-    fp = fopen("../../source-data/vggbin/4s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/4s.bin", "rb");
     fread(matrixW21sum, (64*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/5s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/5s.bin", "rb");
     fread(matrixB21sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //2-2
-    fp = fopen("../../source-data/vggbin/6s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/6s.bin", "rb");
     fread(matrixW22sum, (128*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/7s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/7s.bin", "rb");
     fread(matrixB22sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //3-1
-    fp = fopen("../../source-data/vggbin/8s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/8s.bin", "rb");
     fread(matrixW31sum, (128*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/9s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/9s.bin", "rb");
     fread(matrixB31sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //3-2
-    fp = fopen("../../source-data/vggbin/10s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/10s.bin", "rb");
     fread(matrixW32sum, (256*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/11s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/11s.bin", "rb");
     fread(matrixB32sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //3-3
-    fp = fopen("../../source-data/vggbin/12s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/12s.bin", "rb");
     fread(matrixW33sum, (256*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/13s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/13s.bin", "rb");
     fread(matrixB33sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //4-1
-    fp = fopen("../../source-data/vggbin/14s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/14s.bin", "rb");
     fread(matrixW41sum, (256*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/15s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/15s.bin", "rb");
     fread(matrixB41sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //4-2
-    fp = fopen("../../source-data/vggbin/16s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/16s.bin", "rb");
     fread(matrixW42sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/17s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/17s.bin", "rb");
     fread(matrixB42sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //4-3
-    fp = fopen("../../source-data/vggbin/18s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/18s.bin", "rb");
     fread(matrixW43sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/19s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/19s.bin", "rb");
     fread(matrixB43sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //5-1
-    fp = fopen("../../source-data/vggbin/20s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/20s.bin", "rb");
     fread(matrixW51sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/21s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/21s.bin", "rb");
     fread(matrixB51sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //5-2
-    fp = fopen("../../source-data/vggbin/22s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/22s.bin", "rb");
     fread(matrixW52sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/23s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/23s.bin", "rb");
     fread(matrixB52sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //5-3
-    fp = fopen("../../source-data/vggbin/24s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/24s.bin", "rb");
     fread(matrixW53sum, (512*3*3) * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/25s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/25s.bin", "rb");
     fread(matrixB53sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //6-1
-    fp = fopen("../../source-data/vggbin/26s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/26s.bin", "rb");
     fread(matrixW61sum, 25088 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/27s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/27s.bin", "rb");
     fread(matrixB61sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //6-2
-    fp = fopen("../../source-data/vggbin/28s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/28s.bin", "rb");
     fread(matrixW62sum, 4096 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/29s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/29s.bin", "rb");
     fread(matrixB62sum, sizeof(double), 1, fp);
     fclose(fp);
 
     //6-3
-    fp = fopen("../../source-data/vggbin/30s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/30s.bin", "rb");
     fread(matrixW63sum, 4096 * sizeof(double), 1, fp);
     fclose(fp);
 
-    fp = fopen("../../source-data/vggbin/31s.bin", "rb");
+    fp = fopen("../../source-data/vgg_sums/31s.bin", "rb");
     fread(matrixB63sum, sizeof(double), 1, fp);
     fclose(fp);
 }
 
 static void create_weight_sums() {
-    for (int i = 0; i < (k1 * k1 * k1); i++) {
-        matrixW11sum[i] = 0;
+
+    for (int i = 0; i < (64 * k1 * k1); i++) {
+        matrixW21sum[i] = 0;
     }
 
 
-    matrixB11sum[0] = 0;
+    matrixB21sum[0] = 0;
 
 
-    for (int h = 0; h < k1; h++) {
-        for (int i = 0; i < c1d; i++) {
+    for (int h = 0; h < 64; h++) {
+        for (int i = 0; i < 128; i++) {
             for (int j = 0; j < k1; j++) {
                 for (int k = 0; k < k1; k++) {
-                    matrixW11sum[(h * k1 * k1) + (j * k1) + k] += matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
+                    matrixW21sum[(h * k1 * k1) + (j * k1) + k] += matrixW21double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k];
                 }
             }
         }
     }
 
-    for (int h = 0; h < c1d; h++) {
-        matrixB11sum[0] += matrixB11double[h];
+    for (int h = 0; h < c2d; h++) {
+        matrixB21sum[0] += matrixB21double[h];
     }
 
-    /*for (int i = 0; i < c2d; i++) {
-        for (int j = 0; j < k2; j++) {
-            for (int k = 0; k < k2; k++) {
-                printf("%f ", matrixW22sum[(i * k2 * k2) + (j * k2) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
 
 }
 
@@ -678,7 +673,6 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_util, "relu"); //4
         _ocl_base->CreateKernelFromProgram(prog_util, "maxpool"); //5
         _ocl_base->CreateKernelFromProgram(prog_util, "flatmat"); //6
-        _ocl_base->CreateKernelFromProgram(prog_util, "flatmat_ics"); //7
     }
 
     cl_mem l0Buffer = nullptr;
@@ -695,6 +689,7 @@ public:
     cl_mem c52Buf = nullptr;
     cl_mem c61Buf = nullptr;
     cl_mem c62Buf = nullptr;
+    cl_mem c63Buf = nullptr;
 
     cl_mem w11Buffer = nullptr;
     cl_mem w12Buffer = nullptr;
@@ -832,11 +827,17 @@ public:
 
         c61Buf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
-                                4096 * sizeof(double),
+                                25088 * sizeof(double),
                                 nullptr,
                                 NULL);
 
         c62Buf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                4096 * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c63Buf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
                                 4096 * sizeof(double),
                                 nullptr,
@@ -859,9 +860,9 @@ public:
                                 NULL);
 
         cscBuf = clCreateBuffer(_ocl_base->context,
-                                  CL_MEM_READ_WRITE,
+                                  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                                   36 * sizeof(double),
-                                  nullptr,
+                                  csc,
                                   NULL);
     }
 
@@ -881,6 +882,7 @@ public:
         clReleaseMemObject(c52Buf);
         clReleaseMemObject(c61Buf);
         clReleaseMemObject(c62Buf);
+        clReleaseMemObject(c63Buf);
 
         clReleaseMemObject(w11Buffer);
         clReleaseMemObject(w12Buffer);
@@ -1200,7 +1202,7 @@ public:
 
         w21sBuffer = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   c2d * k1 * k1 * sizeof(double),
+                                   c1d * k1 * k1 * sizeof(double),
                                    w21sptr,
                                    NULL);
 
@@ -1212,7 +1214,7 @@ public:
 
         w31sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    c3d * k3 * k3 * sizeof(double),
+                                    c2d * k3 * k3 * sizeof(double),
                                     w31sptr,
                                     NULL);
 
@@ -1230,7 +1232,7 @@ public:
 
         w41sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    c4d * k3 * k3 * sizeof(double),
+                                    c3d * k3 * k3 * sizeof(double),
                                     w41sptr,
                                     NULL);
 
@@ -1266,19 +1268,19 @@ public:
 
         w61sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    c6d * k3 * k3 * sizeof(double),
+                                    25088 * sizeof(double),
                                     w61sptr,
                                     NULL);
 
         w62sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    c6d * k3 * k3 * sizeof(double),
+                                    4096 * sizeof(double),
                                     w62sptr,
                                     NULL);
 
         w63sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    c6d * k3 * k3 * sizeof(double),
+                                    4096 * sizeof(double),
                                     w63sptr,
                                     NULL);
 
@@ -1649,7 +1651,7 @@ public:
                           int iw, int ow, int cscInd)
     {
         //ics
-        flatmat_ics(ibuf, wsbuffer, bsbuf, icsbuffer, iw, ow);
+        flatmat(ibuf, wsbuffer, bsbuf, icsbuffer, iw, 1);
 
         //matmul
         flatmat(ibuf, wbuf, bbuf, obuf, iw, ow);
@@ -1661,40 +1663,6 @@ public:
         cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
 
         return 1;
-    }
-
-    unsigned flatmat_ics(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf,
-                         int iw, int ow)
-    {
-        cl_int status;
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *) &ibuf);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *) &obuf);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 2, sizeof(cl_mem), (void *) &wbuf);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 3, sizeof(cl_mem), (void *) &bbuf);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 4, sizeof(int), &iw);
-        status = clSetKernelArg(_ocl_base->GetKernel(7), 5, sizeof(int), &ow);
-
-        size_t global_work_size[1];
-        global_work_size[0] = 1;
-
-        //Enqueueing kernel
-        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
-                                        _ocl_base->GetKernel(7),
-                                        1,
-                                        NULL,
-                                        global_work_size,
-                                        NULL,
-                                        0,
-                                        NULL,
-                                        &_event);
-        if (status != CL_SUCCESS) {
-            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
-
-        return (unsigned)status;
     }
 
     void print_kernel_execution_times()
@@ -1990,7 +1958,7 @@ int forward_abft() {
 
     //conv block 2
     //convolution 2-1
-    ocl.convolution3_abft(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c21Buf,
+    ocl.convolution3_abft(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
                           ocl.icsBuf, ocl.w21sBuffer, ocl.b21sBuffer, ocl. ocsBuf,
                           c2w, c2h, c20d, k2, c2pad, c2w, c2h, c2d, 5);
     ocl.relu_dmr(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d, 6);
@@ -2076,22 +2044,23 @@ int forward_abft() {
 
     //mat block
     //matmul 6-1
+
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
                           25088, 4096, 31);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 32);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d, 32);
 
     //matmul 6-2
-    ocl.flatmat_abft(ocl.c61Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
+    ocl.flatmat_abft(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
                           4096, 4096, 33);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 34);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d, 34);
 
     //matmul 6-3
-    ocl.flatmat_abft(ocl.c61Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
+    ocl.flatmat_abft(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
                           4096, 1000,  35);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d, 36);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d, 36);
 
     ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
     //select max output value
@@ -2125,7 +2094,7 @@ int main() {
     createVectors();
     copyModel();
     copyWeightSums();
-    //create_weight_sums();
+    create_weight_sums();
     write_layers();
 
     load_image("../../source-img/in0.png");
@@ -2140,7 +2109,12 @@ int main() {
         forward_abft();
     }
 
-    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c61Buf);
+    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
+    for (int i=0; i<10;i++) {
+        printf("%f ", matrixR6[i]);
+    }
+    printf("\n ");
+
     //select max output value
     double max = 0;
     int maxind = 0;
