@@ -1511,7 +1511,7 @@ public:
         output_sum(obuf, ocsbuffer, od, ow, oh);
 
         //csc
-        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, od, cscInd);
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, cscInd);
 
         return 1;
     }
@@ -1554,7 +1554,7 @@ public:
         relu(ibuf, obuf, ow, oh, od);
         relu(ibuf, dbuf, ow, oh, od); //needs a bigger double buf
 
-        cs_compare(obuf, dbuf, cscBuf, ow, oh, od, cscInd);
+        cs_compare(obuf, dbuf, cscBuf, ow, oh, cscInd);
 
         return 1;
     }
@@ -1602,7 +1602,7 @@ public:
         maxpool(ibuf, obuf, iw, ih, id, stride, kernel_size, ow, oh);
         maxpool(ibuf, dbuf, iw, ih, id, stride, kernel_size, ow, oh);
 
-        cs_compare(obuf, dbuf, cscBuf, ow, oh, id, cscInd);
+        cs_compare(obuf, dbuf, cscBuf, ow, oh, cscInd);
 
         return 1;
     }
@@ -1638,7 +1638,7 @@ public:
         return (unsigned)status;
     }
 
-    unsigned cs_compare(cl_mem ibuf, cl_mem obuf, cl_mem csbuf, int ow, int oh, int od, int csInd)
+    unsigned cs_compare(cl_mem ibuf, cl_mem obuf, cl_mem csbuf, int ow, int oh, int csInd)
     {
         cl_int status;
         status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *) &ibuf);
@@ -1716,7 +1716,7 @@ public:
         output_sum(obuf, ocsbuffer, ow, 1, 1);
 
         //csc
-        cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, cscInd);
 
         return 1;
     }
@@ -2038,27 +2038,8 @@ int forward_abft() {
     //max pool 5
     ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h, 30);
 
-    //mat block without abgty
-    //matmul 6-1
-    /*
-    ocl.flatmat(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
-                25088, 4096);
-    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
-
-    //matmul 6-2
-    ocl.flatmat(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
-                4096, 4096);
-    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
-
-    //matmul 6-3
-    ocl.flatmat(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
-                4096, 1000);
-    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
-     */
-
     //mat block
     //matmul 6-1
-
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
                           25088, 4096, 31);
@@ -2134,30 +2115,22 @@ int main() {
 
     ocl.write_image(matrixL0double);
 
-    double time1 = 0;
-    double time2 = 0;
-
-    //checking non-abft runtime
-    for (int i= 0; i < 10; i++) {
-        result = Program_sw.runProgram(predict);
-        time1 += Program_sw.getElapsedTime();
-    }
-    std::cout << "single prediction without abft: " << result << std::endl;
-    std::cout << "Elapsed time: " << time1 << " us" << std::endl;
-
-    //checking abft overhead
-    for (int i= 0; i < 10; i++) {
-        result = Program_sw.runProgram(predictAbft);
-        time2 += Program_sw.getElapsedTime();
-    }
-    std::cout << "single prediction with abft: " << result << std::endl;
-    std::cout << "Elapsed time: " << time2 << " us" << std::endl;
-    std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
-    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
-
-    //running the model and examining results
+    //abft
     for (int i=0;i<1;i++) {
-        forward();
+        forward_abft();
+    }
+
+    int abfttrigger = 0;
+    printf("csc: \n ");
+    for (int i=0; i<36;i++) {
+        printf("%f ", csc[i]);
+        if (fabs(csc[i]) > 0.1) {
+            abfttrigger = 1;
+        }
+    }
+    printf("\n");
+    if (abfttrigger == 1) {
+        printf("ABFT flag triggered! \n");
     }
 
     ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
@@ -2180,23 +2153,32 @@ int main() {
     printf("\n");
 
 
+    double time1 = 0;
+    double time2 = 0;
 
-    //abft
+    //checking non-abft runtime
+    for (int i= 0; i < 1; i++) {
+        result = Program_sw.runProgram(predict);
+        time1 += Program_sw.getElapsedTime();
+    }
+    std::cout << "single prediction without abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << time1 << " us" << std::endl;
+
+    //checking abft overhead
+    for (int i= 0; i < 1; i++) {
+        result = Program_sw.runProgram(predictAbft);
+        time2 += Program_sw.getElapsedTime();
+    }
+    std::cout << "single prediction with abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << time2 << " us" << std::endl;
+    std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
+    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
+
+
+    //running the model and examining results
     for (int i=0;i<1;i++) {
-        forward_abft();
+        forward();
     }
-
-    printf("csc: \n ");
-    for (int i=0; i<36;i++) {
-        printf("%f ", csc[i]);
-    }
-    printf("\n");
-
-    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
-    for (int i=0; i<10;i++) {
-        printf("%f ", matrixR6[i]);
-    }
-    printf("\n ");
 
     //select max output value
     max = 0;
