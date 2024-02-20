@@ -1493,7 +1493,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        //kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
@@ -1544,7 +1544,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
@@ -1592,7 +1592,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
@@ -1633,7 +1633,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
@@ -1665,7 +1665,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        //kernel_execution_times[6] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
@@ -1698,7 +1698,7 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
 
         return (unsigned)status;
     }
@@ -2076,13 +2076,13 @@ int forward_abft() {
                           4096, 1000,  35);
     ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 36);
 
-    ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+    /*ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
     //select max output value
     for (int i=0; i<36;i++) {
         if (csc[i] > 0.0000000000001) {
             abftflag = 1;
         }
-    }
+    }*/
 
     return abftflag;
 }
@@ -2090,6 +2090,7 @@ int forward_abft() {
 struct Predict : public IProgram {
     int run() override {
         forward();
+        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
         return 1;
     }
 };
@@ -2097,6 +2098,7 @@ struct Predict : public IProgram {
 struct Predict_abft : public IProgram {
     int run() override {
         forward_abft();
+        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
         return 1;
     }
 };
@@ -2136,7 +2138,7 @@ int main() {
     double time2 = 0;
 
     //checking non-abft runtime
-    for (int i= 0; i < 100; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predict);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2144,7 +2146,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 100; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictAbft);
         time2 += Program_sw.getElapsedTime();
     }
