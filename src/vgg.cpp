@@ -759,6 +759,13 @@ public:
     cl_mem b62sBuffer = nullptr;
     cl_mem b63sBuffer = nullptr;
 
+    cl_mem c1dBuf = nullptr;
+    cl_mem c2dBuf = nullptr;
+    cl_mem c3dBuf = nullptr;
+    cl_mem c4dBuf = nullptr;
+    cl_mem c5dBuf = nullptr;
+    cl_mem c6dBuf = nullptr;
+
     cl_mem icsBuf = nullptr;
     cl_mem ocsBuf = nullptr;
     cl_mem cscBuf = nullptr;
@@ -847,6 +854,42 @@ public:
 
     unsigned create_bufs_abft()
     {
+        c1dBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c1d * c1h * c1w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c2dBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c2d * c2h * c2w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c3dBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c3d * c3h * c3w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c4dBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c4d * c4h * c4w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c5dBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                c5d * c5h * c5w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        c6dBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                4096 * sizeof(double),
+                                nullptr,
+                                NULL);
+
         icsBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
                                 c1h * c1w * sizeof(double),
@@ -951,6 +994,13 @@ public:
         clReleaseMemObject(b61sBuffer);
         clReleaseMemObject(b62sBuffer);
         clReleaseMemObject(b63sBuffer);
+
+        clReleaseMemObject(c1dBuf);
+        clReleaseMemObject(c2dBuf);
+        clReleaseMemObject(c3dBuf);
+        clReleaseMemObject(c4dBuf);
+        clReleaseMemObject(c5dBuf);
+        clReleaseMemObject(c6dBuf);;
 
         clReleaseMemObject(icsBuf);
         clReleaseMemObject(ocsBuf);
@@ -1493,12 +1543,12 @@ public:
         return (unsigned)status;
     }
 
-    unsigned relu_dmr(cl_mem ibuf, cl_mem obuf, int ow, int oh, int od, int cscInd)
+    unsigned relu_dmr(cl_mem ibuf, cl_mem dbuf, cl_mem obuf, int ow, int oh, int od, int cscInd)
     {
         relu(ibuf, obuf, ow, oh, od);
-        //relu(ibuf, ocsBuf, ow, oh, od); //needs a bigger double buf
+        relu(ibuf, dbuf, ow, oh, od); //needs a bigger double buf
 
-        //cs_compare(obuf, ocsBuf, cscBuf, ow, oh, od, cscInd);
+        cs_compare(obuf, dbuf, cscBuf, ow, oh, od, cscInd);
 
         return 1;
     }
@@ -1541,12 +1591,12 @@ public:
         return (unsigned)status;
     }
 
-    unsigned maxpool_dmr(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int cscInd)
+    unsigned maxpool_dmr(cl_mem ibuf, cl_mem dbuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int cscInd)
     {
         maxpool(ibuf, obuf, iw, ih, id, stride, kernel_size, ow, oh);
-        //maxpool(ibuf, ocsBuf, iw, ih, id, stride, kernel_size, ow, oh);
+        maxpool(ibuf, dbuf, iw, ih, id, stride, kernel_size, ow, oh);
 
-        //cs_compare(obuf, ocsBuf, cscBuf, ow, oh, id, cscInd);
+        cs_compare(obuf, dbuf, cscBuf, ow, oh, id, cscInd);
 
         return 1;
     }
@@ -1767,54 +1817,31 @@ static void write_layers() {
 }
 
 static void forward() {
-
-    /*printf("l0 \n");
-    for (int i = 0; i < (c1d); i++) {
-        for (int j = 0; j < (c1h); j++) {
-            for (int k = 0; k < (c1w); k++) {
-                printf("%f ", matrixL0double[(i * c1h * c1w) + (j * c1w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }*/
-
-    /*for (int h = 0; h < (layer0d); h++) {
-        for (int i = 0; i < (c1d); i++) {
-            for (int j = 0; j < (k1); j++) {
-                for (int k = 0; k < (k1); k++) {
-                    printf("%f ", matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-    }*/
-
     //conv block 1
     //convolution 1-1
     ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
-                     c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d);
+                          c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d);
     ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
 
     //convolution 1-2
     ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
-                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+                          c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
     ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
 
     //max pool 1
     ocl.maxpool(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
 
+
     //conv block 2
     //convolution 2-1
     ocl.convolution3(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
-                     c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
-    ocl.relu(ocl.c21Buf, ocl.c22Buf, c1w, c1h, c1d);
+                          c2w, c2h, c20d, k2, c2pad, c2w, c2h, c2d);
+    ocl.relu(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d);
 
-    //convolution 2-2
-    ocl.convolution3(ocl.c22Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c21Buf,
-                     c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
-    ocl.relu(ocl.c21Buf, ocl.c22Buf, c1w, c1h, c1d);
+    //convolution 2-2 / 22 -> 21
+    ocl.convolution3(ocl.c21Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c22Buf,
+                          c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d);
+    ocl.relu(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d);
 
     //max pool 2
     ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
@@ -1882,57 +1909,21 @@ static void forward() {
 
     //mat block
     //matmul 6-1
+
     ocl.flatmat(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                      25088, 4096);
-    ocl.relu(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
 
     //matmul 6-2
-    ocl.flatmat(ocl.c61Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
+    ocl.flatmat(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
                      4096, 4096);
-    ocl.relu(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
 
     //matmul 6-3
-    ocl.flatmat(ocl.c61Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
+    ocl.flatmat(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                      4096, 1000);
-    ocl.relu(ocl.c62Buf, ocl.c61Buf, c6w, c6h, c6d);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
 
-    ocl.buf_read(c1w, c1h, c1d, matrixR, ocl.c12Buf);
-    printf("matrixR \n");
-    for (int i=0; i < (c1d); i++) {
-        for (int j=0; j < (c1h); j++) {
-            for (int k=0; k< (c1w); k++) {
-                printf("%f ", matrixR[(i * c1h * c1w) + (j * c1w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-
-    //max pool 2
-    ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
-
-
-
-    //with 0 bias
-    /*ocl.convolution3(ocl.l0Buffer, ocl.w01Buffer, nullptr, ocl.l1Buffer,
-                     layer0w, layer0h, layer0d, k01, layer1w, layer1h, layer1d);*/
-
-    ocl.buf_read(c2w, c2h, c2d, matrixR2, ocl.c22Buf);
-    printf("matrixR2 \n");
-    for (int i=0; i < (c2d); i++) {
-        for (int j=0; j < (c2h); j++) {
-            for (int k=0; k< (c2w); k++) {
-                printf("%f ", matrixR2[(i * c2h * c2w) + (j * c2w) + k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-
-
-    for (int i=0; i <10 ; i++) {
-        printf("%f ", matrixR2[i]);
-    }
 
 }
 
@@ -1944,16 +1935,16 @@ int forward_abft() {
     ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
                      ocl.icsBuf, ocl.w11sBuffer, ocl.b11sBuffer, ocl.ocsBuf,
                      c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d, 0);
-    ocl.relu_dmr(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d, 1);
+    ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 1);
 
     //convolution 1-2
     ocl.convolution3_abft(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
                           ocl.icsBuf, ocl.w12sBuffer, ocl.b12sBuffer, ocl.ocsBuf,
                           c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 2);
-    ocl.relu_dmr(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d, 3);
+    ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 3);
 
     //max pool 1
-    ocl.maxpool_dmr(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h, 4);
+    ocl.maxpool_dmr(ocl.c11Buf, ocl.c2dBuf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h, 4);
 
 
     //conv block 2
@@ -1961,16 +1952,16 @@ int forward_abft() {
     ocl.convolution3_abft(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
                           ocl.icsBuf, ocl.w21sBuffer, ocl.b21sBuffer, ocl. ocsBuf,
                           c2w, c2h, c20d, k2, c2pad, c2w, c2h, c2d, 5);
-    ocl.relu_dmr(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d, 6);
+    ocl.relu_dmr(ocl.c22Buf, ocl.c2dBuf, ocl.c21Buf, c2w, c2h, c2d, 6);
 
     //convolution 2-2 / 22 -> 21
     ocl.convolution3_abft(ocl.c21Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c22Buf,
                           ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
                           c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 7);
-    ocl.relu_dmr(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d, 8);
+    ocl.relu_dmr(ocl.c22Buf, ocl.c2dBuf, ocl.c21Buf, c2w, c2h, c2d, 8);
 
     //max pool 2
-    ocl.maxpool_dmr(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 9);
+    ocl.maxpool_dmr(ocl.c21Buf, ocl.c3dBuf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 9);
 
 
     //conv block 3
@@ -1978,22 +1969,22 @@ int forward_abft() {
     ocl.convolution3_abft(ocl.c31Buf, ocl.w31Buffer, ocl.b31Buffer, ocl.c32Buf,
                           ocl.icsBuf, ocl.w31sBuffer, ocl.b31sBuffer, ocl. ocsBuf,
                           c3w, c3h, c30d, k3, c3pad, c3w, c3h, c3d, 10);
-    ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 11);
+    ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 11);
 
     //convolution 3-2
     ocl.convolution3_abft(ocl.c31Buf, ocl.w32Buffer, ocl.b32Buffer, ocl.c32Buf,
                           ocl.icsBuf, ocl.w32sBuffer, ocl.b32sBuffer, ocl. ocsBuf,
                           c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d, 12);
-    ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 13);
+    ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 13);
 
     //convolution 3-3
     ocl.convolution3_abft(ocl.c31Buf, ocl.w33Buffer, ocl.b33Buffer, ocl.c32Buf,
                           ocl.icsBuf, ocl.w33sBuffer, ocl.b33sBuffer, ocl. ocsBuf,
                           c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d, 14);
-    ocl.relu_dmr(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d, 15);
+    ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 15);
 
     //max pool 3
-    ocl.maxpool_dmr(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c4w, c4h, 16);
+    ocl.maxpool_dmr(ocl.c31Buf, ocl.c4dBuf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c4w, c4h, 16);
 
 
     //conv block 4
@@ -2001,22 +1992,22 @@ int forward_abft() {
     ocl.convolution3_abft(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
                           ocl.icsBuf, ocl.w41sBuffer, ocl.b41sBuffer, ocl. ocsBuf,
                           c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d, 17);
-    ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 18);
+    ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 18);
 
     //convolution 4-2
     ocl.convolution3_abft(ocl.c41Buf, ocl.w42Buffer, ocl.b42Buffer, ocl.c42Buf,
                           ocl.icsBuf, ocl.w42sBuffer, ocl.b42sBuffer, ocl. ocsBuf,
                           c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 19);
-    ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 20);
+    ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 20);
 
     //convolution 4-3
     ocl.convolution3_abft(ocl.c41Buf, ocl.w43Buffer, ocl.b43Buffer, ocl.c42Buf,
                           ocl.icsBuf, ocl.w43sBuffer, ocl.b43sBuffer, ocl. ocsBuf,
                           c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 21);
-    ocl.relu_dmr(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d, 22);
+    ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 22);
 
     //max pool 4
-    ocl.maxpool_dmr(ocl.c41Buf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c5w, c5h, 23);
+    ocl.maxpool_dmr(ocl.c41Buf, ocl.c5dBuf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c5w, c5h, 23);
 
 
     //conv block 5
@@ -2024,22 +2015,22 @@ int forward_abft() {
     ocl.convolution3_abft(ocl.c51Buf, ocl.w51Buffer, ocl.b51Buffer, ocl.c52Buf,
                           ocl.icsBuf, ocl.w51sBuffer, ocl.b51sBuffer, ocl. ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 24);
-    ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 25);
+    ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 25);
 
     //convolution 5-2
     ocl.convolution3_abft(ocl.c51Buf, ocl.w52Buffer, ocl.b52Buffer, ocl.c52Buf,
                           ocl.icsBuf, ocl.w52sBuffer, ocl.b52sBuffer, ocl. ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 26);
-    ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 27);
+    ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 27);
 
     //convolution 5-3
     ocl.convolution3_abft(ocl.c51Buf, ocl.w53Buffer, ocl.b53Buffer, ocl.c52Buf,
                           ocl.icsBuf, ocl.w53sBuffer, ocl.b53sBuffer, ocl. ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 28);
-    ocl.relu_dmr(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d, 29);
+    ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
     //max pool 5
-    ocl.maxpool_dmr(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h, 30);
+    ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h, 30);
 
 
     //mat block
@@ -2048,19 +2039,19 @@ int forward_abft() {
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
                           25088, 4096, 31);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d, 32);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 32);
 
     //matmul 6-2
     ocl.flatmat_abft(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
                           4096, 4096, 33);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d, 34);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 34);
 
     //matmul 6-3
     ocl.flatmat_abft(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
                           4096, 1000,  35);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d, 36);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 36);
 
     ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
     //select max output value
@@ -2076,7 +2067,23 @@ int forward_abft() {
     return abftflag;
 }
 
+struct Predict : public IProgram {
+    int run() override {
 
+
+
+        return 1;
+    }
+};
+
+struct Predict_abft : public IProgram {
+    int run() override {
+
+
+
+        return 1;
+    }
+};
 
 
 int main() {
@@ -2089,12 +2096,16 @@ int main() {
     //Start clock
     ProgramStopwatch Program_sw(clock);
 
+    //Program
+    Predict predict;
+    Predict_abft predictAbft;
+
     int result = 0;
 
     createVectors();
     copyModel();
     copyWeightSums();
-    create_weight_sums();
+    //create_weight_sums();
     write_layers();
 
     load_image("../../source-img/in0.png");
@@ -2105,6 +2116,51 @@ int main() {
 
     ocl.write_image(matrixL0double);
 
+    double time1 = 0;
+    double time2 = 0;
+
+    for (int i= 0; i < 1000; i++) {
+        result = Program_sw.runProgram(predict);
+        time1 += Program_sw.getElapsedTime();
+    }
+    std::cout << "single prediction without abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << time1 << " us" << std::endl;
+
+    for (int i= 0; i < 1000; i++) {
+        result = Program_sw.runProgram(predictAbft);
+        time2 += Program_sw.getElapsedTime();
+    }
+    std::cout << "single prediction with abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << time2 << " us" << std::endl;
+    std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
+    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
+
+    for (int i=0;i<1;i++) {
+        forward();
+    }
+
+    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
+    for (int i=0; i<10;i++) {
+        printf("%f ", matrixR6[i]);
+    }
+    printf("\n ");
+
+    //select max output value for non-abft
+    double max = 0;
+    int maxind = 0;
+    for (int i=0; i<1000;i++) {
+        //printf("%f ", matrixR6[(i * 10) + j]);
+        if (matrixR6[i] > max) {
+            max = matrixR6[i];
+            maxind = i;
+        }
+    }
+    printf("prediction: %d", maxind);
+    printf("\n");
+
+
+
+    //abft
     for (int i=0;i<1;i++) {
         forward_abft();
     }
@@ -2116,8 +2172,8 @@ int main() {
     printf("\n ");
 
     //select max output value
-    double max = 0;
-    int maxind = 0;
+    max = 0;
+    maxind = 0;
     for (int i=0; i<1000;i++) {
             //printf("%f ", matrixR6[(i * 10) + j]);
             if (matrixR6[i] > max) {
