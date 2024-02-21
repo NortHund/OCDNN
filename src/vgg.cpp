@@ -2099,15 +2099,52 @@ struct Predict : public IProgram {
     int run() override {
         forward();
         ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
-        return 1;
+        //select max output value for non-abft
+        double max = 0;
+        int maxind = 0;
+        for (int i=0; i<1000;i++) {
+            //printf("%f ", matrixR6[(i * 10) + j]);
+            if (matrixR6[i] > max) {
+                max = matrixR6[i];
+                maxind = i;
+            }
+        }
+        return maxind;
     }
 };
 
 struct Predict_abft : public IProgram {
     int run() override {
+        int abfttrigger = 0;
         forward_abft();
         ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
-        return 1;
+        ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+
+        //select max output value for non-abft
+        double max = 0;
+        int maxind = 0;
+        for (int i=0; i<1000;i++) {
+            //printf("%f ", matrixR6[(i * 10) + j]);
+            if (matrixR6[i] > max) {
+                max = matrixR6[i];
+                maxind = i;
+            }
+        }
+
+        for (int i=0; i<36;i++) {
+            if (fabs(csc[i]) > 0.1) {
+                abfttrigger = 1;
+            }
+        }
+        if (abfttrigger == 1) {
+            printf("ABFT flag triggered! \n");
+            for (int i=0; i<36;i++) {
+                printf("%f ", csc[i]);
+            }
+            printf("\n");
+            abfttrigger = 0;
+        }
+        return maxind;
     }
 };
 
@@ -2131,7 +2168,7 @@ int main() {
     createVectors();
     copyModel();
     copyWeightSums();
-    //create_weight_sums();
+    create_weight_sums();
     write_layers();
 
     load_image("../../source-img/in0.png");
@@ -2143,12 +2180,30 @@ int main() {
 
     ocl.write_image(matrixL0double);
 
+        int abfttrigger = 0;
+
     //abft
     for (int i=0;i<1;i++) {
         forward_abft();
+
+        ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+
+        for (int i=0; i<36;i++) {
+            if (fabs(csc[i]) > 0.1) {
+                abfttrigger = 1;
+            }
+        }
+        if (abfttrigger == 1) {
+            printf("ABFT flag triggered! \n");
+            for (int i=0; i<36;i++) {
+                printf("%f ", csc[i]);
+            }
+            printf("\n");
+            abfttrigger = 0;
+        }
     }
 
-    int abfttrigger = 0;
+
     printf("csc: \n ");
     for (int i=0; i<36;i++) {
         printf("%f ", csc[i]);
@@ -2185,7 +2240,7 @@ int main() {
     double time2 = 0;
 
     //checking non-abft runtime
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predict);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2193,7 +2248,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictAbft);
         time2 += Program_sw.getElapsedTime();
     }
