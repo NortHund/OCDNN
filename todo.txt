@@ -9,3 +9,8 @@ in exim create weight sums, the dimensions are wrong for matrixW13double jne --f
 weight sum problem mostly fixed, 2-1, 3-1 and 4-1 are still bugged --fixed
 matmul and matmul ics --fixed
 csc has some random values on the first run after waiting a while. Probably related to csc ocl buffer not being zeroed properly
+mystery bug found: W11 and W12 is all zeros, so bin loading/saving not working correctly, it was no tthis
+cs compare not designed for 3d tensors, this is a problem for relu/maxpool layer dmr
+
+now 3-1 and 4-1 conv3 have abft error detected, fixed, it was related to weight sum calcs
+mystery bug still persists in 4-1 and forward

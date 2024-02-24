@@ -310,18 +310,59 @@ static void copyModel() {
     fread(matrixW11double, 1728 * sizeof(double), 1, fp);
     fclose(fp);
 
+    /*for (int h = 0; h < 3; h++) {
+        for (int i = 0; i < 64; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++) {
+                    printf("%d, %d, %d, %d: %f ",h, i, j, k, matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
+                }
+                printf("\n");
+            }
+        }
+    }*/
+
     fp = fopen("../../source-data/vgg_weights/1.bin", "rb");
     fread(matrixB11double, 64 * sizeof(double), 1, fp);
     fclose(fp);
+    /*for (int i = 0; i < 64; i++) {
+        printf("%d, %f ", i, matrixB11double[i]);
+    }*/
+    //printf("\n");
+
 
     //1-2
     fp = fopen("../../source-data/vgg_weights/2.bin", "rb");
     fread(matrixW12double, 36864 * sizeof(double), 1, fp);
     fclose(fp);
 
+    /*for (int h = 0; h < 64; h++) {
+        for (int i = 0; i < 64; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++) {
+                    printf("%d, %d, %d, %d: %f ",h, i, j, k, matrixW12double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
+                }
+                printf("\n");
+            }
+        }
+    }*/
+
+    /*for (int h = 0; h < 1; h++) {
+        for (int i = 0; i < 1; i++) {
+            for (int j = 0; j < c1h; j++) {
+                for (int k = 0; k < c1w; k++) {
+                    printf("%d, %d, %d, %d: %f ",h, i, j, k, matrixW12double[(h * c1d * c1h * c1w) + (i * c1h * c1w) + (j * c1w) + k]);
+                }
+                printf("\n");
+            }
+        }
+    }*/
+
     fp = fopen("../../source-data/vgg_weights/3.bin", "rb");
     fread(matrixB12double, 64 * sizeof(double), 1, fp);
     fclose(fp);
+    /*for (int i = 0; i < 64; i++) {
+        printf("%d, %f ", i, matrixB12double[i]);
+    }*/
 
     //2-1
     fp = fopen("../../source-data/vgg_weights/4.bin", "rb");
@@ -1246,7 +1287,7 @@ public:
     {
         w11sBuffer = clCreateBuffer(_ocl_base->context,
                                     CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    c1d * k1 * k1 * sizeof(double),
+                                    c10d * k1 * k1 * sizeof(double),
                                     w11sptr,
                                     NULL);
 
@@ -1511,7 +1552,7 @@ public:
         output_sum(obuf, ocsbuffer, od, ow, oh);
 
         //csc
-        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, cscInd);
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, 1, cscInd);
 
         return 1;
     }
@@ -1524,7 +1565,7 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(4), 0, sizeof(cl_mem), (void *) &ibuf);
         status = clSetKernelArg(_ocl_base->GetKernel(4), 1, sizeof(cl_mem), (void *) &obuf);
 
-        size_t global_work_size[2];
+        size_t global_work_size[3]; //and here
         global_work_size[0] = ow;
         global_work_size[1] = oh;
         global_work_size[2] = od;
@@ -1532,7 +1573,7 @@ public:
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
                                         _ocl_base->GetKernel(4),
-                                        2,
+                                        3, //was this the issue? ugh
                                         NULL,
                                         global_work_size,
                                         NULL,
@@ -1554,7 +1595,7 @@ public:
         relu(ibuf, obuf, ow, oh, od);
         relu(ibuf, dbuf, ow, oh, od); //needs a bigger double buf
 
-        cs_compare(obuf, dbuf, cscBuf, ow, oh, cscInd);
+        cs_compare(obuf, dbuf, cscBuf, ow, oh, od, cscInd);
 
         return 1;
     }
@@ -1602,7 +1643,7 @@ public:
         maxpool(ibuf, obuf, iw, ih, id, stride, kernel_size, ow, oh);
         maxpool(ibuf, dbuf, iw, ih, id, stride, kernel_size, ow, oh);
 
-        cs_compare(obuf, dbuf, cscBuf, ow, oh, cscInd);
+        cs_compare(obuf, dbuf, cscBuf, ow, oh, id, cscInd);
 
         return 1;
     }
@@ -1638,7 +1679,7 @@ public:
         return (unsigned)status;
     }
 
-    unsigned cs_compare(cl_mem ibuf, cl_mem obuf, cl_mem csbuf, int ow, int oh, int csInd)
+    unsigned cs_compare(cl_mem ibuf, cl_mem obuf, cl_mem csbuf, int ow, int oh, int od, int csInd)
     {
         cl_int status;
         status = clSetKernelArg(_ocl_base->GetKernel(3), 0, sizeof(cl_mem), (void *) &ibuf);
@@ -1646,14 +1687,15 @@ public:
         status = clSetKernelArg(_ocl_base->GetKernel(3), 2, sizeof(cl_mem), (void *) &csbuf);
         status = clSetKernelArg(_ocl_base->GetKernel(3), 3, sizeof(int), &csInd);
 
-        size_t global_work_size[2];
+        size_t global_work_size[3];
         global_work_size[0] = ow;
         global_work_size[1] = oh;
+        global_work_size[2] = od;
 
         //Enqueueing kernel
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
                                         _ocl_base->GetKernel(3),
-                                        2,
+                                        3,
                                         NULL,
                                         global_work_size,
                                         NULL,
@@ -1716,7 +1758,7 @@ public:
         output_sum(obuf, ocsbuffer, ow, 1, 1);
 
         //csc
-        cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, cscInd);
+        cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
 
         return 1;
     }
@@ -1963,17 +2005,86 @@ static void forward() {
 int forward_abft() {
     int abftflag = 0;
 
+    //temp code for checking results
+    double* inM;
+    double* outR;
+    double* outW;
+    double* outB;
+
+    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
+    outR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
+    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
+    outB = (double*)malloc((c1d) * sizeof(double));
+
     //conv block 1
     //convolution 1-1
     ocl.convolution3_abft(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
                      ocl.icsBuf, ocl.w11sBuffer, ocl.b11sBuffer, ocl.ocsBuf,
                      c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d, 0);
+
     ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 1);
+
+    //ocl.buf_read(c1w, c1h, c1d, outR, ocl.c11Buf);
+
+    /*for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < c1h; j++) {
+            for (int k = 0; k < c1w; k++) {
+                printf("%d, %d, %d: %f ", i, j, k, result1[(i * c1h * c1w) + (j * c1w) + k]);
+            }
+            printf("\n");
+        }
+    }       */
+    /*ocl.buf_read(c1w, c1h, c1d, inM, ocl.c11Buf);
+    for (int i=0; i<3; i++) {
+        for (int j=0; j<6; j++) {
+            for (int k=0; k<6; k++) {
+                printf("%d, %d, %d: %f ", i, j, k, inM[(i * c1h * c1w) + (j * c1w) + k]);
+            }
+            printf("\n");
+        }
+    }*/
 
     //convolution 1-2
     ocl.convolution3_abft(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
                           ocl.icsBuf, ocl.w12sBuffer, ocl.b12sBuffer, ocl.ocsBuf,
                           c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 2);
+
+    /*ocl.buf_read(3, 3, (c1d * c1d), outW, ocl.w12Buffer);
+    for (int h = 0; h < 3; h++) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++) {
+                    printf("%d, %d, %d, %d: %f ",h, i, j, k, outW[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
+                }
+                printf("\n");
+            }
+        }
+    }*/
+
+    /*ocl.buf_read(1, 1, (c1d), outB, ocl.b12Buffer);
+    for (int i = 0; i < 64; i++) {
+        printf("%d, %f ", i, outB[i]);
+    }
+    printf("\n");*/
+
+
+    /*ocl.buf_read(c1w, c1h, c1d, outR, ocl.c12Buf);
+    for (int i=0; i<3; i++) {
+        for (int j=0; j<6; j++) {
+            for (int k=0; k<6; k++) {
+                printf("%d, %d, %d: %f ", i, j, k, outR[(i * c1h * c1w) + (j * c1w) + k]);
+                if (result1[(i * c1h * c1w) + (j * c1w) + k] > 100) {
+                    printf("%d, %d, %d: %f ", i, j, k, result1[(i * c1h * c1w) + (j * c1w) + k]);
+                }
+
+            }
+            printf("\n");
+        }
+        //printf("\n");
+        //printf("\n");
+    }
+    //printf("\n");*/
+
     ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 3);
 
     //max pool 1
@@ -1983,13 +2094,13 @@ int forward_abft() {
     //conv block 2
     //convolution 2-1
     ocl.convolution3_abft(ocl.c21Buf, ocl.w21Buffer, ocl.b21Buffer, ocl.c22Buf,
-                          ocl.icsBuf, ocl.w21sBuffer, ocl.b21sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w21sBuffer, ocl.b21sBuffer, ocl.ocsBuf,
                           c2w, c2h, c20d, k2, c2pad, c2w, c2h, c2d, 5);
     ocl.relu_dmr(ocl.c22Buf, ocl.c2dBuf, ocl.c21Buf, c2w, c2h, c2d, 6);
 
     //convolution 2-2 / 22 -> 21
     ocl.convolution3_abft(ocl.c21Buf, ocl.w22Buffer, ocl.b22Buffer, ocl.c22Buf,
-                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w22sBuffer, ocl.b22sBuffer, ocl.ocsBuf,
                           c2w, c2h, c2d, k2, c2pad, c2w, c2h, c2d, 7);
     ocl.relu_dmr(ocl.c22Buf, ocl.c2dBuf, ocl.c21Buf, c2w, c2h, c2d, 8);
 
@@ -2000,19 +2111,19 @@ int forward_abft() {
     //conv block 3
     //convolution 3-1
     ocl.convolution3_abft(ocl.c31Buf, ocl.w31Buffer, ocl.b31Buffer, ocl.c32Buf,
-                          ocl.icsBuf, ocl.w31sBuffer, ocl.b31sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w31sBuffer, ocl.b31sBuffer, ocl.ocsBuf,
                           c3w, c3h, c30d, k3, c3pad, c3w, c3h, c3d, 10);
     ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 11);
 
     //convolution 3-2
     ocl.convolution3_abft(ocl.c31Buf, ocl.w32Buffer, ocl.b32Buffer, ocl.c32Buf,
-                          ocl.icsBuf, ocl.w32sBuffer, ocl.b32sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w32sBuffer, ocl.b32sBuffer, ocl.ocsBuf,
                           c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d, 12);
     ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 13);
 
     //convolution 3-3
     ocl.convolution3_abft(ocl.c31Buf, ocl.w33Buffer, ocl.b33Buffer, ocl.c32Buf,
-                          ocl.icsBuf, ocl.w33sBuffer, ocl.b33sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w33sBuffer, ocl.b33sBuffer, ocl.ocsBuf,
                           c3w, c3h, c3d, k3, c3pad, c3w, c3h, c3d, 14);
     ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 15);
 
@@ -2023,19 +2134,19 @@ int forward_abft() {
     //conv block 4
     //convolution 4-1
     ocl.convolution3_abft(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
-                          ocl.icsBuf, ocl.w41sBuffer, ocl.b41sBuffer, ocl. ocsBuf,
-                          c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d, 17);
+                          ocl.icsBuf, ocl.w41sBuffer, ocl.b41sBuffer, ocl.ocsBuf,
+                          c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d, 17); // abft trigger after reboot
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 18);
 
     //convolution 4-2
     ocl.convolution3_abft(ocl.c41Buf, ocl.w42Buffer, ocl.b42Buffer, ocl.c42Buf,
-                          ocl.icsBuf, ocl.w42sBuffer, ocl.b42sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w42sBuffer, ocl.b42sBuffer, ocl.ocsBuf,
                           c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 19);
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 20);
 
     //convolution 4-3
     ocl.convolution3_abft(ocl.c41Buf, ocl.w43Buffer, ocl.b43Buffer, ocl.c42Buf,
-                          ocl.icsBuf, ocl.w43sBuffer, ocl.b43sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w43sBuffer, ocl.b43sBuffer, ocl.ocsBuf,
                           c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 21);
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 22);
 
@@ -2046,19 +2157,19 @@ int forward_abft() {
     //conv block 5
     //convolution 5-1
     ocl.convolution3_abft(ocl.c51Buf, ocl.w51Buffer, ocl.b51Buffer, ocl.c52Buf,
-                          ocl.icsBuf, ocl.w51sBuffer, ocl.b51sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w51sBuffer, ocl.b51sBuffer, ocl.ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 24);
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 25);
 
     //convolution 5-2
     ocl.convolution3_abft(ocl.c51Buf, ocl.w52Buffer, ocl.b52Buffer, ocl.c52Buf,
-                          ocl.icsBuf, ocl.w52sBuffer, ocl.b52sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w52sBuffer, ocl.b52sBuffer, ocl.ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 26);
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 27);
 
     //convolution 5-3
     ocl.convolution3_abft(ocl.c51Buf, ocl.w53Buffer, ocl.b53Buffer, ocl.c52Buf,
-                          ocl.icsBuf, ocl.w53sBuffer, ocl.b53sBuffer, ocl. ocsBuf,
+                          ocl.icsBuf, ocl.w53sBuffer, ocl.b53sBuffer, ocl.ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 28);
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
@@ -2070,19 +2181,19 @@ int forward_abft() {
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
                           25088, 4096, 31);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 32);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, 4096, 1, 1, 32);
 
     //matmul 6-2
     ocl.flatmat_abft(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
                           4096, 4096, 33);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 34);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, 4096, 1, 1, 34);
 
     //matmul 6-3
     ocl.flatmat_abft(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
                           4096, 1000,  35);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, c6w, c6h, c6d, 36);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, 1000, 1, 1, 36);
 
     /*ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
     //select max output value
@@ -2091,6 +2202,11 @@ int forward_abft() {
             abftflag = 1;
         }
     }*/
+
+    free(inM);
+    free(outR);
+    free(outW);
+    free(outB);
 
     return abftflag;
 }
@@ -2150,6 +2266,8 @@ struct Predict_abft : public IProgram {
 
 
 int main() {
+
+
     // Measure total time
     ChronoClock clock;
     Stopwatch sw(clock);
@@ -2168,7 +2286,7 @@ int main() {
     createVectors();
     copyModel();
     copyWeightSums();
-    create_weight_sums();
+    //create_weight_sums();
     write_layers();
 
     load_image("../../source-img/in0.png");
@@ -2182,6 +2300,10 @@ int main() {
 
         int abfttrigger = 0;
 
+    /*for (int k = 0; k < 100; k++) {
+        printf("%d, %f", k, matrixW11double[k]);
+    }*/
+
     //abft
     for (int i=0;i<1;i++) {
         forward_abft();
@@ -2191,22 +2313,20 @@ int main() {
         for (int i=0; i<36;i++) {
             if (fabs(csc[i]) > 0.1) {
                 abfttrigger = 1;
+                printf("%d: %f ", i, csc[i]);
             }
         }
+        printf("\n");
         if (abfttrigger == 1) {
             printf("ABFT flag triggered! \n");
-            for (int i=0; i<36;i++) {
-                printf("%f ", csc[i]);
-            }
-            printf("\n");
             abfttrigger = 0;
         }
     }
 
 
-    printf("csc: \n ");
+    /*printf("csc: \n ");
     for (int i=0; i<36;i++) {
-        printf("%f ", csc[i]);
+        printf("%d: %f ", i, csc[i]);
         if (fabs(csc[i]) > 0.1) {
             abfttrigger = 1;
         }
@@ -2214,15 +2334,16 @@ int main() {
     printf("\n");
     if (abfttrigger == 1) {
         printf("ABFT flag triggered! \n");
-    }
+    }*/
 
     ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
-    for (int i=0; i<10;i++) {
+    printf("Result: \n");
+    for (int i=0; i<30;i++) {
         printf("%f ", matrixR6[i]);
     }
     printf("\n ");
 
-    //select max output value for non-abft
+    //select max output value for abft run
     double max = 0;
     int maxind = 0;
     for (int i=0; i<1000;i++) {
@@ -2235,7 +2356,7 @@ int main() {
     printf("prediction: %d", maxind);
     printf("\n");
 
-
+/*
     double time1 = 0;
     double time2 = 0;
 
@@ -2275,12 +2396,15 @@ int main() {
     }
     printf("prediction: %d", maxind);
     printf("\n");
+    */
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
 
     //cleaning bufs and memory allocation
     freememory();
+
+
 
     //print opencl information
     printPlatformInfo(false);
