@@ -37,6 +37,7 @@ __kernel void maxpool(__global double* input, __global double* output, int ih, i
         }
     }
     output[(layer * height * width) + (row * width) + col] = max;
+    //output[(layer * height * width) + (row * width) + col] = col;
 
 }
 

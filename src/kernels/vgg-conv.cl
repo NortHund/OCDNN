@@ -23,6 +23,7 @@ __kernel void convolution_double(__global double* input, __global double* weight
     }
 
   output[(layer * width * height) + (row * width) + col] = sum + bias[layer];
+  //output[(layer * width * height) + (row * width) + col] = 1;
   //output[(layer * width * height) + (row * width) + col] = 0;
   //output[(layer * width * height) + (row * width) + col] = depth;
   //output[(layer * width * height) + (row * width) + col] = weight[0];

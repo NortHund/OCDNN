@@ -20,7 +20,7 @@ int c3d = 256;
 int c30d = 128;
 
 int c4w = 28;
-int c4h = 38;
+int c4h = 28;
 int c4d = 512;
 int c40d = 256;
 
@@ -296,7 +296,7 @@ static void createVectors()
     matrixR3 = (double*)malloc((c3d) * (c3w * c3h) * sizeof(double));
     matrixR4 = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
     matrixR5 = (double*)malloc((c5d) * (c5w * c5h) * sizeof(double));
-    matrixR6 = (double*)malloc((c6d) * (c6w * c6h) * sizeof(double));
+    matrixR6 = (double*)malloc(1000 * sizeof(double));
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL0double[i] = 0;
@@ -731,6 +731,7 @@ public:
     cl_mem c61Buf = nullptr;
     cl_mem c62Buf = nullptr;
     cl_mem c63Buf = nullptr;
+    cl_mem c6rBuf = nullptr;
 
     cl_mem w11Buffer = nullptr;
     cl_mem w12Buffer = nullptr;
@@ -891,6 +892,12 @@ public:
                                 nullptr,
                                 NULL);
 
+        c6rBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                1000 * sizeof(double),
+                                nullptr,
+                                NULL);
+
     }
 
     unsigned create_bufs_abft(double* cscptr)
@@ -973,6 +980,7 @@ public:
         clReleaseMemObject(c61Buf);
         clReleaseMemObject(c62Buf);
         clReleaseMemObject(c63Buf);
+        clReleaseMemObject(c6rBuf);
 
         clReleaseMemObject(w11Buffer);
         clReleaseMemObject(w12Buffer);
@@ -2011,10 +2019,7 @@ int forward_abft() {
     double* outW;
     double* outB;
 
-    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
-    outR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
-    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
-    outB = (double*)malloc((c1d) * sizeof(double));
+
 
     //conv block 1
     //convolution 1-1
@@ -2088,7 +2093,8 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 3);
 
     //max pool 1
-    ocl.maxpool_dmr(ocl.c11Buf, ocl.c2dBuf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h, 4);
+    ocl.maxpool_dmr(ocl.c11Buf, ocl.c2dBuf, ocl.c21Buf, c1w, c1h, c1d, 2, 2, c2w, c2h, 4);
+
 
 
     //conv block 2
@@ -2105,7 +2111,7 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c22Buf, ocl.c2dBuf, ocl.c21Buf, c2w, c2h, c2d, 8);
 
     //max pool 2
-    ocl.maxpool_dmr(ocl.c21Buf, ocl.c3dBuf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h, 9);
+    ocl.maxpool_dmr(ocl.c21Buf, ocl.c3dBuf, ocl.c31Buf, c2w, c2h, c2d, 2, 2, c3w, c3h, 9);
 
 
     //conv block 3
@@ -2128,8 +2134,35 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c32Buf, ocl.c3dBuf, ocl.c31Buf, c3w, c3h, c3d, 15);
 
     //max pool 3
-    ocl.maxpool_dmr(ocl.c31Buf, ocl.c4dBuf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c4w, c4h, 16);
+    ocl.maxpool_dmr(ocl.c31Buf, ocl.c4dBuf, ocl.c41Buf, c3w, c3h, c3d, 2, 2, c4w, c4h, 16);
 
+    /*
+    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
+    outR = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
+    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
+    outB = (double*)malloc((c1d) * sizeof(double));
+
+    ocl.buf_read(c4w, c4h, c4d, outR, ocl.c41Buf);
+
+    for (int i = 0; i < c3d; i++) {
+        for (int j = 0; j < c4h; j++) {
+            for (int k = 0; k < c4w; k++) {
+                //printf("%d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+            }
+            //printf("\n");
+        }
+    }
+
+    for (int i = 0; i < c3d; i++) {
+        for (int j = 0; j < c4h; j++) {
+            for (int k = 0; k < c4w; k++) {
+                if (outR[(i * c4h * c4w) + (j * c4w) + k] > 1000) {
+                    printf("error! %d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+                    printf("\n");
+                }
+            }
+        }
+    }*/
 
     //conv block 4
     //convolution 4-1
@@ -2151,7 +2184,7 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 22);
 
     //max pool 4
-    ocl.maxpool_dmr(ocl.c41Buf, ocl.c5dBuf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c5w, c5h, 23);
+    ocl.maxpool_dmr(ocl.c41Buf, ocl.c5dBuf, ocl.c51Buf, c4w, c4h, c4d, 2, 2, c5w, c5h, 23);
 
 
     //conv block 5
@@ -2174,8 +2207,36 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
     //max pool 5
-    ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h, 30);
+    ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c31Buf, c5w, c5h, c5d, 2, 2, c6w, c6h, 30);
 
+    /*
+    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
+    outR = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
+    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
+    outB = (double*)malloc((c1d) * sizeof(double));
+
+    ocl.buf_read(c4w, c4h, c4d, outR, ocl.c41Buf);
+
+    for (int i = 0; i < c3d; i++) {
+        for (int j = 0; j < c4h; j++) {
+            for (int k = 0; k < c4w; k++) {
+                //printf("%d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+            }
+            //printf("\n");
+        }
+    }
+
+    for (int i = 0; i < c3d; i++) {
+        for (int j = 0; j < c4h; j++) {
+            for (int k = 0; k < c4w; k++) {
+                if (outR[(i * c4h * c4w) + (j * c4w) + k] > 1000) {
+                    printf("error! %d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+                    printf("\n");
+                }
+            }
+        }
+    }*/
+    
     //mat block
     //matmul 6-1
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
@@ -2193,7 +2254,7 @@ int forward_abft() {
     ocl.flatmat_abft(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                           ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
                           4096, 1000,  35);
-    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, 1000, 1, 1, 36);
+    ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c6rBuf, 1000, 1, 1, 36);
 
     /*ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
     //select max output value
@@ -2214,7 +2275,7 @@ int forward_abft() {
 struct Predict : public IProgram {
     int run() override {
         forward();
-        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
+        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
         //select max output value for non-abft
         double max = 0;
         int maxind = 0;
@@ -2233,7 +2294,7 @@ struct Predict_abft : public IProgram {
     int run() override {
         int abfttrigger = 0;
         forward_abft();
-        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
+        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
         ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
 
         //select max output value for non-abft
@@ -2287,6 +2348,7 @@ int main() {
     copyModel();
     copyWeightSums();
     //create_weight_sums();
+    //matrixW41sum[4] = 0.4;
     write_layers();
 
     load_image("../../source-img/in0.png");
@@ -2316,8 +2378,8 @@ int main() {
                 printf("%d: %f ", i, csc[i]);
             }
         }
-        printf("\n");
         if (abfttrigger == 1) {
+            printf("\n");
             printf("ABFT flag triggered! \n");
             abfttrigger = 0;
         }
@@ -2336,7 +2398,7 @@ int main() {
         printf("ABFT flag triggered! \n");
     }*/
 
-    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c63Buf);
+    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
     printf("Result: \n");
     for (int i=0; i<30;i++) {
         printf("%f ", matrixR6[i]);
@@ -2384,6 +2446,7 @@ int main() {
         forward();
     }
 
+    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
     //select max output value
     max = 0;
     maxind = 0;
