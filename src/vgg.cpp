@@ -126,6 +126,7 @@ double* matrixR3;
 double* matrixR4;
 double* matrixR5;
 double* matrixR6;
+double* matrixResult;
 
 int abft_err = 0;
 
@@ -172,6 +173,7 @@ int freememory() {
     free(matrixR4);
     free(matrixR5);
     free(matrixR6);
+    free(matrixResult);
 
     free(matrixW11sum);
     free(matrixW12sum);
@@ -297,11 +299,26 @@ static void createVectors()
     matrixR4 = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
     matrixR5 = (double*)malloc((c5d) * (c5w * c5h) * sizeof(double));
     matrixR6 = (double*)malloc(1000 * sizeof(double));
+    matrixResult = (double*)malloc(1000 * sizeof(double));
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL0double[i] = 0;
     }
 
+}
+
+static void save_result() {
+    //1-1
+    FILE *fp = fopen("../../source-data/result.bin", "wb");
+    fwrite(matrixR6, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+}
+
+static void load_result() {
+    //1-1
+    FILE *fp = fopen("../../source-data/result.bin", "rb");
+    fread(matrixResult, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
 }
 
 static void copyModel() {
@@ -310,59 +327,18 @@ static void copyModel() {
     fread(matrixW11double, 1728 * sizeof(double), 1, fp);
     fclose(fp);
 
-    /*for (int h = 0; h < 3; h++) {
-        for (int i = 0; i < 64; i++) {
-            for (int j = 0; j < 3; j++) {
-                for (int k = 0; k < 3; k++) {
-                    printf("%d, %d, %d, %d: %f ",h, i, j, k, matrixW11double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
-                }
-                printf("\n");
-            }
-        }
-    }*/
-
     fp = fopen("../../source-data/vgg_weights/1.bin", "rb");
     fread(matrixB11double, 64 * sizeof(double), 1, fp);
     fclose(fp);
-    /*for (int i = 0; i < 64; i++) {
-        printf("%d, %f ", i, matrixB11double[i]);
-    }*/
-    //printf("\n");
-
 
     //1-2
     fp = fopen("../../source-data/vgg_weights/2.bin", "rb");
     fread(matrixW12double, 36864 * sizeof(double), 1, fp);
     fclose(fp);
 
-    /*for (int h = 0; h < 64; h++) {
-        for (int i = 0; i < 64; i++) {
-            for (int j = 0; j < 3; j++) {
-                for (int k = 0; k < 3; k++) {
-                    printf("%d, %d, %d, %d: %f ",h, i, j, k, matrixW12double[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
-                }
-                printf("\n");
-            }
-        }
-    }*/
-
-    /*for (int h = 0; h < 1; h++) {
-        for (int i = 0; i < 1; i++) {
-            for (int j = 0; j < c1h; j++) {
-                for (int k = 0; k < c1w; k++) {
-                    printf("%d, %d, %d, %d: %f ",h, i, j, k, matrixW12double[(h * c1d * c1h * c1w) + (i * c1h * c1w) + (j * c1w) + k]);
-                }
-                printf("\n");
-            }
-        }
-    }*/
-
     fp = fopen("../../source-data/vgg_weights/3.bin", "rb");
     fread(matrixB12double, 64 * sizeof(double), 1, fp);
     fclose(fp);
-    /*for (int i = 0; i < 64; i++) {
-        printf("%d, %f ", i, matrixB12double[i]);
-    }*/
 
     //2-1
     fp = fopen("../../source-data/vgg_weights/4.bin", "rb");
@@ -1899,20 +1875,62 @@ static void write_layers() {
                            matrixB61sum, matrixB62sum, matrixB63sum);
 }
 
+static void check_layer() {
+    //temp code for checking results
+    double* inM;
+    double* outR;
+    double* outW;
+    double* outB;
+
+    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
+    outR = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
+    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
+    outB = (double*)malloc((c1d) * sizeof(double));
+
+    ocl.buf_read(c4w, c4h, c4d, outR, ocl.c41Buf);
+
+    for (int i = 0; i < c3d; i++) {
+        for (int j = 0; j < c4h; j++) {
+            for (int k = 0; k < c4w; k++) {
+                printf("%d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+            }
+            printf("\n");
+        }
+    }
+
+    for (int i = 0; i < c3d; i++) {
+        for (int j = 0; j < c4h; j++) {
+            for (int k = 0; k < c4w; k++) {
+                if (outR[(i * c4h * c4w) + (j * c4w) + k] > 1000) {
+                    printf("error! %d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+                    printf("\n");
+                }
+            }
+        }
+    }
+
+    free(inM);
+    free(outR);
+    free(outW);
+    free(outB);
+}
+
 static void forward() {
     //conv block 1
     //convolution 1-1
     ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
                           c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d);
+
     ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
 
     //convolution 1-2
     ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
                           c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+
     ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
 
     //max pool 1
-    ocl.maxpool(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 4, c2w, c2h);
+    ocl.maxpool(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 2, c2w, c2h);
 
 
     //conv block 2
@@ -1927,7 +1945,7 @@ static void forward() {
     ocl.relu(ocl.c22Buf, ocl.c21Buf, c2w, c2h, c2d);
 
     //max pool 2
-    ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 4, c3w, c3h);
+    ocl.maxpool(ocl.c21Buf, ocl.c31Buf, c2w, c2h, c2d, 2, 2, c3w, c3h);
 
 
     //conv block 3
@@ -1947,13 +1965,13 @@ static void forward() {
     ocl.relu(ocl.c32Buf, ocl.c31Buf, c3w, c3h, c3d);
 
     //max pool 3
-    ocl.maxpool(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 4, c4w, c4h);
+    ocl.maxpool(ocl.c31Buf, ocl.c41Buf, c3w, c3h, c3d, 2, 2, c4w, c4h);
 
 
     //conv block 4
     //convolution 4-1
     ocl.convolution3(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
-                          c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d);
+                          c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d); // abft trigger after reboot
     ocl.relu(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d);
 
     //convolution 4-2
@@ -1967,7 +1985,7 @@ static void forward() {
     ocl.relu(ocl.c42Buf, ocl.c41Buf, c4w, c4h, c4d);
 
     //max pool 4
-    ocl.maxpool(ocl.c41Buf, ocl.c42Buf, c4w, c4h, c4d, 2, 4, c5w, c5h);
+    ocl.maxpool(ocl.c41Buf, ocl.c51Buf, c4w, c4h, c4d, 2, 2, c5w, c5h);
 
 
     //conv block 5
@@ -1987,39 +2005,28 @@ static void forward() {
     ocl.relu(ocl.c52Buf, ocl.c51Buf, c5w, c5h, c5d);
 
     //max pool 5
-    ocl.maxpool(ocl.c51Buf, ocl.c31Buf, c5w, c5h, c5d, 2, 4, c6w, c6h);
+    ocl.maxpool(ocl.c51Buf, ocl.c61Buf, c5w, c5h, c5d, 2, 2, c6w, c6h);
 
 
     //mat block
     //matmul 6-1
-
     ocl.flatmat(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
                      25088, 4096);
-    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, 4096, 1, 1);
 
     //matmul 6-2
     ocl.flatmat(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
                      4096, 4096);
-    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
+    ocl.relu(ocl.c62Buf, ocl.c63Buf, 4096, 1, 1);
 
     //matmul 6-3
     ocl.flatmat(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
                      4096, 1000);
-    ocl.relu(ocl.c62Buf, ocl.c63Buf, c6w, c6h, c6d);
-
-
+    ocl.relu(ocl.c62Buf, ocl.c6rBuf, 1000, 1, 1);
 }
 
 int forward_abft() {
     int abftflag = 0;
-
-    //temp code for checking results
-    double* inM;
-    double* outR;
-    double* outW;
-    double* outB;
-
-
 
     //conv block 1
     //convolution 1-1
@@ -2029,72 +2036,15 @@ int forward_abft() {
 
     ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 1);
 
-    //ocl.buf_read(c1w, c1h, c1d, outR, ocl.c11Buf);
-
-    /*for (int i = 0; i < 1; i++) {
-        for (int j = 0; j < c1h; j++) {
-            for (int k = 0; k < c1w; k++) {
-                printf("%d, %d, %d: %f ", i, j, k, result1[(i * c1h * c1w) + (j * c1w) + k]);
-            }
-            printf("\n");
-        }
-    }       */
-    /*ocl.buf_read(c1w, c1h, c1d, inM, ocl.c11Buf);
-    for (int i=0; i<3; i++) {
-        for (int j=0; j<6; j++) {
-            for (int k=0; k<6; k++) {
-                printf("%d, %d, %d: %f ", i, j, k, inM[(i * c1h * c1w) + (j * c1w) + k]);
-            }
-            printf("\n");
-        }
-    }*/
-
     //convolution 1-2
     ocl.convolution3_abft(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
                           ocl.icsBuf, ocl.w12sBuffer, ocl.b12sBuffer, ocl.ocsBuf,
                           c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d, 2);
 
-    /*ocl.buf_read(3, 3, (c1d * c1d), outW, ocl.w12Buffer);
-    for (int h = 0; h < 3; h++) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                for (int k = 0; k < 3; k++) {
-                    printf("%d, %d, %d, %d: %f ",h, i, j, k, outW[(h * c1d * k1 * k1) + (i * k1 * k1) + (j * k1) + k]);
-                }
-                printf("\n");
-            }
-        }
-    }*/
-
-    /*ocl.buf_read(1, 1, (c1d), outB, ocl.b12Buffer);
-    for (int i = 0; i < 64; i++) {
-        printf("%d, %f ", i, outB[i]);
-    }
-    printf("\n");*/
-
-
-    /*ocl.buf_read(c1w, c1h, c1d, outR, ocl.c12Buf);
-    for (int i=0; i<3; i++) {
-        for (int j=0; j<6; j++) {
-            for (int k=0; k<6; k++) {
-                printf("%d, %d, %d: %f ", i, j, k, outR[(i * c1h * c1w) + (j * c1w) + k]);
-                if (result1[(i * c1h * c1w) + (j * c1w) + k] > 100) {
-                    printf("%d, %d, %d: %f ", i, j, k, result1[(i * c1h * c1w) + (j * c1w) + k]);
-                }
-
-            }
-            printf("\n");
-        }
-        //printf("\n");
-        //printf("\n");
-    }
-    //printf("\n");*/
-
     ocl.relu_dmr(ocl.c12Buf, ocl.c1dBuf, ocl.c11Buf, c1w, c1h, c1d, 3);
 
     //max pool 1
     ocl.maxpool_dmr(ocl.c11Buf, ocl.c2dBuf, ocl.c21Buf, c1w, c1h, c1d, 2, 2, c2w, c2h, 4);
-
 
 
     //conv block 2
@@ -2136,33 +2086,6 @@ int forward_abft() {
     //max pool 3
     ocl.maxpool_dmr(ocl.c31Buf, ocl.c4dBuf, ocl.c41Buf, c3w, c3h, c3d, 2, 2, c4w, c4h, 16);
 
-    /*
-    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
-    outR = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
-    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
-    outB = (double*)malloc((c1d) * sizeof(double));
-
-    ocl.buf_read(c4w, c4h, c4d, outR, ocl.c41Buf);
-
-    for (int i = 0; i < c3d; i++) {
-        for (int j = 0; j < c4h; j++) {
-            for (int k = 0; k < c4w; k++) {
-                //printf("%d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
-            }
-            //printf("\n");
-        }
-    }
-
-    for (int i = 0; i < c3d; i++) {
-        for (int j = 0; j < c4h; j++) {
-            for (int k = 0; k < c4w; k++) {
-                if (outR[(i * c4h * c4w) + (j * c4w) + k] > 1000) {
-                    printf("error! %d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
-                    printf("\n");
-                }
-            }
-        }
-    }*/
 
     //conv block 4
     //convolution 4-1
@@ -2207,36 +2130,9 @@ int forward_abft() {
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
     //max pool 5
-    ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c31Buf, c5w, c5h, c5d, 2, 2, c6w, c6h, 30);
+    ocl.maxpool_dmr(ocl.c51Buf, ocl.c5dBuf, ocl.c61Buf, c5w, c5h, c5d, 2, 2, c6w, c6h, 30);
 
-    /*
-    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
-    outR = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
-    outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
-    outB = (double*)malloc((c1d) * sizeof(double));
 
-    ocl.buf_read(c4w, c4h, c4d, outR, ocl.c41Buf);
-
-    for (int i = 0; i < c3d; i++) {
-        for (int j = 0; j < c4h; j++) {
-            for (int k = 0; k < c4w; k++) {
-                //printf("%d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
-            }
-            //printf("\n");
-        }
-    }
-
-    for (int i = 0; i < c3d; i++) {
-        for (int j = 0; j < c4h; j++) {
-            for (int k = 0; k < c4w; k++) {
-                if (outR[(i * c4h * c4w) + (j * c4w) + k] > 1000) {
-                    printf("error! %d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
-                    printf("\n");
-                }
-            }
-        }
-    }*/
-    
     //mat block
     //matmul 6-1
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
@@ -2255,19 +2151,6 @@ int forward_abft() {
                           ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
                           4096, 1000,  35);
     ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c6rBuf, 1000, 1, 1, 36);
-
-    /*ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
-    //select max output value
-    for (int i=0; i<36;i++) {
-        if (csc[i] > 0.0000000000001) {
-            abftflag = 1;
-        }
-    }*/
-
-    free(inM);
-    free(outR);
-    free(outW);
-    free(outB);
 
     return abftflag;
 }
@@ -2399,7 +2282,7 @@ int main() {
     }*/
 
     ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
-    printf("Result: \n");
+    printf("abft Result: \n");
     for (int i=0; i<30;i++) {
         printf("%f ", matrixR6[i]);
     }
@@ -2415,15 +2298,41 @@ int main() {
             maxind = i;
         }
     }
+    printf("abft prediction: %d", maxind);
+    printf("\n");
+
+    //running the model and examining results
+    for (int i=0;i<1;i++) {
+        forward();
+    }
+
+    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
+
+    printf("abft Result: \n");
+    for (int i=0; i<30;i++) {
+        printf("%f ", matrixR6[i]);
+    }
+    printf("\n ");
+
+    //select max output value
+    max = 0;
+    maxind = 0;
+    for (int i=0; i<1000;i++) {
+        //printf("%f ", matrixR6[(i * 10) + j]);
+        if (matrixR6[i] > max) {
+            max = matrixR6[i];
+            maxind = i;
+        }
+    }
     printf("prediction: %d", maxind);
     printf("\n");
 
-/*
+
     double time1 = 0;
     double time2 = 0;
 
     //checking non-abft runtime
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 100; i++) {
         result = Program_sw.runProgram(predict);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2431,7 +2340,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 100; i++) {
         result = Program_sw.runProgram(predictAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2441,25 +2350,8 @@ int main() {
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
 
 
-    //running the model and examining results
-    for (int i=0;i<1;i++) {
-        forward();
-    }
 
-    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
-    //select max output value
-    max = 0;
-    maxind = 0;
-    for (int i=0; i<1000;i++) {
-            //printf("%f ", matrixR6[(i * 10) + j]);
-            if (matrixR6[i] > max) {
-                max = matrixR6[i];
-                maxind = i;
-            }
-    }
-    printf("prediction: %d", maxind);
-    printf("\n");
-    */
+
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;

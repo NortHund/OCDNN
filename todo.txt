@@ -17,4 +17,6 @@ mystery bug still persists in 4-1 and forward
 mystery bug fixed between layers 1-1 and 6-1, was related to max pool wrong kernel size (4 instead of 2)
 so it was selecting max values out of bounds
 mystery bug still exists in flatmat layers, also output from previous layers doesn't affect flatmat for some reason
+mystery bug in flatmat was related to wrong buffers being used for input/output, easy fix
 
+mystery bug should be fixed in all layers now
