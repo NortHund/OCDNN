@@ -147,6 +147,8 @@ double* matrixResult7;
 double* matrixResult8;
 double* matrixResult9;
 
+int* ref_prediction;
+
 int abft_err = 0;
 
 int freememory() {
@@ -211,6 +213,8 @@ int freememory() {
     free(matrixResult7);
     free(matrixResult8);
     free(matrixResult9);
+
+    free(ref_prediction);
 
     free(matrixW11sum);
     free(matrixW12sum);
@@ -356,6 +360,8 @@ static void createVectors()
     matrixResult8 = (double*)malloc(1000 * sizeof(double));
     matrixResult9 = (double*)malloc(1000 * sizeof(double));
 
+    ref_prediction = (int*)malloc(10 * sizeof(int));
+
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
         matrixL00double[i] = 0;
         matrixL01double[i] = 0;
@@ -371,7 +377,7 @@ static void createVectors()
 
 }
 
-static void save_result(int index) {
+static void save_result() {
     //in0
     FILE *fp = fopen(("../../source-data/result0.bin"), "wb");
     fwrite(matrixResult0, (1000) * sizeof(double), 1, fp);
@@ -420,6 +426,11 @@ static void save_result(int index) {
     //in9
     fp = fopen(("../../source-data/result9.bin"), "wb");
     fwrite(matrixResult9, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //reference predictions
+    fp = fopen(("../../source-data/predictions.bin"), "wb");
+    fwrite(ref_prediction, (10) * sizeof(int), 1, fp);
     fclose(fp);
 
 }
@@ -473,6 +484,11 @@ static void load_result() {
     //in9
     fp = fopen("../../source-data/result9.bin", "rb");
     fread(matrixResult9, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //reference predictions
+    fp = fopen(("../../source-data/predictions.bin"), "rb");
+    fread(ref_prediction, (10) * sizeof(int), 1, fp);
     fclose(fp);
 }
 
@@ -2593,9 +2609,85 @@ struct PredictImages_abft : public IProgram {
 
         printf("predictions: \n");
         for (int i =0; i <10; i++) {
+            ref_prediction[i] = maxind[i]; //todo remove this
             printf("%d ", maxind[i]);
         }
         printf("\n");
+
+        return 1;
+    }
+};
+
+struct PredictImages_ec : public IProgram {
+    int run() override {
+        int maxind[10];
+
+        maxind[0] = predictImage_abft(matrixL00double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult0[i]) {
+                printf("Input 0 output error! o: %f, ref:%f \n", matrixResult0[i], matrixR6[i]);
+            }
+        }
+        maxind[1] = predictImage_abft(matrixL01double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult1[i]) {
+                printf("Input 1 output error! o: %f, ref:%f \n", matrixResult1[i], matrixR6[i]);
+            }
+        }
+        maxind[2] = predictImage_abft(matrixL02double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult2[i]) {
+                printf("Input 2 output error! o: %f, ref:%f \n", matrixResult2[i], matrixR6[i]);
+            }
+        }
+        maxind[3] = predictImage_abft(matrixL03double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult3[i]) {
+                printf("Input 3 output error! o: %f, ref:%f \n", matrixResult3[i], matrixR6[i]);
+            }
+        }
+        maxind[4] = predictImage_abft(matrixL04double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult4[i]) {
+                printf("Input 4 output error! o: %f, ref:%f \n", matrixResult4[i], matrixR6[i]);
+            }
+        }
+        maxind[5] = predictImage_abft(matrixL05double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult5[i]) {
+                printf("Input 5 output error! o: %f, ref:%f \n", matrixResult5[i], matrixR6[i]);
+            }
+        }
+        maxind[6] = predictImage_abft(matrixL06double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult6[i]) {
+                printf("Input 6 output error! o: %f, ref:%f \n", matrixResult6[i], matrixR6[i]);
+            }
+        }
+        maxind[7] = predictImage_abft(matrixL07double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult7[i]) {
+                printf("Input 7 output error! o: %f, ref:%f \n", matrixResult7[i], matrixR6[i]);
+            }
+        }
+        maxind[8] = predictImage_abft(matrixL08double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult8[i]) {
+                printf("Input 8 output error! o: %f, ref:%f \n", matrixResult8[i], matrixR6[i]);
+            }
+        }
+        maxind[9] = predictImage_abft(matrixL09double, matrixR6);
+        for (int i=0; i<1000;i++) {
+            if (matrixR6[i] != matrixResult9[i]) {
+                printf("Input 9 output error! o: %f, ref:%f \n", matrixResult9[i], matrixR6[i]);
+            }
+        }
+
+        for (int i =0; i <10; i++) {
+            if (maxind[i] != ref_prediction[i]) {
+                printf("Prediction error! p: %d, ref:%d \n", maxind[i], ref_prediction[i]);
+            }
+        }
 
         return 1;
     }
@@ -2619,6 +2711,7 @@ int main() {
     Predict_abft predictAbft;
     PredictImages predictImages;
     PredictImages_abft predictImagesAbft;
+    PredictImages_ec predictImages_ec;
 
     int result = 0;
 
@@ -2638,13 +2731,14 @@ int main() {
         matrixL00double[i] = 1;
     }*/
 
+    /*
     ocl.write_image(matrixL00double);
 
-        int abfttrigger = 0;
+    int abfttrigger = 0;
 
-    /*for (int k = 0; k < 100; k++) {
-        printf("%d, %f", k, matrixW11double[k]);
-    }*/
+    //for (int k = 0; k < 100; k++) {
+    //   printf("%d, %f", k, matrixW11double[k]);
+    //}
 
     //abft
     for (int i=0;i<1;i++) {
@@ -2666,7 +2760,7 @@ int main() {
     }
 
 
-    /*printf("csc: \n ");
+    printf("csc: \n ");
     for (int i=0; i<36;i++) {
         printf("%d: %f ", i, csc[i]);
         if (fabs(csc[i]) > 0.1) {
@@ -2676,7 +2770,7 @@ int main() {
     printf("\n");
     if (abfttrigger == 1) {
         printf("ABFT flag triggered! \n");
-    }*/
+    }
 
     ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
     printf("abft Result: \n");
@@ -2745,9 +2839,11 @@ int main() {
     std::cout << "Elapsed time: " << time2 << " us" << std::endl;
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
+    */
+    //new part
 
-    time1 = 0;
-    time2 = 0;
+    double time1 = 0;
+    double time2 = 0;
     //checking non-abft runtime
     for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImages);
@@ -2766,7 +2862,15 @@ int main() {
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
 
+    //save_result();
 
+    load_result();
+
+    //checking abft overhead
+    for (int i= 0; i < 1; i++) {
+        result = Program_sw.runProgram(predictImages_ec);
+    }
+    std::cout << "single prediction with ec: " << result << std::endl;
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
