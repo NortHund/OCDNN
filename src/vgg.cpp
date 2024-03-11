@@ -2862,6 +2862,8 @@ int main() {
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
 
+
+    //error-checking part
     //save_result();
 
     load_result();
