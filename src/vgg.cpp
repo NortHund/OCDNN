@@ -1,4 +1,5 @@
 #include "vgg.h"
+#include <string>
 
 int layer0w = 224;
 int layer0h = 224;
@@ -46,7 +47,16 @@ int c3pad = 1;
 int c4pad = 1;
 int c5pad = 1;
 
-double* matrixL0double;
+double* matrixL00double;
+double* matrixL01double;
+double* matrixL02double;
+double* matrixL03double;
+double* matrixL04double;
+double* matrixL05double;
+double* matrixL06double;
+double* matrixL07double;
+double* matrixL08double;
+double* matrixL09double;
 
 double* matrixW11double;
 double* matrixW12double;
@@ -126,12 +136,30 @@ double* matrixR3;
 double* matrixR4;
 double* matrixR5;
 double* matrixR6;
-double* matrixResult;
+double* matrixResult0;
+double* matrixResult1;
+double* matrixResult2;
+double* matrixResult3;
+double* matrixResult4;
+double* matrixResult5;
+double* matrixResult6;
+double* matrixResult7;
+double* matrixResult8;
+double* matrixResult9;
 
 int abft_err = 0;
 
 int freememory() {
-    free(matrixL0double);
+    free(matrixL00double);
+    free(matrixL01double);
+    free(matrixL02double);
+    free(matrixL03double);
+    free(matrixL04double);
+    free(matrixL05double);
+    free(matrixL06double);
+    free(matrixL07double);
+    free(matrixL08double);
+    free(matrixL09double);
 
     free(matrixW11double);
     free(matrixW12double);
@@ -173,7 +201,16 @@ int freememory() {
     free(matrixR4);
     free(matrixR5);
     free(matrixR6);
-    free(matrixResult);
+    free(matrixResult0);
+    free(matrixResult1);
+    free(matrixResult2);
+    free(matrixResult3);
+    free(matrixResult4);
+    free(matrixResult5);
+    free(matrixResult6);
+    free(matrixResult7);
+    free(matrixResult8);
+    free(matrixResult9);
 
     free(matrixW11sum);
     free(matrixW12sum);
@@ -216,7 +253,16 @@ int freememory() {
 
 static void createVectors()
 {
-    matrixL0double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL00double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL01double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL02double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL03double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL04double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL05double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL06double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL07double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL08double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
+    matrixL09double = (double*)malloc((layer0d) * (layer0w * layer0h) * sizeof(double));
 
     matrixW11double = (double*)malloc((layer0d) * (c1d) * (k1 * k1) * sizeof(double));
     matrixW12double = (double*)malloc((c1d) * (c1d) * (k1 * k1) * sizeof(double));
@@ -299,25 +345,134 @@ static void createVectors()
     matrixR4 = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
     matrixR5 = (double*)malloc((c5d) * (c5w * c5h) * sizeof(double));
     matrixR6 = (double*)malloc(1000 * sizeof(double));
-    matrixResult = (double*)malloc(1000 * sizeof(double));
+    matrixResult0 = (double*)malloc(1000 * sizeof(double));
+    matrixResult1 = (double*)malloc(1000 * sizeof(double));
+    matrixResult2 = (double*)malloc(1000 * sizeof(double));
+    matrixResult3 = (double*)malloc(1000 * sizeof(double));
+    matrixResult4 = (double*)malloc(1000 * sizeof(double));
+    matrixResult5 = (double*)malloc(1000 * sizeof(double));
+    matrixResult6 = (double*)malloc(1000 * sizeof(double));
+    matrixResult7 = (double*)malloc(1000 * sizeof(double));
+    matrixResult8 = (double*)malloc(1000 * sizeof(double));
+    matrixResult9 = (double*)malloc(1000 * sizeof(double));
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
-        matrixL0double[i] = 0;
+        matrixL00double[i] = 0;
+        matrixL01double[i] = 0;
+        matrixL02double[i] = 0;
+        matrixL03double[i] = 0;
+        matrixL04double[i] = 0;
+        matrixL05double[i] = 0;
+        matrixL06double[i] = 0;
+        matrixL07double[i] = 0;
+        matrixL08double[i] = 0;
+        matrixL09double[i] = 0;
     }
 
 }
 
-static void save_result() {
-    //1-1
-    FILE *fp = fopen("../../source-data/result.bin", "wb");
-    fwrite(matrixR6, (1000) * sizeof(double), 1, fp);
+static void save_result(int index) {
+    //in0
+    FILE *fp = fopen(("../../source-data/result0.bin"), "wb");
+    fwrite(matrixResult0, (1000) * sizeof(double), 1, fp);
     fclose(fp);
+
+    //in1
+    fp = fopen(("../../source-data/result1.bin"), "wb");
+    fwrite(matrixResult1, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in2
+    fp = fopen(("../../source-data/result2.bin"), "wb");
+    fwrite(matrixResult2, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in3
+    fp = fopen(("../../source-data/result3.bin"), "wb");
+    fwrite(matrixResult3, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in4
+    fp = fopen(("../../source-data/result4.bin"), "wb");
+    fwrite(matrixResult4, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in5
+    fp = fopen(("../../source-data/result5.bin"), "wb");
+    fwrite(matrixResult5, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in6
+    fp = fopen(("../../source-data/result6.bin"), "wb");
+    fwrite(matrixResult6, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in7
+    fp = fopen(("../../source-data/result7.bin"), "wb");
+    fwrite(matrixResult7, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in8
+    fp = fopen(("../../source-data/result8.bin"), "wb");
+    fwrite(matrixResult8, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in9
+    fp = fopen(("../../source-data/result9.bin"), "wb");
+    fwrite(matrixResult9, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
 }
 
 static void load_result() {
-    //1-1
-    FILE *fp = fopen("../../source-data/result.bin", "rb");
-    fread(matrixResult, (1000) * sizeof(double), 1, fp);
+    //in0
+    FILE *fp = fopen("../../source-data/result0.bin", "rb");
+    fread(matrixResult0, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in1
+    fp = fopen("../../source-data/result1.bin", "rb");
+    fread(matrixResult1, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in2
+    fp = fopen("../../source-data/result2.bin", "rb");
+    fread(matrixResult2, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in3
+    fp = fopen("../../source-data/result3.bin", "rb");
+    fread(matrixResult3, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in4
+    fp = fopen("../../source-data/result4.bin", "rb");
+    fread(matrixResult4, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in5
+    fp = fopen("../../source-data/result5.bin", "rb");
+    fread(matrixResult5, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in6
+    fp = fopen("../../source-data/result6.bin", "rb");
+    fread(matrixResult6, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in7
+    fp = fopen("../../source-data/result7.bin", "rb");
+    fread(matrixResult7, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in8
+    fp = fopen("../../source-data/result8.bin", "rb");
+    fread(matrixResult8, (1000) * sizeof(double), 1, fp);
+    fclose(fp);
+
+    //in9
+    fp = fopen("../../source-data/result9.bin", "rb");
+    fread(matrixResult9, (1000) * sizeof(double), 1, fp);
     fclose(fp);
 }
 
@@ -1800,19 +1955,95 @@ int load_image(const char* filename)
     printf("\n");*/
 
     for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
-        matrixL0double[i] = L0char[i];
+        matrixL00double[i] = L0char[i];
     }
 
     //converting image to format used by the model
     for (int j = 0; j < (layer0h); j++) {
         for (int k = 0; k < (layer0w); k++) {
             for (int i = 0; i < (layer0d); i++) {
-                matrixL0double[(i * c1h * c1w) + (j * c1w) + k] = L0char[(j * layer0d * c1w) + k + i];
+                matrixL00double[(i * c1h * c1w) + (j * c1w) + k] = L0char[(j * layer0d * c1w) + k + i];
             }
         }
     }
 
 
+
+    return 1;
+}
+
+int load_images(const char* filename0, const char* filename1, const char* filename2,
+                const char* filename3, const char* filename4, const char* filename5,
+                const char* filename6, const char* filename7, const char* filename8,
+                const char* filename9)
+{
+    std::vector<unsigned char> L00char;
+    std::vector<unsigned char> L01char;
+    std::vector<unsigned char> L02char;
+    std::vector<unsigned char> L03char;
+    std::vector<unsigned char> L04char;
+    std::vector<unsigned char> L05char;
+    std::vector<unsigned char> L06char;
+    std::vector<unsigned char> L07char;
+    std::vector<unsigned char> L08char;
+    std::vector<unsigned char> L09char;
+
+    unsigned width;
+    unsigned height;
+
+    //unsigned output = lodepng_decode32_file(&L0char,&width, &height, filename);
+    unsigned output = lodepng::decode(L00char, width, height, filename0);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L01char, width, height, filename1);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L02char, width, height, filename2);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L03char, width, height, filename3);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L04char, width, height, filename4);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L05char, width, height, filename5);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L06char, width, height, filename6);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L07char, width, height, filename7);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L08char, width, height, filename8);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    output = lodepng::decode(L09char, width, height, filename9);
+    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
+
+    /*for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
+        matrixL00double[i] = L00char[i];
+    }*/
+
+    //converting image to format used by the model
+    for (int i = 0; i < (layer0d); i++) {
+        for (int j = 0; j < (layer0h); j++) {
+            for (int k = 0; k < (layer0w); k++) {
+                    matrixL00double[(i * c1h * c1w) + (j * c1w) + k] = L00char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL01double[(i * c1h * c1w) + (j * c1w) + k] = L01char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL02double[(i * c1h * c1w) + (j * c1w) + k] = L02char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL03double[(i * c1h * c1w) + (j * c1w) + k] = L03char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL04double[(i * c1h * c1w) + (j * c1w) + k] = L04char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL05double[(i * c1h * c1w) + (j * c1w) + k] = L05char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL06double[(i * c1h * c1w) + (j * c1w) + k] = L06char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL07double[(i * c1h * c1w) + (j * c1w) + k] = L07char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL08double[(i * c1h * c1w) + (j * c1w) + k] = L08char[(j * 4 * c1w) + (k * 4) + i];
+                    matrixL09double[(i * c1h * c1w) + (j * c1w) + k] = L09char[(j * 4 * c1w) + (k * 4) + i];
+
+            }
+        }
+    }
 
     return 1;
 }
@@ -1824,8 +2055,8 @@ int normalize_image()
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 224; j++) {
             for (int k = 0; k < 224; k++) {
-                mean += matrixL0double[(i * c1h * c1w) + (j * c1w) + k];
-                std += matrixL0double[(i * c1h * c1w) + (j * c1w) + k] * matrixL0double[(i * c1h * c1w) + (j * c1w) + k];
+                mean += matrixL00double[(i * c1h * c1w) + (j * c1w) + k];
+                std += matrixL00double[(i * c1h * c1w) + (j * c1w) + k] * matrixL00double[(i * c1h * c1w) + (j * c1w) + k];
             }
         }
     }
@@ -1836,11 +2067,65 @@ int normalize_image()
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 224; j++) {
             for (int k = 0; k < 224; k++) {
-                testIn = (matrixL0double[(i * c1h * c1w) + (j * c1w) + k] - mean) / std;
-                matrixL0double[(i * c1h * c1w) + (j * c1w) + k] = testIn;
+                testIn = (matrixL00double[(i * c1h * c1w) + (j * c1w) + k] - mean) / std;
+                matrixL00double[(i * c1h * c1w) + (j * c1w) + k] = testIn;
             }
         }
     }
+
+}
+
+int normalize_images(double* matrix)
+{
+    const long sz = 3*224*224;
+    double mean = 0, std = 0;
+    double val = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 224; j++) {
+            for (int k = 0; k < 224; k++) {
+                val = matrix[(i * c1h * c1w) + (j * c1w) + k];
+                mean += val;
+                std += val * val;
+            }
+        }
+    }
+
+    mean /= sz;
+    std = sqrt(std / sz - mean * mean);
+    double testIn = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 224; j++) {
+            for (int k = 0; k < 224; k++) {
+                testIn = (matrix[(i * c1h * c1w) + (j * c1w) + k] - mean) / std;
+                matrix[(i * c1h * c1w) + (j * c1w) + k] = testIn;
+            }
+        }
+    }
+
+}
+
+static void load_inputs() {
+    load_images("../../source-img/in0.png",
+                "../../source-img/in1.png",
+                "../../source-img/in2.png",
+                "../../source-img/in3.png",
+                "../../source-img/in4.png",
+                "../../source-img/in5.png",
+                "../../source-img/in6.png",
+                "../../source-img/in7.png",
+                "../../source-img/in8.png",
+                "../../source-img/in9.png");
+
+    normalize_images(matrixL00double);
+    normalize_images(matrixL01double);
+    normalize_images(matrixL02double);
+    normalize_images(matrixL03double);
+    normalize_images(matrixL04double);
+    normalize_images(matrixL05double);
+    normalize_images(matrixL06double);
+    normalize_images(matrixL07double);
+    normalize_images(matrixL08double);
+    normalize_images(matrixL09double);
 
 }
 
@@ -1883,22 +2168,22 @@ static void check_layer() {
     double* outB;
 
     inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
-    outR = (double*)malloc((c4d) * (c4w * c4h) * sizeof(double));
+    outR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
     outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
     outB = (double*)malloc((c1d) * sizeof(double));
 
-    ocl.buf_read(c4w, c4h, c4d, outR, ocl.c41Buf);
+    ocl.buf_read(c1w, c1h, 3, outR, ocl.c11Buf);
 
-    for (int i = 0; i < c3d; i++) {
-        for (int j = 0; j < c4h; j++) {
-            for (int k = 0; k < c4w; k++) {
-                printf("%d, %d, %d: %f ", i, j, k, outR[(i * c4h * c4w) + (j * c4w) + k]);
+    for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < c1h; j++) {
+            for (int k = 0; k < c1w; k++) {
+                printf("%d, %d, %d: %f ", i, j, k, outR[(i * c1h * c1w) + (j * c1w) + k]);
             }
             printf("\n");
         }
     }
 
-    for (int i = 0; i < c3d; i++) {
+    /*for (int i = 0; i < c3d; i++) {
         for (int j = 0; j < c4h; j++) {
             for (int k = 0; k < c4w; k++) {
                 if (outR[(i * c4h * c4w) + (j * c4w) + k] > 1000) {
@@ -1907,7 +2192,7 @@ static void check_layer() {
                 }
             }
         }
-    }
+    }*/
 
     free(inM);
     free(outR);
@@ -1921,7 +2206,9 @@ static void forward() {
     ocl.convolution3(ocl.l0Buffer, ocl.w11Buffer, ocl.b11Buffer, ocl.c12Buf,
                           c1w, c1h, c10d, k1, c1pad, c1w, c1h, c1d);
 
+    //check_layer();
     ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
+    //check_layer();
 
     //convolution 1-2
     ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
@@ -2155,6 +2442,62 @@ int forward_abft() {
     return abftflag;
 }
 
+int predictImage(double* input, double* output) {
+    double max = 0;
+    int maxind;
+
+    //input 0
+    ocl.write_image(input);
+    forward();
+    ocl.buf_read(1, 1, 1000, output, ocl.c6rBuf);
+    //select max output value for non-abft
+
+    for (int i=0; i<1000;i++) {
+        //printf("%f ", matrixR6[(i * 10) + j]);
+        if (output[i] > max) {
+            max = output[i];
+            maxind = i;
+        }
+    }
+
+    return maxind;
+}
+
+int predictImage_abft(double* input, double* output) {
+    int abfttrigger = 0;
+    double max = 0;
+    int maxind;
+
+    ocl.write_image(input);
+    forward_abft();
+    ocl.buf_read(1, 1, 1000, output, ocl.c6rBuf);
+    ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+    //select max output value for abft
+
+    for (int i=0; i<1000;i++) {
+        if (output[i] > max) {
+            max = output[i];
+            maxind = i;
+        }
+    }
+
+    for (int i=0; i<36;i++) {
+        if (fabs(csc[i]) > 0.1) {
+            abfttrigger = 1;
+        }
+    }
+    if (abfttrigger == 1) {
+        printf("ABFT flag triggered! \n");
+        for (int i=0; i<36;i++) {
+            printf("%f ", csc[i]);
+        }
+        printf("\n");
+        abfttrigger = 0;
+    }
+
+    return maxind;
+}
+
 struct Predict : public IProgram {
     int run() override {
         forward();
@@ -2208,6 +2551,56 @@ struct Predict_abft : public IProgram {
     }
 };
 
+struct PredictImages : public IProgram {
+    int run() override {
+        int maxind[10];
+
+        maxind[0] = predictImage(matrixL00double, matrixResult0);
+        maxind[1] = predictImage(matrixL01double, matrixResult1);
+        maxind[2] = predictImage(matrixL02double, matrixResult2);
+        maxind[3] = predictImage(matrixL03double, matrixResult3);
+        maxind[4] = predictImage(matrixL04double, matrixResult4);
+        maxind[5] = predictImage(matrixL05double, matrixResult5);
+        maxind[6] = predictImage(matrixL06double, matrixResult6);
+        maxind[7] = predictImage(matrixL07double, matrixResult7);
+        maxind[8] = predictImage(matrixL08double, matrixResult8);
+        maxind[9] = predictImage(matrixL09double, matrixResult9);
+
+        printf("predictions: \n");
+        for (int i =0; i <10; i++) {
+            printf("%d ", maxind[i]);
+        }
+        printf("\n");
+
+        return 1;
+    }
+};
+
+struct PredictImages_abft : public IProgram {
+    int run() override {
+        int maxind[10];
+
+        maxind[0] = predictImage_abft(matrixL00double, matrixResult0);
+        maxind[1] = predictImage_abft(matrixL01double, matrixResult1);
+        maxind[2] = predictImage_abft(matrixL02double, matrixResult2);
+        maxind[3] = predictImage_abft(matrixL03double, matrixResult3);
+        maxind[4] = predictImage_abft(matrixL04double, matrixResult4);
+        maxind[5] = predictImage_abft(matrixL05double, matrixResult5);
+        maxind[6] = predictImage_abft(matrixL06double, matrixResult6);
+        maxind[7] = predictImage_abft(matrixL07double, matrixResult7);
+        maxind[8] = predictImage_abft(matrixL08double, matrixResult8);
+        maxind[9] = predictImage_abft(matrixL09double, matrixResult9);
+
+        printf("predictions: \n");
+        for (int i =0; i <10; i++) {
+            printf("%d ", maxind[i]);
+        }
+        printf("\n");
+
+        return 1;
+    }
+};
+
 
 int main() {
 
@@ -2224,6 +2617,8 @@ int main() {
     //Program
     Predict predict;
     Predict_abft predictAbft;
+    PredictImages predictImages;
+    PredictImages_abft predictImagesAbft;
 
     int result = 0;
 
@@ -2234,14 +2629,16 @@ int main() {
     //matrixW41sum[4] = 0.4;
     write_layers();
 
-    load_image("../../source-img/in0.png");
-    normalize_image();
+    //load_image("../../source-img/in0.png");
+    //normalize_image();
+
+    load_inputs();
 
     /*for (int i=0; i <(layer0d * layer0h * layer0w) ; i++) {
-        matrixL0double[i] = 1;
+        matrixL00double[i] = 1;
     }*/
 
-    ocl.write_image(matrixL0double);
+    ocl.write_image(matrixL00double);
 
         int abfttrigger = 0;
 
@@ -2332,7 +2729,7 @@ int main() {
     double time2 = 0;
 
     //checking non-abft runtime
-    for (int i= 0; i < 100; i++) {
+    for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predict);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2340,7 +2737,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 100; i++) {
+    for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2349,7 +2746,25 @@ int main() {
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
 
+    time1 = 0;
+    time2 = 0;
+    //checking non-abft runtime
+    for (int i= 0; i < 1; i++) {
+        result = Program_sw.runProgram(predictImages);
+        time1 += Program_sw.getElapsedTime();
+    }
+    std::cout << "single prediction without abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
+    //checking abft overhead
+    for (int i= 0; i < 1; i++) {
+        result = Program_sw.runProgram(predictImagesAbft);
+        time2 += Program_sw.getElapsedTime();
+    }
+    std::cout << "single prediction with abft: " << result << std::endl;
+    std::cout << "Elapsed time: " << time2 << " us" << std::endl;
+    std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
+    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
 
 
 

@@ -1,11 +1,12 @@
 build/*
-output-img/*.png
 output-img/*.txt
 .vscode
 .idea
 .cache
 
 source-data/vggbin/
+source-data/vgg_weights/
+source-data/vgg_sums/
 
 cmake-build-debug/
 
