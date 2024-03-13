@@ -1953,41 +1953,6 @@ private:
 
 OCL ocl;
 
-int load_image(const char* filename)
-{
-    std::vector<unsigned char> L0char;
-
-    unsigned width;
-    unsigned height;
-
-    //unsigned output = lodepng_decode32_file(&L0char,&width, &height, filename);
-    unsigned output = lodepng::decode(L0char, width, height, filename);
-    if (output) std::cout << "decoder error " << output << ": " << lodepng_error_text(output) << std::endl;
-
-
-    /*for (int i = 0; i < 10; i++) {
-        printf("%d ", L0char[i]);
-    }
-    printf("\n");*/
-
-    for (int i = 0; i < (layer0d * layer0h * layer0w); i++) {
-        matrixL00double[i] = L0char[i];
-    }
-
-    //converting image to format used by the model
-    for (int j = 0; j < (layer0h); j++) {
-        for (int k = 0; k < (layer0w); k++) {
-            for (int i = 0; i < (layer0d); i++) {
-                matrixL00double[(i * c1h * c1w) + (j * c1w) + k] = L0char[(j * layer0d * c1w) + k + i];
-            }
-        }
-    }
-
-
-
-    return 1;
-}
-
 int load_images(const char* filename0, const char* filename1, const char* filename2,
                 const char* filename3, const char* filename4, const char* filename5,
                 const char* filename6, const char* filename7, const char* filename8,
@@ -2064,32 +2029,7 @@ int load_images(const char* filename0, const char* filename1, const char* filena
     return 1;
 }
 
-int normalize_image()
-{
-    const long sz = 3*224*224;
-    double mean = 0, std = 0;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 224; j++) {
-            for (int k = 0; k < 224; k++) {
-                mean += matrixL00double[(i * c1h * c1w) + (j * c1w) + k];
-                std += matrixL00double[(i * c1h * c1w) + (j * c1w) + k] * matrixL00double[(i * c1h * c1w) + (j * c1w) + k];
-            }
-        }
-    }
 
-    mean /= sz;
-    std = sqrt(std / sz - mean * mean);
-    double testIn = 0;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 224; j++) {
-            for (int k = 0; k < 224; k++) {
-                testIn = (matrixL00double[(i * c1h * c1w) + (j * c1w) + k] - mean) / std;
-                matrixL00double[(i * c1h * c1w) + (j * c1w) + k] = testIn;
-            }
-        }
-    }
-
-}
 
 int normalize_images(double* matrix)
 {
@@ -2514,58 +2454,6 @@ int predictImage_abft(double* input, double* output) {
     return maxind;
 }
 
-struct Predict : public IProgram {
-    int run() override {
-        forward();
-        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
-        //select max output value for non-abft
-        double max = 0;
-        int maxind = 0;
-        for (int i=0; i<1000;i++) {
-            //printf("%f ", matrixR6[(i * 10) + j]);
-            if (matrixR6[i] > max) {
-                max = matrixR6[i];
-                maxind = i;
-            }
-        }
-        return maxind;
-    }
-};
-
-struct Predict_abft : public IProgram {
-    int run() override {
-        int abfttrigger = 0;
-        forward_abft();
-        ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
-        ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
-
-        //select max output value for non-abft
-        double max = 0;
-        int maxind = 0;
-        for (int i=0; i<1000;i++) {
-            //printf("%f ", matrixR6[(i * 10) + j]);
-            if (matrixR6[i] > max) {
-                max = matrixR6[i];
-                maxind = i;
-            }
-        }
-
-        for (int i=0; i<36;i++) {
-            if (fabs(csc[i]) > 0.1) {
-                abfttrigger = 1;
-            }
-        }
-        if (abfttrigger == 1) {
-            printf("ABFT flag triggered! \n");
-            for (int i=0; i<36;i++) {
-                printf("%f ", csc[i]);
-            }
-            printf("\n");
-            abfttrigger = 0;
-        }
-        return maxind;
-    }
-};
 
 struct PredictImages : public IProgram {
     int run() override {
@@ -2707,8 +2595,6 @@ int main() {
     ProgramStopwatch Program_sw(clock);
 
     //Program
-    Predict predict;
-    Predict_abft predictAbft;
     PredictImages predictImages;
     PredictImages_abft predictImagesAbft;
     PredictImages_ec predictImages_ec;
@@ -2718,129 +2604,10 @@ int main() {
     createVectors();
     copyModel();
     copyWeightSums();
-    //create_weight_sums();
     //matrixW41sum[4] = 0.4;
     write_layers();
 
-    //load_image("../../source-img/in0.png");
-    //normalize_image();
-
     load_inputs();
-
-    /*for (int i=0; i <(layer0d * layer0h * layer0w) ; i++) {
-        matrixL00double[i] = 1;
-    }*/
-
-    /*
-    ocl.write_image(matrixL00double);
-
-    int abfttrigger = 0;
-
-    //for (int k = 0; k < 100; k++) {
-    //   printf("%d, %f", k, matrixW11double[k]);
-    //}
-
-    //abft
-    for (int i=0;i<1;i++) {
-        forward_abft();
-
-        ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
-
-        for (int i=0; i<36;i++) {
-            if (fabs(csc[i]) > 0.1) {
-                abfttrigger = 1;
-                printf("%d: %f ", i, csc[i]);
-            }
-        }
-        if (abfttrigger == 1) {
-            printf("\n");
-            printf("ABFT flag triggered! \n");
-            abfttrigger = 0;
-        }
-    }
-
-
-    printf("csc: \n ");
-    for (int i=0; i<36;i++) {
-        printf("%d: %f ", i, csc[i]);
-        if (fabs(csc[i]) > 0.1) {
-            abfttrigger = 1;
-        }
-    }
-    printf("\n");
-    if (abfttrigger == 1) {
-        printf("ABFT flag triggered! \n");
-    }
-
-    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
-    printf("abft Result: \n");
-    for (int i=0; i<30;i++) {
-        printf("%f ", matrixR6[i]);
-    }
-    printf("\n ");
-
-    //select max output value for abft run
-    double max = 0;
-    int maxind = 0;
-    for (int i=0; i<1000;i++) {
-        //printf("%f ", matrixR6[(i * 10) + j]);
-        if (matrixR6[i] > max) {
-            max = matrixR6[i];
-            maxind = i;
-        }
-    }
-    printf("abft prediction: %d", maxind);
-    printf("\n");
-
-    //running the model and examining results
-    for (int i=0;i<1;i++) {
-        forward();
-    }
-
-    ocl.buf_read(1, 1, 1000, matrixR6, ocl.c6rBuf);
-
-    printf("abft Result: \n");
-    for (int i=0; i<30;i++) {
-        printf("%f ", matrixR6[i]);
-    }
-    printf("\n ");
-
-    //select max output value
-    max = 0;
-    maxind = 0;
-    for (int i=0; i<1000;i++) {
-        //printf("%f ", matrixR6[(i * 10) + j]);
-        if (matrixR6[i] > max) {
-            max = matrixR6[i];
-            maxind = i;
-        }
-    }
-    printf("prediction: %d", maxind);
-    printf("\n");
-
-
-    double time1 = 0;
-    double time2 = 0;
-
-    //checking non-abft runtime
-    for (int i= 0; i < 1; i++) {
-        result = Program_sw.runProgram(predict);
-        time1 += Program_sw.getElapsedTime();
-    }
-    std::cout << "single prediction without abft: " << result << std::endl;
-    std::cout << "Elapsed time: " << time1 << " us" << std::endl;
-
-    //checking abft overhead
-    for (int i= 0; i < 1; i++) {
-        result = Program_sw.runProgram(predictAbft);
-        time2 += Program_sw.getElapsedTime();
-    }
-    std::cout << "single prediction with abft: " << result << std::endl;
-    std::cout << "Elapsed time: " << time2 << " us" << std::endl;
-    std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
-    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
-    */
-    //new part
 
     double time1 = 0;
     double time2 = 0;
