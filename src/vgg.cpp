@@ -151,6 +151,10 @@ int* ref_prediction;
 
 int abft_err = 0;
 
+int total_output_errors = 0;
+int total_prediction_error = 0;
+int total_abft_errors = 0;
+
 int freememory() {
     free(matrixL00double);
     free(matrixL01double);
@@ -2440,6 +2444,7 @@ int predictImage_abft(double* input, double* output) {
     for (int i=0; i<36;i++) {
         if (fabs(csc[i]) > 0.1) {
             abfttrigger = 1;
+            total_abft_errors++; //can be disabled for overhead calcs
         }
     }
     if (abfttrigger == 1) {
@@ -2508,72 +2513,140 @@ struct PredictImages_abft : public IProgram {
 
 struct PredictImages_ec : public IProgram {
     int run() override {
+        int outputError = 0;
+        int totalError = 0;
         int maxind[10];
 
         maxind[0] = predictImage_abft(matrixL00double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult0[i]) {
-                printf("Input 0 output error! o: %f, ref:%f \n", matrixResult0[i], matrixR6[i]);
+                //printf("Input 0 output error! o: %f, ref:%f \n", matrixResult0[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 0 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[1] = predictImage_abft(matrixL01double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult1[i]) {
-                printf("Input 1 output error! o: %f, ref:%f \n", matrixResult1[i], matrixR6[i]);
+                //printf("Input 1 output error! o: %f, ref:%f \n", matrixResult1[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 1 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[2] = predictImage_abft(matrixL02double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult2[i]) {
-                printf("Input 2 output error! o: %f, ref:%f \n", matrixResult2[i], matrixR6[i]);
+                //printf("Input 2 output error! o: %f, ref:%f \n", matrixResult2[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 2 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[3] = predictImage_abft(matrixL03double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult3[i]) {
-                printf("Input 3 output error! o: %f, ref:%f \n", matrixResult3[i], matrixR6[i]);
+                //printf("Input 3 output error! o: %f, ref:%f \n", matrixResult3[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 3 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[4] = predictImage_abft(matrixL04double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult4[i]) {
-                printf("Input 4 output error! o: %f, ref:%f \n", matrixResult4[i], matrixR6[i]);
+                //printf("Input 4 output error! o: %f, ref:%f \n", matrixResult4[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 4 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[5] = predictImage_abft(matrixL05double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult5[i]) {
-                printf("Input 5 output error! o: %f, ref:%f \n", matrixResult5[i], matrixR6[i]);
+                //printf("Input 5 output error! o: %f, ref:%f \n", matrixResult5[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 5 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[6] = predictImage_abft(matrixL06double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult6[i]) {
-                printf("Input 6 output error! o: %f, ref:%f \n", matrixResult6[i], matrixR6[i]);
+                //printf("Input 6 output error! o: %f, ref:%f \n", matrixResult6[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 6 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[7] = predictImage_abft(matrixL07double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult7[i]) {
-                printf("Input 7 output error! o: %f, ref:%f \n", matrixResult7[i], matrixR6[i]);
+                //printf("Input 7 output error! o: %f, ref:%f \n", matrixResult7[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 7 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[8] = predictImage_abft(matrixL08double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult8[i]) {
-                printf("Input 8 output error! o: %f, ref:%f \n", matrixResult8[i], matrixR6[i]);
+                //printf("Input 8 output error! o: %f, ref:%f \n", matrixResult8[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 8 output error! Error count: %d \n", outputError);
+            outputError = 0;
         }
         maxind[9] = predictImage_abft(matrixL09double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult9[i]) {
-                printf("Input 9 output error! o: %f, ref:%f \n", matrixResult9[i], matrixR6[i]);
+                //printf("Input 9 output error! o: %f, ref:%f \n", matrixResult9[i], matrixR6[i]);
+                outputError++;
+                totalError++;
             }
+        }
+        if (outputError > 0) {
+            printf("Input 9 output error! Error count: %d \n", outputError);
+            outputError = 0;
+        }
+        if (totalError > 0) {
+            printf("Total error count: %d \n", totalError);
+            total_output_errors += totalError;
+            totalError = 0;
         }
 
         for (int i =0; i <10; i++) {
             if (maxind[i] != ref_prediction[i]) {
                 printf("Prediction error! p: %d, ref:%d \n", maxind[i], ref_prediction[i]);
+                total_prediction_error++;
             }
         }
 
@@ -2611,12 +2684,13 @@ int main() {
 
     double time1 = 0;
     double time2 = 0;
+    double time3 = 0;
     //checking non-abft runtime
     for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
-    std::cout << "single prediction without abft: " << result << std::endl;
+    std::cout << "prediction: " << result << std::endl;
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
@@ -2624,7 +2698,7 @@ int main() {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
-    std::cout << "single prediction with abft: " << result << std::endl;
+    std::cout << "prediction with abft: " << result << std::endl;
     std::cout << "Elapsed time: " << time2 << " us" << std::endl;
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
     std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
@@ -2638,16 +2712,20 @@ int main() {
     //checking abft overhead
     for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImages_ec);
+        time3 += Program_sw.getElapsedTime();
     }
-    std::cout << "single prediction with ec: " << result << std::endl;
+    std::cout << "prediction with ec: " << result << std::endl;
+    std::cout << "Elapsed time: " << time3 << " us" << std::endl;
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
 
+    printf("Total ABFT error count: %d \n", total_abft_errors);
+    printf("Total output error count: %d \n", total_output_errors);
+    printf("Total prediction error count: %d \n\n", total_prediction_error);
+
     //cleaning bufs and memory allocation
     freememory();
-
-
 
     //print opencl information
     printPlatformInfo(false);
