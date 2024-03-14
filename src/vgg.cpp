@@ -2746,11 +2746,13 @@ int main() {
     for (int i= 0; i < 30; i++) {
         result = Program_sw.runProgram(predictImages_ec);
         time3 += Program_sw.getElapsedTime();
-
+	
+	/*
         printf("Total ABFT error count: %d \n", total_abft_errors);
         printf("Total output error count: %d \n", total_output_errors);
         printf("Total significant output error count: %d \n", total_sig_output_errors);
         printf("Total prediction error count: %d \n\n", total_prediction_error);
+        */
 
     }
     std::cout << "prediction with ec: " << result << std::endl;
