@@ -152,6 +152,7 @@ int* ref_prediction;
 int abft_err = 0;
 
 int total_output_errors = 0;
+int total_sig_output_errors = 0;
 int total_prediction_error = 0;
 int total_abft_errors = 0;
 
@@ -2517,12 +2518,17 @@ struct PredictImages_ec : public IProgram {
         int totalError = 0;
         int maxind[10];
 
+        double diffVal = 0.000000001;
+
         maxind[0] = predictImage_abft(matrixL00double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult0[i]) {
                 //printf("Input 0 output error! o: %f, ref:%f \n", matrixResult0[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult0[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2535,6 +2541,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 1 output error! o: %f, ref:%f \n", matrixResult1[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult1[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2547,6 +2556,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 2 output error! o: %f, ref:%f \n", matrixResult2[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult2[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2559,6 +2571,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 3 output error! o: %f, ref:%f \n", matrixResult3[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult3[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2571,6 +2586,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 4 output error! o: %f, ref:%f \n", matrixResult4[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult4[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2583,6 +2601,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 5 output error! o: %f, ref:%f \n", matrixResult5[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult5[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2595,6 +2616,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 6 output error! o: %f, ref:%f \n", matrixResult6[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult6[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2607,6 +2631,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 7 output error! o: %f, ref:%f \n", matrixResult7[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult7[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2619,6 +2646,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 8 output error! o: %f, ref:%f \n", matrixResult8[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult8[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2631,6 +2661,9 @@ struct PredictImages_ec : public IProgram {
                 //printf("Input 9 output error! o: %f, ref:%f \n", matrixResult9[i], matrixR6[i]);
                 outputError++;
                 totalError++;
+                if (fabs(matrixR6[i] - matrixResult9[i]) > diffVal) {
+                    total_sig_output_errors++;
+                }
             }
         }
         if (outputError > 0) {
@@ -2709,7 +2742,7 @@ int main() {
 
     load_result();
 
-    //checking abft overhead
+    //Prediction with all error detection
     for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImages_ec);
         time3 += Program_sw.getElapsedTime();
@@ -2722,6 +2755,7 @@ int main() {
 
     printf("Total ABFT error count: %d \n", total_abft_errors);
     printf("Total output error count: %d \n", total_output_errors);
+    printf("Total significant output error count: %d \n", total_sig_output_errors);
     printf("Total prediction error count: %d \n\n", total_prediction_error);
 
     //cleaning bufs and memory allocation
