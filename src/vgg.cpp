@@ -2719,7 +2719,7 @@ int main() {
     double time2 = 0;
     double time3 = 0;
     //checking non-abft runtime
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2727,14 +2727,14 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
     std::cout << "prediction with abft: " << result << std::endl;
     std::cout << "Elapsed time: " << time2 << " us" << std::endl;
     std::cout << "Time difference: " << time2 - time1 << " us" << std::endl;
-    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl;
+    std::cout << "abft overhead: " << ((time2 - time1) / time1) << " " << std::endl<< std::endl;
 
 
     //error-checking part
@@ -2743,15 +2743,26 @@ int main() {
     load_result();
 
     //Prediction with all error detection
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 30; i++) {
         result = Program_sw.runProgram(predictImages_ec);
         time3 += Program_sw.getElapsedTime();
+
+        printf("Total ABFT error count: %d \n", total_abft_errors);
+        printf("Total output error count: %d \n", total_output_errors);
+        printf("Total significant output error count: %d \n", total_sig_output_errors);
+        printf("Total prediction error count: %d \n\n", total_prediction_error);
+
     }
     std::cout << "prediction with ec: " << result << std::endl;
     std::cout << "Elapsed time: " << time3 << " us" << std::endl;
 
     sw.saveEndPoint();
     std::cout << "Total elapsed time: " << sw.getElapsedTime() << " us\n" << std::endl;
+
+    std::cout << "Run-times: " << std::endl;
+    std::cout << "Prediction: " << time1 << " us" << std::endl;
+    std::cout << "Prediction with abft: " << time2 << " us" << std::endl;
+    std::cout << "Prediction with EC: " << time2 << " us" << std::endl << std::endl;
 
     printf("Total ABFT error count: %d \n", total_abft_errors);
     printf("Total output error count: %d \n", total_output_errors);
