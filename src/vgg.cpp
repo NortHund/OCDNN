@@ -153,6 +153,7 @@ int abft_err = 0;
 
 int total_output_errors = 0;
 int total_sig_output_errors = 0;
+int total_sig_layer_output_errors = 0;
 int total_prediction_error = 0;
 int total_abft_errors = 0;
 
@@ -965,6 +966,7 @@ public:
     cl_mem icsBuf = nullptr;
     cl_mem ocsBuf = nullptr;
     cl_mem cscBuf = nullptr;
+    cl_mem csczBuf = nullptr;
 
     unsigned create_layers()
     {
@@ -1115,6 +1117,15 @@ public:
                                    36 * sizeof(double),
                                    cscptr,
                                    NULL);
+    }
+
+    unsigned zero_CSC()
+    {
+        cscBuf = clCreateBuffer(_ocl_base->context,
+                                        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                        36 * sizeof(double),
+                                        csc,
+                                        NULL);
     }
 
     unsigned free_bufs()
@@ -2162,6 +2173,17 @@ static void load_inputs() {
 
 }
 
+static void create_layers_ocs() {
+    ocl.create_layers();
+}
+
+static void reset_csc() {
+    for (int i=0; i < 36; i++) {
+        csc[i] = 0;
+    }
+    ocl.zero_CSC();
+}
+
 static void write_layers() {
 
     ocl.create_layers();
@@ -2529,6 +2551,8 @@ int predictImage_abft(double* input, double* output) {
         abfttrigger = 0;
     }
 
+    reset_csc();
+
     return maxind;
 }
 
@@ -2606,6 +2630,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 0 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[1] = predictImage_abft(matrixL01double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2621,6 +2646,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 1 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[2] = predictImage_abft(matrixL02double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2636,6 +2662,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 2 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[3] = predictImage_abft(matrixL03double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2651,6 +2678,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 3 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[4] = predictImage_abft(matrixL04double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2666,6 +2694,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 4 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[5] = predictImage_abft(matrixL05double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2681,6 +2710,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 5 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[6] = predictImage_abft(matrixL06double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2696,6 +2726,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 6 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[7] = predictImage_abft(matrixL07double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2711,6 +2742,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 7 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[8] = predictImage_abft(matrixL08double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2726,6 +2758,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 8 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         maxind[9] = predictImage_abft(matrixL09double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2741,6 +2774,7 @@ struct PredictImages_ec : public IProgram {
         if (outputError > 0) {
             printf("Input 9 output error! Error count: %d \n", outputError);
             outputError = 0;
+            total_sig_layer_output_errors++;
         }
         if (totalError > 0) {
             printf("Total error count: %d \n", totalError);
@@ -2783,6 +2817,7 @@ int main() {
     copyModel();
     copyWeightSums();
     //matrixW41sum[4] = 0.4;
+    //create_layers_ocs();
     write_layers();
 
     load_inputs();
@@ -2815,9 +2850,21 @@ int main() {
     load_result();
 
     //Prediction with all error detection
-    for (int i= 0; i < 3; i++) {
+    for (int i= 0; i < 30; i++) {
+        //createVectors();        
+
+        //copyModel();
+        //copyWeightSums();
+
+        //write_layers();
+
+        //load_inputs();
+
         result = Program_sw.runProgram(predictImages_ec);
         time3 += Program_sw.getElapsedTime();
+        //ocl.free_bufs();
+
+        //freememory();
 	
 	/*
         printf("Total ABFT error count: %d \n", total_abft_errors);
@@ -2841,6 +2888,7 @@ int main() {
     printf("Total ABFT error count: %d \n", total_abft_errors);
     printf("Total output error count: %d \n", total_output_errors);
     printf("Total significant output error count: %d \n", total_sig_output_errors);
+    printf("Total significant output error layers count: %d \n", total_sig_layer_output_errors);
     printf("Total prediction error count: %d \n\n", total_prediction_error);
 
     //cleaning bufs and memory allocation
