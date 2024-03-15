@@ -866,6 +866,8 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_util, "relu"); //4
         _ocl_base->CreateKernelFromProgram(prog_util, "maxpool"); //5
         _ocl_base->CreateKernelFromProgram(prog_util, "flatmat"); //6
+        _ocl_base->CreateKernelFromProgram(prog_util, "relu_d"); //7
+        _ocl_base->CreateKernelFromProgram(prog_util, "maxpool_d"); //8
     }
 
     cl_mem l0Buffer = nullptr;
@@ -1750,10 +1752,43 @@ public:
         return (unsigned)status;
     }
 
+    unsigned relu_d(cl_mem ibuf, cl_mem obuf, int ow, int oh, int od)
+    {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(7), 1, sizeof(cl_mem), (void *) &obuf);
+
+        size_t global_work_size[3]; //and here
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+        global_work_size[2] = od;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(7),
+                                        3, //was this the issue? ugh
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
     unsigned relu_dmr(cl_mem ibuf, cl_mem dbuf, cl_mem obuf, int ow, int oh, int od, int cscInd)
     {
         relu(ibuf, obuf, ow, oh, od);
-        relu(ibuf, dbuf, ow, oh, od); //needs a bigger double buf
+        relu_d(ibuf, dbuf, ow, oh, od);
 
         cs_compare(obuf, dbuf, cscBuf, ow, oh, od, cscInd);
 
@@ -1798,10 +1833,47 @@ public:
         return (unsigned)status;
     }
 
+    unsigned maxpool_d(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh)
+    {
+        cl_int status;
+
+        //Setting buffers to kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(8), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(8), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(8), 2, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(8), 3, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(8), 4, sizeof(int), &kernel_size);
+        status = clSetKernelArg(_ocl_base->GetKernel(8), 5, sizeof(int), &stride);
+
+        size_t global_work_size[3];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+        global_work_size[2] = id;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(8),
+                                        3,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
     unsigned maxpool_dmr(cl_mem ibuf, cl_mem dbuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh, int cscInd)
     {
         maxpool(ibuf, obuf, iw, ih, id, stride, kernel_size, ow, oh);
-        maxpool(ibuf, dbuf, iw, ih, id, stride, kernel_size, ow, oh);
+        maxpool_d(ibuf, dbuf, iw, ih, id, stride, kernel_size, ow, oh);
 
         cs_compare(obuf, dbuf, cscBuf, ow, oh, id, cscInd);
 
@@ -2719,7 +2791,7 @@ int main() {
     double time2 = 0;
     double time3 = 0;
     //checking non-abft runtime
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2727,7 +2799,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2743,7 +2815,7 @@ int main() {
     load_result();
 
     //Prediction with all error detection
-    for (int i= 0; i < 30; i++) {
+    for (int i= 0; i < 3; i++) {
         result = Program_sw.runProgram(predictImages_ec);
         time3 += Program_sw.getElapsedTime();
 	
