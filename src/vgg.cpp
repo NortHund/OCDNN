@@ -1220,7 +1220,7 @@ public:
         clReleaseMemObject(c3dBuf);
         clReleaseMemObject(c4dBuf);
         clReleaseMemObject(c5dBuf);
-        clReleaseMemObject(c6dBuf);;
+        clReleaseMemObject(c6dBuf);
 
         clReleaseMemObject(icsBuf);
         clReleaseMemObject(ocsBuf);
@@ -2826,7 +2826,7 @@ int main() {
     double time2 = 0;
     double time3 = 0;
     //checking non-abft runtime
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2834,7 +2834,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2870,6 +2870,7 @@ int main() {
         printf("Total ABFT error count: %d \n", total_abft_errors);
         printf("Total output error count: %d \n", total_output_errors);
         printf("Total significant output error count: %d \n", total_sig_output_errors);
+        printf("Total significant output error layers count: %d \n", total_sig_layer_output_errors);
         printf("Total prediction error count: %d \n\n", total_prediction_error);
         */
 

@@ -9,6 +9,8 @@ source-data/vgg_weights/
 source-data/vgg_sums/
 
 cmake-build-debug/
+cmake-build-debug-event-trace/
+cmake-build-release/
 
 # Prerequisites
 *.d
