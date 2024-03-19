@@ -870,6 +870,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_util, "relu_d"); //7
         _ocl_base->CreateKernelFromProgram(prog_util, "maxpool_d"); //8
         _ocl_base->CreateKernelFromProgram(prog_util, "flatmat_ics"); //9
+        _ocl_base->CreateKernelFromProgram(prog_cv, "convolution_ic"); //10
     }
 
     cl_mem l0Buffer = nullptr;
@@ -967,6 +968,9 @@ public:
     cl_mem icsBuf = nullptr;
     cl_mem ficBuf = nullptr;
     cl_mem fisBuf = nullptr;
+    cl_mem cicBuf = nullptr;
+    cl_mem cisrBuf = nullptr;
+    cl_mem cisBuf = nullptr;
     cl_mem ocsBuf = nullptr;
     cl_mem cscBuf = nullptr;
     cl_mem csczBuf = nullptr;
@@ -1115,6 +1119,25 @@ public:
                                 nullptr,
                                 NULL);
 
+        cicBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                (28 * 28 * 512) * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        cisrBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                (28 * 28 * 16) * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        cisBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                (28 * 28) * sizeof(double),
+                                nullptr,
+                                NULL);
+
+
         ocsBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
                                 c1h * c1w * sizeof(double),
@@ -1240,6 +1263,9 @@ public:
         clReleaseMemObject(icsBuf);
         clReleaseMemObject(ficBuf);
         clReleaseMemObject(fisBuf);
+        clReleaseMemObject(cicBuf);
+        clReleaseMemObject(cisrBuf);
+        clReleaseMemObject(cisBuf);
         clReleaseMemObject(ocsBuf);
         clReleaseMemObject(cscBuf);
     }
@@ -1729,6 +1755,45 @@ public:
         return (unsigned)status;
     }
 
+    unsigned convolution3_ics(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, int iw, int ih, int id, int k, int pad, int ow, int oh, int od)
+    {
+        cl_int status;
+        //Setting kernel arguments
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 1, sizeof(cl_mem), (void *) &wbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 2, sizeof(cl_mem), (void *) &bbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 3, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 4, sizeof(int), &id);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 5, sizeof(int), &ih);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 6, sizeof(int), &iw);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 7, sizeof(int), &k);
+        status = clSetKernelArg(_ocl_base->GetKernel(10), 8, sizeof(int), &pad);
+
+        size_t global_work_size[3];
+        global_work_size[0] = iw;
+        global_work_size[1] = ih;
+        global_work_size[2] = id;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(10),
+                                        3,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        //kernel_execution_times[0] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
     unsigned convolution3_abft(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icsbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
                                int iw, int ih, int id, int k, int pad, int ow, int oh, int od, int cscInd)
     {
@@ -1743,6 +1808,27 @@ public:
 
         //csc
         cs_compare(icsbuffer, ocsbuffer, cscBuf, ow, oh, 1, cscInd);
+
+        return 1;
+    }
+
+    unsigned convolution3_abft_icr(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icbuffer, cl_mem isrbuffer, cl_mem isbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
+                               int iw, int ih, int id, int k, int pad, int ow, int oh, int od, int cscInd)
+    {
+        //ic
+        convolution3_ics(ibuf, wsbuffer, bsbuf, icbuffer, iw, ih, id, k, pad, ow, oh, od);
+
+        //is
+        output_sum(icbuffer, isbuffer, id, iw, ih);
+
+        //convolution layer
+        convolution3(ibuf, wbuf, bbuf, obuf, iw, ih, id, k, pad, ow, oh, od);
+
+        //ocs
+        output_sum(obuf, ocsbuffer, od, ow, oh);
+
+        //csc
+        cs_compare(isbuffer, ocsbuffer, cscBuf, ow, oh, 1, cscInd);
 
         return 1;
     }
@@ -1822,7 +1908,6 @@ public:
 
         return 1;
     }
-
 
     unsigned maxpool(cl_mem ibuf, cl_mem obuf, int iw, int ih, int id, int stride, int kernel_size, int ow, int oh)
     {
@@ -2495,20 +2580,20 @@ int forward_abft() {
 
     //conv block 4
     //convolution 4-1
-    ocl.convolution3_abft(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
-                          ocl.icsBuf, ocl.w41sBuffer, ocl.b41sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft_icr(ocl.c41Buf, ocl.w41Buffer, ocl.b41Buffer, ocl.c42Buf,
+                              ocl.cicBuf, ocl.cisrBuf, ocl.cisBuf,  ocl.w41sBuffer, ocl.b41sBuffer, ocl.ocsBuf,
                           c4w, c4h, c40d, k4, c4pad, c4w, c4h, c4d, 17); // abft trigger after reboot
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 18);
 
     //convolution 4-2
-    ocl.convolution3_abft(ocl.c41Buf, ocl.w42Buffer, ocl.b42Buffer, ocl.c42Buf,
-                          ocl.icsBuf, ocl.w42sBuffer, ocl.b42sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft_icr(ocl.c41Buf, ocl.w42Buffer, ocl.b42Buffer, ocl.c42Buf,
+                              ocl.cicBuf, ocl.cisrBuf, ocl.cisBuf,  ocl.w42sBuffer, ocl.b42sBuffer, ocl.ocsBuf,
                           c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 19);
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 20);
 
     //convolution 4-3
-    ocl.convolution3_abft(ocl.c41Buf, ocl.w43Buffer, ocl.b43Buffer, ocl.c42Buf,
-                          ocl.icsBuf, ocl.w43sBuffer, ocl.b43sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft_icr(ocl.c41Buf, ocl.w43Buffer, ocl.b43Buffer, ocl.c42Buf,
+                              ocl.cicBuf, ocl.cisrBuf, ocl.cisBuf,  ocl.w43sBuffer, ocl.b43sBuffer, ocl.ocsBuf,
                           c4w, c4h, c4d, k4, c4pad, c4w, c4h, c4d, 21);
     ocl.relu_dmr(ocl.c42Buf, ocl.c4dBuf, ocl.c41Buf, c4w, c4h, c4d, 22);
 
@@ -2518,20 +2603,20 @@ int forward_abft() {
 
     //conv block 5
     //convolution 5-1
-    ocl.convolution3_abft(ocl.c51Buf, ocl.w51Buffer, ocl.b51Buffer, ocl.c52Buf,
-                          ocl.icsBuf, ocl.w51sBuffer, ocl.b51sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft_icr(ocl.c51Buf, ocl.w51Buffer, ocl.b51Buffer, ocl.c52Buf,
+                          ocl.cicBuf, ocl.cisrBuf, ocl.cisBuf, ocl.w51sBuffer, ocl.b51sBuffer, ocl.ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 24);
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 25);
 
     //convolution 5-2
-    ocl.convolution3_abft(ocl.c51Buf, ocl.w52Buffer, ocl.b52Buffer, ocl.c52Buf,
-                          ocl.icsBuf, ocl.w52sBuffer, ocl.b52sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft_icr(ocl.c51Buf, ocl.w52Buffer, ocl.b52Buffer, ocl.c52Buf,
+                              ocl.cicBuf, ocl.cisrBuf, ocl.cisBuf,  ocl.w52sBuffer, ocl.b52sBuffer, ocl.ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 26);
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 27);
 
     //convolution 5-3
-    ocl.convolution3_abft(ocl.c51Buf, ocl.w53Buffer, ocl.b53Buffer, ocl.c52Buf,
-                          ocl.icsBuf, ocl.w53sBuffer, ocl.b53sBuffer, ocl.ocsBuf,
+    ocl.convolution3_abft_icr(ocl.c51Buf, ocl.w53Buffer, ocl.b53Buffer, ocl.c52Buf,
+                              ocl.cicBuf, ocl.cisrBuf, ocl.cisBuf,  ocl.w53sBuffer, ocl.b53sBuffer, ocl.ocsBuf,
                           c5w, c5h, c5d, k5, c5pad, c5w, c5h, c5d, 28);
     ocl.relu_dmr(ocl.c52Buf, ocl.c5dBuf, ocl.c51Buf, c5w, c5h, c5d, 29);
 
@@ -2892,7 +2977,7 @@ int main() {
     double time2 = 0;
     double time3 = 0;
     //checking non-abft runtime
-    for (int i= 0; i < 5; i++) {
+    for (int i= 0; i < 0; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2900,7 +2985,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 5; i++) {
+    for (int i= 0; i < 1; i++) {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2916,7 +3001,7 @@ int main() {
     load_result();
 
     //Prediction with all error detection
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 1; i++) {
         //createVectors();        
 
         //copyModel();

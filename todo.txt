@@ -23,3 +23,6 @@ mystery bug should be fixed in all layers now
 
 Idea: Looppaa koodia eri osiin abft-toteutuksessa ja vertaa virrankulutusta. Mikä osa kuluttaa vähiten virtaa,
 voisiko sitä optimoida rinnakkaistamalla sitä?
+
+Esim: conv3d:ssä voisin jakaa kertolaskut ja yhteenlaskut kahteen eri ytimeen
+nyt rinnakkaisia säikeitä on ulostulojen määrä, sitten voisi olla ulostulojen määrä kertaa sisääntulojen kerrokset

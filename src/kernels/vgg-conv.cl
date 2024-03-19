@@ -29,6 +29,35 @@ __kernel void convolution_double(__global double* input, __global double* weight
   //output[(layer * width * height) + (row * width) + col] = weight[0];
 }
 
+__kernel void convolution_ic(__global double* input, __global double* weight, __global double* bias, __global double* output,
+                                int id, int ih, int iw, int kwh, int pad) {
+    int col = get_global_id(0);
+    int row = get_global_id(1);
+    int layer = get_global_id(2);
+    int width = get_global_size(0);
+    int height = get_global_size(1);
+    int depth = get_global_size(2);
+
+    //padding done for left/up side, but not for right/down side?
+
+    double sum = 0;
+    for (int j = 0; j < kwh; j++) {
+        for (int k = 0; k < kwh; k++) {
+            //checking if location is within bounds
+            if ((row + j - pad) >= 0 && (row + j - pad) < ih &&
+                (col + k - pad) >= 0 && (col + k - pad) < iw) {
+                sum += input[(layer * ih * iw) + ((row + j - pad) * iw) + (col + k - pad)] * weight[(layer * kwh * kwh) + (j * kwh) + k];
+            }
+        }
+    }
+
+    if (layer == 0) {
+        sum += bias[layer];
+    }
+
+    output[(layer * width * height) + (row * width) + col] = sum;
+}
+
 __kernel void input_sum(__global double* input, __global double* output, int depth) {
     int col = get_global_id(0);
     int row = get_global_id(1);
