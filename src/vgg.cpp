@@ -344,8 +344,8 @@ static void createVectors()
 
     ics = (double*)malloc((c1w * c1h) * sizeof(double));
     ocs = (double*)malloc((c1w * c1h) * sizeof(double));
-    csc = (double*)malloc((36) * sizeof(double));
-    for (int i = 0; i < (36); i++) {
+    csc = (double*)malloc((37) * sizeof(double));
+    for (int i = 0; i < (37); i++) {
         csc[i] = 0;
     }
 
@@ -869,6 +869,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_util, "flatmat"); //6
         _ocl_base->CreateKernelFromProgram(prog_util, "relu_d"); //7
         _ocl_base->CreateKernelFromProgram(prog_util, "maxpool_d"); //8
+        _ocl_base->CreateKernelFromProgram(prog_util, "flatmat_ics"); //9
     }
 
     cl_mem l0Buffer = nullptr;
@@ -964,6 +965,8 @@ public:
     cl_mem c6dBuf = nullptr;
 
     cl_mem icsBuf = nullptr;
+    cl_mem ficBuf = nullptr;
+    cl_mem fisBuf = nullptr;
     cl_mem ocsBuf = nullptr;
     cl_mem cscBuf = nullptr;
     cl_mem csczBuf = nullptr;
@@ -1100,6 +1103,18 @@ public:
                                 nullptr,
                                 NULL);
 
+        ficBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                4096 * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        fisBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                10 * sizeof(double),
+                                nullptr,
+                                NULL);
+
         ocsBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
                                 c1h * c1w * sizeof(double),
@@ -1108,13 +1123,13 @@ public:
 
         /*cscBuf = clCreateBuffer(_ocl_base->context,
                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                  36 * sizeof(double),
+                                  37 * sizeof(double),
                                   csc,
                                   NULL);*/
 
         cscBuf = clCreateBuffer(_ocl_base->context,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   36 * sizeof(double),
+                                   37 * sizeof(double),
                                    cscptr,
                                    NULL);
     }
@@ -1123,7 +1138,7 @@ public:
     {
         cscBuf = clCreateBuffer(_ocl_base->context,
                                         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                        36 * sizeof(double),
+                                        37 * sizeof(double),
                                         csc,
                                         NULL);
     }
@@ -1223,6 +1238,8 @@ public:
         clReleaseMemObject(c6dBuf);
 
         clReleaseMemObject(icsBuf);
+        clReleaseMemObject(ficBuf);
+        clReleaseMemObject(fisBuf);
         clReleaseMemObject(ocsBuf);
         clReleaseMemObject(cscBuf);
     }
@@ -1988,11 +2005,47 @@ public:
         return (unsigned)status;
     }
 
-    unsigned flatmat_abft(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icsbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
+    unsigned flatmat_ics(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf,
+                     int iw, int ow)
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 2, sizeof(cl_mem), (void *) &wbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 3, sizeof(cl_mem), (void *) &bbuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(9), 4, sizeof(int), &iw);
+
+        size_t global_work_size[1];
+        global_work_size[0] = ow;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(9),
+                                        1,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned flatmat_abft(cl_mem ibuf, cl_mem wbuf, cl_mem bbuf, cl_mem obuf, cl_mem icbuffer, cl_mem isbuffer, cl_mem wsbuffer, cl_mem bsbuf, cl_mem ocsbuffer,
                           int iw, int ow, int cscInd)
     {
-        //ics
-        flatmat(ibuf, wsbuffer, bsbuf, icsbuffer, iw, 1);
+        //ic
+        flatmat_ics(ibuf, wsbuffer, bsbuf, icbuffer, 32, (iw / 32));
+
+        //is
+        output_sum(icbuffer, isbuffer, (iw / 32), 1, 1);
 
         //matmul
         flatmat(ibuf, wbuf, bbuf, obuf, iw, ow);
@@ -2001,7 +2054,7 @@ public:
         output_sum(obuf, ocsbuffer, ow, 1, 1);
 
         //csc
-        cs_compare(icsbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
+        cs_compare(isbuffer, ocsbuffer, cscBuf, 1, 1, 1, cscInd);
 
         return 1;
     }
@@ -2178,7 +2231,7 @@ static void create_layers_ocs() {
 }
 
 static void reset_csc() {
-    for (int i=0; i < 36; i++) {
+    for (int i=0; i < 37; i++) {
         csc[i] = 0;
     }
     ocl.zero_CSC();
@@ -2222,21 +2275,32 @@ static void check_layer() {
     double* outW;
     double* outB;
 
-    inM = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
-    outR = (double*)malloc((c1d) * (c1w * c1h) * sizeof(double));
+    inM = (double*)malloc(4096 * sizeof(double));
+    outR = (double*)malloc(10 * sizeof(double));
     outW = (double*)malloc((c1d * c1d) * (c1w * c1h) * sizeof(double));
     outB = (double*)malloc((c1d) * sizeof(double));
 
-    ocl.buf_read(c1w, c1h, 3, outR, ocl.c11Buf);
+    ocl.buf_read(1, 1, 4096, inM, ocl.ficBuf);
+    ocl.buf_read(1, 1, 10, outR, ocl.fisBuf);
 
-    for (int i = 0; i < 1; i++) {
+    /*for (int i = 0; i < 1; i++) {
         for (int j = 0; j < c1h; j++) {
             for (int k = 0; k < c1w; k++) {
                 printf("%d, %d, %d: %f ", i, j, k, outR[(i * c1h * c1w) + (j * c1w) + k]);
             }
             printf("\n");
         }
+    }*/
+    for (int k = 0; k < 30; k++) {
+        printf("%d: %f ", k, inM[k]);
     }
+    printf("\n");
+
+    for (int k = 0; k < 10; k++) {
+        printf("%d: %f ", k, outR[k]);
+    }
+    printf("\n");
+
 
     /*for (int i = 0; i < c3d; i++) {
         for (int j = 0; j < c4h; j++) {
@@ -2478,19 +2542,21 @@ int forward_abft() {
     //mat block
     //matmul 6-1
     ocl.flatmat_abft(ocl.c61Buf, ocl.w61Buffer, ocl.b61Buffer, ocl.c62Buf,
-                          ocl.icsBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
+                          ocl.ficBuf, ocl.fisBuf, ocl.w61sBuffer, ocl.b61sBuffer, ocl. ocsBuf,
                           25088, 4096, 31);
     ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, 4096, 1, 1, 32);
 
+    //check_layer();
+
     //matmul 6-2
     ocl.flatmat_abft(ocl.c63Buf, ocl.w62Buffer, ocl.b62Buffer, ocl.c62Buf,
-                          ocl.icsBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
+                     ocl.ficBuf, ocl.fisBuf, ocl.w62sBuffer, ocl.b62sBuffer, ocl. ocsBuf,
                           4096, 4096, 33);
     ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c63Buf, 4096, 1, 1, 34);
 
     //matmul 6-3
     ocl.flatmat_abft(ocl.c63Buf, ocl.w63Buffer, ocl.b63Buffer, ocl.c62Buf,
-                          ocl.icsBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
+                     ocl.ficBuf, ocl.fisBuf, ocl.w63sBuffer, ocl.b63sBuffer, ocl. ocsBuf,
                           4096, 1000,  35);
     ocl.relu_dmr(ocl.c62Buf, ocl.c6dBuf, ocl.c6rBuf, 1000, 1, 1, 36);
 
@@ -2526,7 +2592,7 @@ int predictImage_abft(double* input, double* output) {
     ocl.write_image(input);
     forward_abft();
     ocl.buf_read(1, 1, 1000, output, ocl.c6rBuf);
-    ocl.buf_read(1, 1, 36, csc, ocl.cscBuf);
+    ocl.buf_read(1, 1, 37, csc, ocl.cscBuf);
     //select max output value for abft
 
     for (int i=0; i<1000;i++) {
@@ -2536,7 +2602,7 @@ int predictImage_abft(double* input, double* output) {
         }
     }
 
-    for (int i=0; i<36;i++) {
+    for (int i=0; i<37;i++) {
         if (fabs(csc[i]) > 0.1) {
             abfttrigger = 1;
             total_abft_errors++; //can be disabled for overhead calcs
@@ -2544,7 +2610,7 @@ int predictImage_abft(double* input, double* output) {
     }
     if (abfttrigger == 1) {
         printf("ABFT flag triggered! \n");
-        for (int i=0; i<36;i++) {
+        for (int i=0; i<37;i++) {
             printf("%f ", csc[i]);
         }
         printf("\n");
@@ -2826,7 +2892,7 @@ int main() {
     double time2 = 0;
     double time3 = 0;
     //checking non-abft runtime
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 5; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2834,7 +2900,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 10; i++) {
+    for (int i= 0; i < 5; i++) {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
@@ -2850,7 +2916,7 @@ int main() {
     load_result();
 
     //Prediction with all error detection
-    for (int i= 0; i < 30; i++) {
+    for (int i= 0; i < 10; i++) {
         //createVectors();        
 
         //copyModel();

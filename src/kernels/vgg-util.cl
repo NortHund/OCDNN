@@ -99,3 +99,24 @@ __kernel void flatmat(__global double* input, __global double* output, __global 
     //output[col] = 5;
 
 }
+
+__kernel void flatmat_ics(__global double* input, __global double* output, __global double* weights, __global double* bias, int iw) {
+    int col = get_global_id(0);
+    int width = get_global_size(0);
+
+    double sum = 0;
+
+    for (int x = 0; x < (iw); ++x) {
+        sum += input[(col * iw) + x] * weights[(col * iw) + x];
+        //sum += bias[(col * width) + x];
+        //sum += input[x];
+    }
+
+    if (col == 0) {
+        sum += bias[0];
+    }
+
+    output[col] = sum;
+    //output[col] = 5;
+
+}
