@@ -73,6 +73,23 @@ __kernel void input_sum(__global double* input, __global double* output, int dep
   output[(row * width) + col] = sum;
 }
 
+__kernel void output_r(__global double* input, __global double* output, int depth) {
+    int col = get_global_id(0);
+    int row = get_global_id(1);
+    int layer = get_global_id(2);
+    int width = get_global_size(0);
+    int height = get_global_size(1);
+    int layers = get_global_size(2);
+
+    double sum = 0;
+
+    for (int i = 0; i < depth; i++) {
+      sum += input[(((layer * depth) + i) * height * width) + (row * width) + (col)];
+    }
+
+    output[(layer * height * width) + (row * width) + col] = sum;
+}
+
 __kernel void output_sum(__global double* input, __global double* output, int depth) {
     int col = get_global_id(0);
     int row = get_global_id(1);

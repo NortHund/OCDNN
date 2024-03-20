@@ -871,6 +871,7 @@ public:
         _ocl_base->CreateKernelFromProgram(prog_util, "maxpool_d"); //8
         _ocl_base->CreateKernelFromProgram(prog_util, "flatmat_ics"); //9
         _ocl_base->CreateKernelFromProgram(prog_cv, "convolution_ic"); //10
+        _ocl_base->CreateKernelFromProgram(prog_cv, "output_r"); //11
     }
 
     cl_mem l0Buffer = nullptr;
@@ -971,6 +972,7 @@ public:
     cl_mem cicBuf = nullptr;
     cl_mem cisrBuf = nullptr;
     cl_mem cisBuf = nullptr;
+    cl_mem ocsrBuf = nullptr;
     cl_mem ocsBuf = nullptr;
     cl_mem cscBuf = nullptr;
     cl_mem csczBuf = nullptr;
@@ -1127,7 +1129,7 @@ public:
 
         cisrBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
-                                (28 * 28 * 16) * sizeof(double),
+                                (28 * 28 * 64) * sizeof(double), // todo check dimensions
                                 nullptr,
                                 NULL);
 
@@ -1141,6 +1143,12 @@ public:
         ocsBuf = clCreateBuffer(_ocl_base->context,
                                 CL_MEM_READ_WRITE,
                                 c1h * c1w * sizeof(double),
+                                nullptr,
+                                NULL);
+
+        ocsrBuf = clCreateBuffer(_ocl_base->context,
+                                CL_MEM_READ_WRITE,
+                                (28 * 28 * 64) * sizeof(double),
                                 nullptr,
                                 NULL);
 
@@ -1816,19 +1824,28 @@ public:
                                int iw, int ih, int id, int k, int pad, int ow, int oh, int od, int cscInd)
     {
         //ic
-        convolution3_ics(ibuf, wsbuffer, bsbuf, icbuffer, iw, ih, id, k, pad, ow, oh, od);
+        convolution3_ics(ibuf, wsbuffer, bsbuf, cicBuf, iw, ih, id, k, pad, ow, oh, od);
+
+        //isr
+        output_reduce(cicBuf, cisrBuf, 16, ow, oh, (id / 16));
 
         //is
-        output_sum(icbuffer, isbuffer, id, iw, ih);
+        output_sum(cisrBuf, cisBuf, (id / 16), ow, oh);
+
+        //output_sum(cicBuf, cisBuf, id, iw, ih);
 
         //convolution layer
         convolution3(ibuf, wbuf, bbuf, obuf, iw, ih, id, k, pad, ow, oh, od);
 
+        //ocsr
+        output_reduce(obuf, ocsrBuf, 16, ow, oh, (od / 16));
+
         //ocs
-        output_sum(obuf, ocsbuffer, od, ow, oh);
+        output_sum(ocsrBuf, ocsbuffer, (od / 16), ow, oh);
+        //output_sum(obuf, ocsbuffer, od, ow, oh);
 
         //csc
-        cs_compare(isbuffer, ocsbuffer, cscBuf, ow, oh, 1, cscInd);
+        cs_compare(cisBuf, ocsbuffer, cscBuf, ow, oh, 1, cscInd);
 
         return 1;
     }
@@ -2008,6 +2025,38 @@ public:
         status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
                                         _ocl_base->GetKernel(2),
                                         2,
+                                        NULL,
+                                        global_work_size,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &_event);
+        if (status != CL_SUCCESS) {
+            std::cerr << "ERROR: " <<  getErrorString(status)  << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        //kernel_execution_times[4] = get_kernel_execution_time(_event, _ocl_base->commandQueue);
+
+        return (unsigned)status;
+    }
+
+    unsigned output_reduce(cl_mem ibuf, cl_mem obuf, int id, int ow, int oh, int od)
+    {
+        cl_int status;
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 0, sizeof(cl_mem), (void *) &ibuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 1, sizeof(cl_mem), (void *) &obuf);
+        status = clSetKernelArg(_ocl_base->GetKernel(11), 2, sizeof(int), &id);
+
+        size_t global_work_size[3];
+        global_work_size[0] = ow;
+        global_work_size[1] = oh;
+        global_work_size[2] = od;
+
+        //Enqueueing kernel
+        status = clEnqueueNDRangeKernel(_ocl_base->commandQueue,
+                                        _ocl_base->GetKernel(11),
+                                        3,
                                         NULL,
                                         global_work_size,
                                         NULL,
@@ -2977,7 +3026,7 @@ int main() {
     double time2 = 0;
     double time3 = 0;
     //checking non-abft runtime
-    for (int i= 0; i < 0; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictImages);
         time1 += Program_sw.getElapsedTime();
     }
@@ -2985,7 +3034,7 @@ int main() {
     std::cout << "Elapsed time: " << time1 << " us" << std::endl;
 
     //checking abft overhead
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 10; i++) {
         result = Program_sw.runProgram(predictImagesAbft);
         time2 += Program_sw.getElapsedTime();
     }
