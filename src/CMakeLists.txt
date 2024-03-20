@@ -81,6 +81,17 @@ target_link_libraries(phase5
   compiler_flags
   )
 
+add_executable(lenet5 lenet5.cpp)
+target_link_libraries(lenet5
+        PRIVATE
+        lodepng_wrapper
+        utilities
+        stopwatches
+        occlusion_fill
+        opencl_base
+        compiler_flags
+)
+
 add_executable(vgg vgg.cpp)
 target_link_libraries(vgg
         PRIVATE
@@ -141,6 +152,7 @@ add_dependencies(phase3_conv_f16 copy_kernels)
 add_dependencies(phase4 copy_kernels)
 add_dependencies(phase5 copy_kernels)
 add_dependencies(phase6_main copy_kernels)
+add_dependencies(lenet5 copy_kernels)
 add_dependencies(vgg copy_kernels)
 add_dependencies(imageConvert copy_kernels)
 
