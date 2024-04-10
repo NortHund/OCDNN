@@ -1983,7 +1983,7 @@ int testing_ocl(image *test_data, uint8 *test_label, int abft, int total_size)
     {
         init_mem(abft);
         uint8 l = test_label[i];
-        int p = Predict_ocl(test_data[i], 1, 10);
+        int p = Predict_ocl(test_data[i], abft, 10);
         //printf("prediction ocl: %d \n", p);
         right += l == p;
         acctemp += l == p;
@@ -2152,6 +2152,7 @@ int main() {
 
     for (int i= 0; i < 1000; i++) {
         //ocl_phase2.free_bufs();
+
         init_mem(0);
         load_input_ocl(test_data[i]);
         ocl_phase2.write_image(matrixL0double);
@@ -2163,6 +2164,7 @@ int main() {
 
     for (int i= 0; i < 1000; i++) {
         //ocl_phase2.free_bufs();
+
         init_mem(1);
         load_input_ocl(test_data[i]);
         ocl_phase2.write_image(matrixL0double);
@@ -2179,8 +2181,10 @@ int main() {
     //int right = testing(lenet, test_data, test_label, 100);
     //printf("c++ right: %d / 100 \n", right);
 
-    //int right_ocl = testing_ocl(test_data, test_label, 100);
-    //printf("ocl accuracy: %d / %d \n", right_ocl, 100);
+    //int right_ocl = testing_ocl(test_data, test_label, 0, 10000);
+    //printf("ocl accuracy: %d / %d \n", right_ocl, 10000);
+
+    abft_enable = 1;
 
     for (int i = 0; i < COUNT_TEST; i++) {
         int right_comb = testing_comb(lenet, test_data, test_label, abft_enable,  COUNT_TEST);

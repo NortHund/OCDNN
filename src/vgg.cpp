@@ -151,11 +151,17 @@ int* ref_prediction;
 
 int abft_err = 0;
 
+int abft_error_flag = 0;
+
 int total_output_errors = 0;
 int total_sig_output_errors = 0;
+int total_layer_output_errors = 0;
 int total_sig_layer_output_errors = 0;
 int total_prediction_error = 0;
 int total_abft_errors = 0;
+int total_abft_inference_errors = 0;
+int total_false_negatives = 0;
+int total_sig_false_negatives = 0;
 
 int freememory() {
     free(matrixL00double);
@@ -2723,6 +2729,8 @@ int predictImage_abft(double* input, double* output) {
     double max = 0;
     int maxind;
 
+    abft_error_flag = 0;
+
     ocl.write_image(input);
     forward_abft();
     ocl.buf_read(1, 1, 1000, output, ocl.c6rBuf);
@@ -2743,11 +2751,13 @@ int predictImage_abft(double* input, double* output) {
         }
     }
     if (abfttrigger == 1) {
+        abft_error_flag = 1;
         printf("ABFT flag triggered! \n");
         for (int i=0; i<37;i++) {
             printf("%f ", csc[i]);
         }
         printf("\n");
+        total_abft_inference_errors++;
         abfttrigger = 0;
     }
 
@@ -2811,10 +2821,11 @@ struct PredictImages_abft : public IProgram {
 struct PredictImages_ec : public IProgram {
     int run() override {
         int outputError = 0;
+        int sigOutputError = 0;
         int totalError = 0;
         int maxind[10];
 
-        double diffVal = 0.000000001;
+        double diffVal = 0.000001;
 
         maxind[0] = predictImage_abft(matrixL00double, matrixR6);
         for (int i=0; i<1000;i++) {
@@ -2823,6 +2834,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult0[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2831,7 +2843,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 0 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[1] = predictImage_abft(matrixL01double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult1[i]) {
@@ -2839,6 +2858,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult1[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2847,7 +2867,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 1 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[2] = predictImage_abft(matrixL02double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult2[i]) {
@@ -2855,6 +2882,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult2[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2863,7 +2891,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 2 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[3] = predictImage_abft(matrixL03double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult3[i]) {
@@ -2871,6 +2906,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult3[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2879,7 +2915,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 3 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[4] = predictImage_abft(matrixL04double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult4[i]) {
@@ -2887,6 +2930,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult4[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2895,7 +2939,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 4 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[5] = predictImage_abft(matrixL05double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult5[i]) {
@@ -2903,6 +2954,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult5[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2911,7 +2963,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 5 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[6] = predictImage_abft(matrixL06double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult6[i]) {
@@ -2919,6 +2978,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult6[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2927,7 +2987,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 6 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[7] = predictImage_abft(matrixL07double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult7[i]) {
@@ -2935,6 +3002,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult7[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2943,7 +3011,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 7 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[8] = predictImage_abft(matrixL08double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult8[i]) {
@@ -2951,6 +3026,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult8[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2959,7 +3035,14 @@ struct PredictImages_ec : public IProgram {
             printf("Input 8 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+        }
+        sigOutputError = 0;
         maxind[9] = predictImage_abft(matrixL09double, matrixR6);
         for (int i=0; i<1000;i++) {
             if (matrixR6[i] != matrixResult9[i]) {
@@ -2967,6 +3050,7 @@ struct PredictImages_ec : public IProgram {
                 outputError++;
                 totalError++;
                 if (fabs(matrixR6[i] - matrixResult9[i]) > diffVal) {
+                    sigOutputError++;
                     total_sig_output_errors++;
                 }
             }
@@ -2975,7 +3059,16 @@ struct PredictImages_ec : public IProgram {
             printf("Input 9 output error! Error count: %d \n", outputError);
             outputError = 0;
             total_sig_layer_output_errors++;
+            if (abft_error_flag == 0) {
+                total_false_negatives++;
+            }
         }
+        if ((sigOutputError > 0) && (abft_error_flag == 0)) {
+            total_sig_false_negatives++;
+            sigOutputError = 0;
+        }
+
+
         if (totalError > 0) {
             printf("Total error count: %d \n", totalError);
             total_output_errors += totalError;
@@ -3050,7 +3143,7 @@ int main() {
     load_result();
 
     //Prediction with all error detection
-    for (int i= 0; i < 1; i++) {
+    for (int i= 0; i < 20; i++) {
         //createVectors();        
 
         //copyModel();
@@ -3074,6 +3167,12 @@ int main() {
         printf("Total prediction error count: %d \n\n", total_prediction_error);
         */
 
+        printf("i: %d \n", i);
+        printf("Total ABFT inference error count: %d \n", total_abft_inference_errors);
+
+        printf("Total false negatives count: %d \n", total_false_negatives);
+        printf("Total significant false negatives count: %d \n", total_sig_false_negatives);
+        printf("Total prediction error count: %d \n", total_prediction_error);
     }
     std::cout << "prediction with ec: " << result << std::endl;
     std::cout << "Elapsed time: " << time3 << " us" << std::endl;
@@ -3087,9 +3186,13 @@ int main() {
     std::cout << "Prediction with EC: " << time2 << " us" << std::endl << std::endl;
 
     printf("Total ABFT error count: %d \n", total_abft_errors);
+    printf("Total ABFT inference error count: %d \n\n", total_abft_inference_errors);
     printf("Total output error count: %d \n", total_output_errors);
-    printf("Total significant output error count: %d \n", total_sig_output_errors);
-    printf("Total significant output error layers count: %d \n", total_sig_layer_output_errors);
+    printf("Total significant output error count: %d \n\n", total_sig_output_errors);
+    printf("Total inference output error count: %d \n", total_sig_layer_output_errors);
+    printf("Total significant inference output error count: %d \n\n", total_sig_layer_output_errors);
+    printf("Total false negatives count: %d \n", total_false_negatives);
+    printf("Total significant false negatives count: %d \n\n", total_sig_false_negatives);
     printf("Total prediction error count: %d \n\n", total_prediction_error);
 
     //cleaning bufs and memory allocation

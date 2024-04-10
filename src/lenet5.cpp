@@ -1684,13 +1684,13 @@ static void forward() {
     //check_layer();
 
     //layer 1 -> 2
-    ocl.maxpool(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 2, c2w, c2h);
+    ocl.maxpool(ocl.l1rbBuffer, ocl.l2Buffer, layer1w, layer1h, layer1d, 2, 2, layer2w, layer2h);
 
     //layer 2 -> 3
-    ocl.convolution3(ocl.c11Buf, ocl.w12Buffer, ocl.b12Buffer, ocl.c12Buf,
-                     c1w, c1h, c1d, k1, c1pad, c1w, c1h, c1d);
+    ocl.convolution3(ocl.l2Buffer, ocl.w23Buffer, ocl.b23Buffer, ocl.l3Buffer,
+                     layer2w, layer2h, layer2d, w23w, 0, layer3w, layer3h, layer3d);
 
-    ocl.relu(ocl.c12Buf, ocl.c11Buf, c1w, c1h, c1d);
+    ocl.relu(ocl.l3Buffer, ocl.l3rbBuffer, layer3w, layer3h, layer3d);
 
     //layer 3 -> 4
     ocl.maxpool(ocl.c11Buf, ocl.c21Buf, c1w, c1h, c1d, 2, 2, c2w, c2h);
